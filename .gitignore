@@ -1,0 +1,15 @@
+# Ambientes e históricos de ferramentas de IA
+.codex-history/
+.codex/
+
+# Arquivos de compilação, scripts temporários e dependências locais
+.build/
+node_modules/
+
+# Sistema operacional e editores
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+.vscode/
+.idea/
