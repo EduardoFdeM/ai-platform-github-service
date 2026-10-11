@@ -56,65 +56,50 @@ Fluxo:
 
 Observação: as screenshots atuais ainda podem exibir Epics/Features no Backlog. Para a apresentação, use o board como evidência do processo, mas enfatize To-Do/Doing e a priorização de User Stories. Se houver tempo, substitua o asset do Kanban por um print final filtrado apenas para User Stories.
 
-## User Story atualmente em Doing
-**M2-81 — US1.2.018**
-Criar endpoint `GET /health/github-connectivity` retornando latência e status do GitHub, permitindo detectar rapidamente falhas internas ou de infraestrutura.
+## Status Atual do Projeto e Entregas (MVP)
 
-## User Stories prioritárias (coluna To-Do)
-As USs abaixo constituem a trilha prioritária atual:
+### 1. Unificação de Código e Repositórios
+- Repositório oficial: `EduardoFdeM/ai-platform-github-service`.
+- Repositório absorvido e integrado: `HenriqueRSouza/mod2-github-sync` (histórico de commits e branches unificados na `main`).
+- Registro de absorção: `absorb.lock` na raiz.
 
-- M2-83 — US1.3.009 — handshake `GET /user` na API do GitHub usando PAT.
-- M2-93 — US2.1.019 — endpoint `POST /webhooks/github`.
-- M2-94 — US2.1.020 — validação HMAC-SHA256 do webhook.
-- M2-96 — US2.2.021 — processar commits de eventos push.
-- M2-104 — US2.5.025 — idempotência via `X-GitHub-Delivery`.
-- M2-107 — US3.1.030 — modelo relacional normalizado para dados Git.
-- M2-111 — US3.2.028 — carga inicial do histórico de commits.
-- M2-114 — US3.3.031 — sincronização incremental usando `since`.
-- M2-118 — US3.5.052 — endpoints de commits e métricas/flow.
-- M2-131 — US4.4.040 — IA para avaliar clareza semântica de mensagens de commit.
-- M2-139 — US5.2.044 — Dockerfile multi-stage.
-- M2-141 — US5.3.046 — pipeline de CI com GitHub Actions.
-- M2-147 — US5.6.051 — logging estruturado em JSON.
-- M2-150 — US5.7.016 — timeout, retry e exponential backoff.
-- M2-166 — US054 — Swagger UI/documentação dos endpoints.
-- M2-167 — US059 — `DEPLOYMENT.md` com requisitos e comandos.
-- M2-169 — US097 — teste E2E do fluxo completo.
+### 2. Status das User Stories no YouTrack
+- **Concluídas (Done):**
+  - M2-81 (US1.2.018): Healthcheck e latência de conectividade com GitHub.
+  - M2-83 (US1.3.009): Handshake de autenticação (`POST /api/v1/github/handshake`) validando PAT e escopos OAuth sem persistência.
+  - M2-93 (US2.1.019): Endpoint `POST /api/v1/github/webhooks`.
+  - M2-94 (US2.1.020): Validação de assinatura HMAC-SHA256 (`X-Hub-Signature-256`).
+  - M2-96 (US2.2.021): Processamento e extração de commits em eventos `push`.
+  - M2-104 (US2.5.025): Idempotência e deduplicação via `X-GitHub-Delivery`.
+  - M2-107 (US3.1.030): Modelos relacionais (`Repository`, `Commit`, `WebhookDelivery`).
+  - M2-111 / M2-114: Carga e sincronização de dados Git.
+  - M2-118 (US3.5.052): Endpoints de commits e métricas de fluxo.
+  - M2-139 / M2-141: Dockerfile multi-stage e pipeline de CI no GitHub Actions.
+  - M2-147 / M2-150: Logging estruturado e resiliência com retries.
+  - M2-166 / M2-167: Documentação Swagger e `DEPLOYMENT.md`.
+  - M2-169 (US097): Teste e simulador E2E do fluxo completo de webhooks e commits.
 
-## Fluxo funcional prioritário
-GitHub
-→ autenticação / handshake
-→ Webhooks
-→ validação HMAC
-→ eventos de commit
-→ idempotência
-→ persistência
-→ carga inicial + sincronização incremental
-→ APIs de consulta
-→ analytics / IA
-→ consumo pelos demais módulos.
+### 3. Frontend SPA (Design System Módulo 6)
+- Localização: `/frontend` (React + Vite + TypeScript).
+- Estilização: Integrada com os design tokens oficiais (`tokens.css` do Módulo 6) e ícones Lucide.
+- Recursos implementados:
+  - Header com status do banco e latência do GitHub em tempo real.
+  - Handshake interativo de PAT com avatar e escopos.
+  - Painel de métricas KPI e distribuição de commits.
+  - Simulador interativo de Webhook E2E com cálculo de HMAC-SHA256 no client e feed de eventos em tempo real.
+- Comando de dados demonstrativos: `python manage.py seed_demo_data`.
 
-Em paralelo:
-Docker + CI/CD + logging + resiliência + Swagger + deployment + E2E.
+### 4. Infraestrutura e Nuvem (Azure)
+- Provedor: Microsoft Azure (Assinatura Azure for Students).
+- Recurso: Máquina Virtual Linux (`Standard_D2als_v7` ou `Standard_D2as_v7`, 2 vCPUs).
+- Região: `East US` (Leste dos EUA).
+- Usuário SSH: `azureuser` (chave privada `.pem`).
+- IP Público dinâmico/estático provisionado.
+- Proteção de custos: Auto-shutdown ativo às 22:00/23:00 (UTC-03:00) para preservar o saldo de créditos (R$ 521,94).
+- Orquestração: Docker Compose v2 (`compose.yaml`) executando Django (Gunicorn), Celery Worker, Redis e PostgreSQL.
 
-## Cronograma
-Planejamento no YouTrack:
-- início: 28/08/2026
-- término: 12/11/2026
-- duração aproximada: 11 semanas
+## Próximos Passos (Backlog para próximas sessões)
+1. Gravação do vídeo de demonstração do MVP navegando pelo frontend SPA.
+2. Integração de IA para análise semântica de commits (M2-131).
+3. Conexão com os demais módulos da plataforma de assistente inteligente.
 
-## Protótipo Figma
-Existe um protótipo/PoC no Figma, mas os assets ainda serão adicionados posteriormente.
-
-Quando os arquivos estiverem disponíveis, adicionar:
-- `assets/07-figma-overview.png`
-- `assets/08-figma-flow.png`
-
-O Figma deve ser apresentado como **protótipo/PoC**, não como MVP funcional.
-
-## GitHub
-Se houver screenshot do repositório/README/primeiro commit, adicionar como:
-- `assets/09-github.png`
-
-## AP1
-A apresentação parcial deve resumir as entregas realizadas até agora e durar entre 5 e 10 minutos. O deck deve privilegiar evidências reais do trabalho: YouTrack, Gantt, Kanban e Figma.
