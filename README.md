@@ -33,26 +33,37 @@ Desenvolvido para a disciplina de **Engenharia de Software (2026.2)** — Univer
 cp .env.example .env
 # Configure CREDENTIAL_MASTER_KEY e as variáveis no .env
 docker compose up --build -d
-docker compose exec app python manage.py createsuperuser
+docker compose exec app python manage.py seed_demo_data
 ```
 
 Acesse:
+- **Frontend SPA (Vite):** `http://localhost:5173/` (após subir `npm run dev` na pasta `frontend`)
 - **Swagger UI:** `http://localhost:8000/docs/`
 - **Health Check:** `http://localhost:8000/api/v1/health`
 - **Latência GitHub:** `http://localhost:8000/api/v1/health/github-connectivity`
-- **Dashboard:** `http://localhost:8000/dashboard/`
+- **Dashboard Django:** `http://localhost:8000/dashboard/`
 
 ### Sem Docker (Desenvolvimento Local)
 
-Requer Python 3.12+.
+Requer Python 3.12+ e Node.js 20+.
 
+**1. Backend (Terminal 1):**
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # No Windows: .venv\Scripts\Activate.ps1
+source .venv/bin/activate  # No Windows: .\.venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
 python manage.py migrate
+python manage.py seed_demo_data
 python manage.py runserver
 ```
+
+**2. Frontend SPA (Terminal 2):**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Acesse a aplicação completa do MVP em: `http://localhost:5173/`.
 
 *(Sem `POSTGRES_HOST`, o projeto utiliza SQLite local; para testes síncronos sem Redis, utilize `CELERY_TASK_ALWAYS_EAGER=true`).*
 
