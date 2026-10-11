@@ -13,3 +13,6 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+
+# Staging e repositórios externos temporários (repo-absorb)
+.staging-ref/
