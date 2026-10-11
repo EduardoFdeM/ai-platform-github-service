@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react'
 import {
   Activity,
   AlertCircle,
+  CheckCircle2,
   GitBranch,
   GitCommit,
   KeyRound,
   Moon,
+  PlusCircle,
   RefreshCw,
   Send,
   ShieldCheck,
@@ -66,6 +68,15 @@ export default function App() {
   const [simFile, setSimFile] = useState('frontend/src/App.tsx')
   const [simStatus, setSimStatus] = useState<string | null>(null)
   const [simulating, setSimulating] = useState(false)
+
+  // Sincronização Direta GitHub API (M2-111, M2-114) & Novo Repositório (M2-108)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
+  const [showAddRepo, setShowAddRepo] = useState(false)
+  const [newOwner, setNewOwner] = useState('')
+  const [newName, setNewName] = useState('')
+  const [addRepoLoading, setAddRepoLoading] = useState(false)
+  const [addRepoError, setAddRepoError] = useState<string | null>(null)
 
   // Alternar tema
   useEffect(() => {
@@ -145,6 +156,50 @@ export default function App() {
   }
 
   // Simular e Disparar Webhook com HMAC (M2-93, M2-94, M2-104, M2-169)
+  const handleSyncRepo = async () => {
+    if (!selectedRepo) return
+    setSyncing(true)
+    setSyncMessage('Consultando API do GitHub e sincronizando commits reais...')
+    try {
+      const { status, data } = await api.syncRepository(selectedRepo.id, patToken || undefined)
+      if (status === 200) {
+        setSyncMessage(`Sincronização concluída! ${data.commits_synced} commits reais atualizados diretamente do GitHub.`)
+        await loadRepoData(selectedRepo.id)
+      } else {
+        setSyncMessage(`Erro ao sincronizar: HTTP ${status} - ${(data as any)?.detail || 'Falha na API'}`)
+      }
+    } catch (err: any) {
+      setSyncMessage(`Erro de sincronização: ${err.message}`)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleAddRepo = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newOwner.trim() || !newName.trim()) return
+    setAddRepoLoading(true)
+    setAddRepoError(null)
+    try {
+      const { status, data } = await api.createRepository(newOwner.trim(), newName.trim(), patToken || undefined)
+      if (status === 201) {
+        setRepositories((prev) => [...prev.filter((r) => r.id !== data.id), data])
+        setSelectedRepo(data)
+        setShowAddRepo(false)
+        setNewOwner('')
+        setNewName('')
+        setSyncMessage(`Repositório ${data.full_name} conectado e sincronizado com sucesso!`)
+        await loadRepoData(data.id)
+      } else {
+        setAddRepoError((data as any)?.detail || 'Erro ao conectar repositório.')
+      }
+    } catch (err: any) {
+      setAddRepoError(err.message)
+    } finally {
+      setAddRepoLoading(false)
+    }
+  }
+
   const handleSimulatePush = async () => {
     if (!selectedRepo) return
 
@@ -282,29 +337,143 @@ export default function App() {
               indexação relacional de commits e acompanhamento de SLA para a AI Platform.
             </p>
           </div>
-          {repositories.length > 0 && (
-            <div style={{ minWidth: 240 }}>
-              <label className="form-label">Repositório Ativo:</label>
-              <select
-                className="input-text"
-                value={selectedRepo?.id || ''}
-                onChange={(e) => {
-                  const r = repositories.find((x) => x.id === Number(e.target.value))
-                  if (r) {
-                    setSelectedRepo(r)
-                    loadRepoData(r.id)
-                  }
-                }}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 260 }}>
+            {repositories.length > 0 && (
+              <div>
+                <label className="form-label">Repositório Ativo:</label>
+                <select
+                  className="input-text"
+                  value={selectedRepo?.id || ''}
+                  onChange={(e) => {
+                    const r = repositories.find((x) => x.id === Number(e.target.value))
+                    if (r) {
+                      setSelectedRepo(r)
+                      loadRepoData(r.id)
+                    }
+                  }}
+                >
+                  {repositories.map((repo) => (
+                    <option key={repo.id} value={repo.id}>
+                      {repo.owner}/{repo.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                onClick={handleSyncRepo}
+                disabled={syncing || !selectedRepo}
+                className="btn btn-secondary btn-sm"
+                title="Sincronizar commits reais via API do GitHub"
               >
-                {repositories.map((repo) => (
-                  <option key={repo.id} value={repo.id}>
-                    {repo.owner}/{repo.name}
-                  </option>
-                ))}
-              </select>
+                <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
+                <span>{syncing ? 'Sincronizando...' : 'Sincronizar GitHub'}</span>
+              </button>
+              <button
+                onClick={() => setShowAddRepo((v) => !v)}
+                className="btn btn-secondary btn-sm"
+                title="Conectar outro repositório"
+              >
+                <PlusCircle size={13} />
+                <span>Conectar Repo</span>
+              </button>
             </div>
-          )}
+          </div>
         </div>
+
+        {/* FEEDBACK DE SINCRONIZAÇÃO */}
+        {syncMessage && (
+          <div
+            style={{
+              marginTop: 16,
+              padding: '10px 14px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--color-surface-hover)',
+              border: '1px solid var(--color-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.875rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircle2 size={16} style={{ color: 'var(--color-success)' }} />
+              <span>{syncMessage}</span>
+            </div>
+            <button
+              onClick={() => setSyncMessage(null)}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', opacity: 0.6 }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* FORMULÁRIO DE ADICIONAR REPOSITÓRIO */}
+        {showAddRepo && (
+          <form
+            onSubmit={handleAddRepo}
+            style={{
+              marginTop: 16,
+              padding: 16,
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-primary)',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
+            <strong>Conectar Repositório do GitHub</strong>
+            <p className="card-subtitle">
+              Informe o proprietário e o nome do repositório para cadastrá-lo e importar os commits reais.
+            </p>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <label className="form-label">Owner (ex: EduardoFdeM):</label>
+                <input
+                  type="text"
+                  className="input-text"
+                  placeholder="EduardoFdeM"
+                  value={newOwner}
+                  onChange={(e) => setNewOwner(e.target.value)}
+                  required
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <label className="form-label">Repositório (ex: ai-platform-github-service):</label>
+                <input
+                  type="text"
+                  className="input-text"
+                  placeholder="ai-platform-github-service"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            {addRepoError && (
+              <span style={{ color: 'var(--color-danger)', fontSize: '0.85rem' }}>{addRepoError}</span>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowAddRepo(false)}
+                className="btn btn-secondary btn-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={addRepoLoading}
+                className="btn btn-primary btn-sm"
+              >
+                {addRepoLoading ? 'Importando do GitHub...' : 'Conectar & Sincronizar'}
+              </button>
+            </div>
+          </form>
+        )}
       </section>
 
       {/* KPI METRIC CARDS (M2-118) */}

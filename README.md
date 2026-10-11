@@ -41,7 +41,7 @@ Acesse:
 - **Swagger UI:** `http://localhost:8000/docs/`
 - **Health Check:** `http://localhost:8000/api/v1/health`
 - **Latência GitHub:** `http://localhost:8000/api/v1/health/github-connectivity`
-- **Dashboard Django:** `http://localhost:8000/dashboard/`
+- **Django Admin:** `http://localhost:8000/admin/`
 
 ### Sem Docker (Desenvolvimento Local)
 

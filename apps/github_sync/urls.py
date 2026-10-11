@@ -10,6 +10,7 @@ from .views import (
     github_handshake,
     github_webhook,
     health,
+    repository_sync,
 )
 
 urlpatterns = [
@@ -17,6 +18,7 @@ urlpatterns = [
     path("health/github-connectivity", github_connectivity, name="github-connectivity"),
     path("github/handshake", github_handshake, name="github-handshake"),
     path("repositories", RepositoryListView.as_view(), name="repository-list"),
+    path("repositories/<int:pk>/sync", repository_sync, name="repository-sync"),
     path("webhooks/github", github_webhook, name="github-webhook"),
     path("webhooks/deliveries", WebhookDeliveryListView.as_view(), name="webhook-deliveries"),
     path("commits", CommitListView.as_view(), name="commit-list"),

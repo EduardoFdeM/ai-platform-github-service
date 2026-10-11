@@ -72,7 +72,9 @@ Observação: as screenshots atuais ainda podem exibir Epics/Features no Backlog
   - M2-96 (US2.2.021): Processamento e extração de commits em eventos `push`.
   - M2-104 (US2.5.025): Idempotência e deduplicação via `X-GitHub-Delivery`.
   - M2-107 (US3.1.030): Modelos relacionais (`Repository`, `Commit`, `WebhookDelivery`).
-  - M2-111 / M2-114: Carga e sincronização de dados Git.
+  - M2-108 (US3.1.031): Cadastro e conexão de repositórios via API e interface SPA.
+  - M2-111 (US3.2.030): Carga inicial de commits via API REST do GitHub.
+  - M2-114 (US3.3.031): Sincronização incremental de commits e autores reais.
   - M2-118 (US3.5.052): Endpoints de commits e métricas de fluxo.
   - M2-139 / M2-141: Dockerfile multi-stage e pipeline de CI no GitHub Actions.
   - M2-147 / M2-150: Logging estruturado e resiliência com retries.
@@ -84,8 +86,9 @@ Observação: as screenshots atuais ainda podem exibir Epics/Features no Backlog
 - Estilização: Integrada com os design tokens oficiais (`tokens.css` do Módulo 6) e ícones Lucide.
 - Recursos implementados:
   - Header com status do banco e latência do GitHub em tempo real.
+  - Conexão e sincronização real de repositórios do GitHub com 1 clique.
   - Handshake interativo de PAT com avatar e escopos.
-  - Painel de métricas KPI e distribuição de commits.
+  - Painel de métricas KPI e distribuição real de commits por desenvolvedor.
   - Simulador interativo de Webhook E2E com cálculo de HMAC-SHA256 no client e feed de eventos em tempo real.
 - Comando de dados demonstrativos: `python manage.py seed_demo_data`.
 

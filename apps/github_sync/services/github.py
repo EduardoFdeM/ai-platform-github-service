@@ -29,3 +29,12 @@ class GitHubClient:
         response = self.get("/user")
         scopes = {scope.strip() for scope in response.headers.get("X-OAuth-Scopes", "").split(",") if scope.strip()}
         return response.json(), scopes
+
+    def get_repository(self, owner: str, name: str) -> dict:
+        return self.get(f"/repos/{owner}/{name}").json()
+
+    def get_commits(self, owner: str, name: str, since: str = None, per_page: int = 50) -> list:
+        params = {"per_page": per_page}
+        if since:
+            params["since"] = since
+        return self.get(f"/repos/{owner}/{name}/commits", params=params).json()

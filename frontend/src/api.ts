@@ -134,4 +134,22 @@ export const api = {
       headers: { 'Content-Type': 'application/json', ...headers },
       body,
     }),
+
+  syncRepository: (repositoryId: number, token?: string) =>
+    request<{ status: string; repository: string; commits_synced: number }>(
+      `/api/v1/repositories/${repositoryId}/sync`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      }
+    ),
+
+  createRepository: (owner: string, name: string, token?: string) =>
+    request<Repository>('/api/v1/repositories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ owner, name, token }),
+    }),
 }
+

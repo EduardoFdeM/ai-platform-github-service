@@ -3,15 +3,12 @@ import time
 import uuid
 
 import requests
-from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, connection, transaction
 from django.db.models import Count
-from django.http import Http404
-from django.shortcuts import render
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -23,9 +20,10 @@ from .serializers import (
     RepositorySerializer,
     WebhookDeliverySerializer,
 )
-from .services.crypto import decrypt_secret
+from .services.crypto import decrypt_secret, encrypt_secret
 from .services.github import GitHubClient
 from .services.signatures import is_valid_github_signature
+from .services.sync import sync_repository_from_github
 from .tasks import process_webhook
 
 
@@ -194,31 +192,68 @@ def dashboard_metrics(request):
     return Response(dashboard_summary(repository, days))
 
 
-@login_required(login_url="/admin/login/")
-def dashboard_page(request):
+@api_view(["POST"])
+def repository_sync(request, pk):
+    """Sincroniza commits e dados reais de um repositorio via GitHub API (M2-111 / M2-114)."""
     try:
-        days, repository_id = _dashboard_params(request.GET)
-        repository, repositories = dashboard_repository(repository_id)
-    except (ValueError, Repository.DoesNotExist) as exc:
-        raise Http404("Repositório ou período inválido.") from exc
-    return render(
-        request,
-        "github_sync/dashboard.html",
-        {
-            "summary": dashboard_summary(repository, days) if repository else None,
-            "repositories": repositories,
-            "selected_repository": repository,
-            "days": days,
-        },
-    )
+        repository = Repository.objects.get(pk=pk, active=True)
+    except Repository.DoesNotExist:
+        return Response({"detail": "Repositório não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+    token = request.data.get("token")
+    try:
+        commits_count = sync_repository_from_github(repository, token=token)
+    except requests.HTTPError as exc:
+        code = exc.response.status_code if exc.response is not None else 502
+        return Response({"detail": f"Erro na API do GitHub (HTTP {code})."}, status=code)
+    except Exception as exc:
+        return Response({"detail": f"Erro na sincronização: {str(exc)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response({
+        "status": "synced",
+        "repository": str(repository),
+        "commits_synced": commits_count,
+    })
 
 
-class RepositoryListView(ListAPIView):
+class RepositoryListView(ListCreateAPIView):
     serializer_class = RepositorySerializer
     pagination_class = None
 
     def get_queryset(self):
         return Repository.objects.filter(active=True).order_by("owner", "name")
+
+    def create(self, request, *args, **kwargs):
+        owner = request.data.get("owner", "").strip()
+        name = request.data.get("name", "").strip()
+        token = request.data.get("token")
+        if not owner or not name:
+            return Response({"detail": "Informe o owner e o name do repositório."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            client = GitHubClient(token=token)
+            repo_data = client.get_repository(owner, name)
+        except requests.HTTPError as exc:
+            code = exc.response.status_code if exc.response is not None else 502
+            return Response({"detail": f"Repositório não encontrado no GitHub (HTTP {code})."}, status=code)
+        except Exception as exc:
+            return Response({"detail": f"Erro de conexão com o GitHub: {str(exc)}"}, status=status.HTTP_502_BAD_GATEWAY)
+
+        raw_secret = request.data.get("webhook_secret") or "mackenzie-secret-2026"
+        repository, created = Repository.objects.update_or_create(
+            github_id=repo_data["id"],
+            defaults={
+                "owner": repo_data["owner"]["login"],
+                "name": repo_data["name"],
+                "default_branch": repo_data.get("default_branch", "main"),
+                "webhook_secret": encrypt_secret(raw_secret),
+                "active": True,
+            },
+        )
+        try:
+            sync_repository_from_github(repository, token=token)
+        except Exception:
+            pass
+
+        serializer = self.get_serializer(repository)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class WebhookDeliveryListView(ListAPIView):
