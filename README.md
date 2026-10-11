@@ -1,67 +1,95 @@
-# AI Platform — GitHub Service
+# AI Platform — GitHub Service (Módulo 2)
 
-Microsserviço responsável pela integração da **AI Platform** com o GitHub.
+Microsserviço responsável pela integração da **AI Platform** com o GitHub: recebimento de webhooks, autenticação e validação HMAC-SHA256, indexação relacional de commits e pull requests, métricas de fluxo e base para recomendações de IA.
 
-Este repositório faz parte do projeto desenvolvido na disciplina de **Engenharia de Software** e representa um dos microsserviços da arquitetura da plataforma.
+Desenvolvido para a disciplina de **Engenharia de Software (2026.2)** — Universidade Presbiteriana Mackenzie.
 
-## Objetivo
+## Equipe (Módulo 2)
+- **Pedro Cavalcante** — 10437298
+- **Henrique Ribeiro** — 10401770
+- **Eduardo Ferreira de Mattos** — 10402800
 
-Centralizar as operações relacionadas ao GitHub, permitindo que a plataforma consulte e, futuramente, execute ações sobre repositórios de forma isolada dos demais módulos do sistema.
+---
 
-## Escopo inicial
+## Fundação Entregue
 
-O serviço deverá evoluir para suportar operações como:
+- **Django REST Framework** com documentação OpenAPI e Swagger UI em `/docs/`.
+- Endpoints de Webhooks: `POST /webhooks/github` e `/api/v1/webhooks/github` com validação de assinatura **HMAC-SHA256**.
+- Segredos de webhooks criptografados no banco por repositório com **AES-256-GCM**.
+- Idempotência rigorosa via cabeçalho `X-GitHub-Delivery` e enfileiramento assíncrono via **Celery / Redis**.
+- Ingestão em segundo plano de eventos de `push` e `pull_request`.
+- Modelo relacional normalizado: Repositories, Branches, Contributors, Emails, Commits, CommitFiles, PullRequests e WebhookDeliveries.
+- Endpoints REST de consulta: `GET /api/v1/commits` (paginado com filtros), `GET /api/v1/metrics/flow` e verificações de integridade (`GET /api/v1/health` e `GET /api/v1/health/github-connectivity`).
+- Dashboard operacional integrado em `/dashboard/`.
+- Infraestrutura completa com **Docker Compose**, testes automatizados (**pytest**), SAST (**bandit**), linter (**ruff**) e pipeline de CI no **GitHub Actions**.
 
-- conexão com repositórios GitHub;
-- consulta de informações de repositórios;
-- leitura de arquivos e estrutura de código;
-- consulta de commits, branches, issues e pull requests;
-- suporte às funcionalidades da AI Platform que dependam de contexto vindo do GitHub.
+---
 
-## Arquitetura
+## Início Rápido
 
-Este repositório representa o **GitHub Service** dentro de uma arquitetura baseada em microsserviços.
+### Com Docker (Recomendado)
 
-```text
-AI Platform
-│
-├── GitHub Service   ← este repositório
-├── outros serviços
-└── interface da plataforma
+```bash
+cp .env.example .env
+# Configure CREDENTIAL_MASTER_KEY e as variáveis no .env
+docker compose up --build -d
+docker compose exec app python manage.py createsuperuser
 ```
 
-Cada serviço possui responsabilidade própria e pode evoluir independentemente, mantendo integração com os demais componentes por meio de interfaces bem definidas.
+Acesse:
+- **Swagger UI:** `http://localhost:8000/docs/`
+- **Health Check:** `http://localhost:8000/api/v1/health`
+- **Latência GitHub:** `http://localhost:8000/api/v1/health/github-connectivity`
+- **Dashboard:** `http://localhost:8000/dashboard/`
 
-## Status
+### Sem Docker (Desenvolvimento Local)
 
-**Fase inicial / estruturação do projeto.**
+Requer Python 3.12+.
 
-Neste momento, o repositório foi criado para estabelecer a base do microsserviço, o fluxo de versionamento e a colaboração entre os integrantes do grupo.
+```bash
+python -m venv .venv
+source .venv/bin/activate  # No Windows: .venv\Scripts\Activate.ps1
+pip install -r requirements-dev.txt
+python manage.py migrate
+python manage.py runserver
+```
 
-### O que pode ser verificado hoje
+*(Sem `POSTGRES_HOST`, o projeto utiliza SQLite local; para testes síncronos sem Redis, utilize `CELERY_TASK_ALWAYS_EAGER=true`).*
 
-O repositório contém a documentação inicial. Ainda não há aplicação executável,
-API, testes automatizados ou integração com o GitHub. As operações da seção
-"Escopo inicial" descrevem trabalho futuro.
+---
 
-Para acompanhar a implementação, cada pull request deve indicar qual operação
-foi adicionada, como executá-la e qual teste demonstra seu comportamento. O
-primeiro incremento deve definir um contrato de entrada e saída para consulta
-de repositórios antes de conectar os demais módulos da AI Platform.
+## Registrar Repositório para Webhooks
 
-## Colaboração
+```bash
+docker compose exec app python manage.py register_repository \
+  --github-id 123456 \
+  --owner minha-organizacao \
+  --name meu-repositorio \
+  --webhook-secret 'seu-segredo-aqui'
+```
 
-O desenvolvimento seguirá fluxo baseado em Git e GitHub:
+Configure o webhook no GitHub apontando para a rota pública `/webhooks/github` com `application/json`.
 
-1. criar uma branch para a alteração;
-2. realizar commits;
-3. abrir um Pull Request;
-4. revisar as alterações;
-5. realizar o merge na branch principal.
+---
 
-## Disciplina
+## Qualidade e Testes
 
-**Engenharia de Software — 2026/2**  
-Universidade Presbiteriana Mackenzie
+```bash
+ruff check .
+bandit -q -r apps -x apps/github_sync/tests
+coverage run -m pytest
+coverage report
+python manage.py makemigrations --check --dry-run
+```
 
-**Responsável por este repositório:** Eduardo Ferreira de Mattos
+Meta de cobertura de testes: **80%**.
+
+---
+
+## Documentação e Arquitetura
+
+- [Guia de Deployment](DEPLOYMENT.md)
+- [Arquitetura e Riscos](docs/architecture.md)
+- [Decisões Arquiteturais (ADRs)](docs/adr/)
+- [Contexto da AP1 e Backlog](CONTEXTO.md)
+
