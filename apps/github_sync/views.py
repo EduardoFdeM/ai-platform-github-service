@@ -17,7 +17,12 @@ from rest_framework.response import Response
 
 from .dashboard import dashboard_repository, dashboard_summary
 from .models import Commit, Repository, WebhookDelivery
-from .serializers import CommitSerializer
+from .serializers import (
+    CommitSerializer,
+    HandshakeRequestSerializer,
+    RepositorySerializer,
+    WebhookDeliverySerializer,
+)
 from .services.crypto import decrypt_secret
 from .services.github import GitHubClient
 from .services.signatures import is_valid_github_signature
@@ -52,6 +57,48 @@ def github_connectivity(request):
             {"status": "down", "latency_ms": round((time.monotonic() - started_at) * 1000, 2), "detail": str(exc)},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
+
+
+@extend_schema(
+    request=HandshakeRequestSerializer,
+    responses={
+        200: OpenApiResponse(description="Token valido: identidade e escopos concedidos"),
+        400: OpenApiResponse(description="Token ausente"),
+        401: OpenApiResponse(description="Token recusado pelo GitHub"),
+        503: OpenApiResponse(description="GitHub indisponivel"),
+    },
+)
+@api_view(["POST"])
+def github_handshake(request):
+    # O token so e usado nesta chamada: nao e persistido, logado nem devolvido.
+    serializer = HandshakeRequestSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response({"valid": False, "detail": "Informe um token."}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        user, scopes = GitHubClient(token=serializer.validated_data["token"]).handshake()
+    except requests.HTTPError as exc:
+        code = exc.response.status_code if exc.response is not None else None
+        if code in (401, 403):
+            return Response(
+                {"valid": False, "detail": "Token recusado pelo GitHub."}, status=status.HTTP_401_UNAUTHORIZED
+            )
+        return Response(
+            {"valid": False, "detail": f"GitHub respondeu com status {code}."}, status=status.HTTP_502_BAD_GATEWAY
+        )
+    except requests.RequestException:
+        return Response(
+            {"valid": False, "detail": "Nao foi possivel contatar o GitHub."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    return Response(
+        {
+            "valid": True,
+            "login": user.get("login"),
+            "name": user.get("name"),
+            "avatar_url": user.get("avatar_url"),
+            "scopes": sorted(scopes),
+        }
+    )
 
 
 @extend_schema(
@@ -164,3 +211,23 @@ def dashboard_page(request):
             "days": days,
         },
     )
+
+
+class RepositoryListView(ListAPIView):
+    serializer_class = RepositorySerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return Repository.objects.filter(active=True).order_by("owner", "name")
+
+
+class WebhookDeliveryListView(ListAPIView):
+    serializer_class = WebhookDeliverySerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = WebhookDelivery.objects.select_related("repository").order_by("-received_at")
+        repository_id = self.request.query_params.get("repository_id")
+        if repository_id:
+            queryset = queryset.filter(repository_id=repository_id)
+        return queryset[:15]
