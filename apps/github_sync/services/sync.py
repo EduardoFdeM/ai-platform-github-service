@@ -24,8 +24,9 @@ def sync_repository_from_github(repository: Repository, token: str = None) -> in
 
     branch, _ = Branch.objects.get_or_create(repository=repository, name=default_branch_name)
 
-    commits_data = client.get_commits(repository.owner, repository.name, per_page=50)
+    commits_data = client.get_commits(repository.owner, repository.name, per_page=100)
     synced_count = 0
+    synced_shas = set()
 
     with transaction.atomic():
         for item in commits_data:
@@ -64,5 +65,10 @@ def sync_repository_from_github(repository: Repository, token: str = None) -> in
                 },
             )
             synced_count += 1
+            synced_shas.add(sha)
+
+        # Reconciliação estrita: remove commits que não existem no GitHub para este repositório
+        if synced_shas:
+            Commit.objects.filter(repository=repository).exclude(sha__in=synced_shas).delete()
 
     return synced_count

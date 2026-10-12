@@ -33,8 +33,19 @@ class GitHubClient:
     def get_repository(self, owner: str, name: str) -> dict:
         return self.get(f"/repos/{owner}/{name}").json()
 
-    def get_commits(self, owner: str, name: str, since: str = None, per_page: int = 50) -> list:
-        params = {"per_page": per_page}
-        if since:
-            params["since"] = since
-        return self.get(f"/repos/{owner}/{name}/commits", params=params).json()
+    def get_commits(self, owner: str, name: str, since: str = None, per_page: int = 100) -> list:
+        all_commits = []
+        page = 1
+        while True:
+            params = {"per_page": per_page, "page": page}
+            if since:
+                params["since"] = since
+            resp = self.get(f"/repos/{owner}/{name}/commits", params=params)
+            items = resp.json()
+            if not items or not isinstance(items, list):
+                break
+            all_commits.extend(items)
+            if len(items) < per_page or len(all_commits) >= 200:
+                break
+            page += 1
+        return all_commits
