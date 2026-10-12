@@ -222,11 +222,35 @@ class RepositoryListView(ListCreateAPIView):
         return Repository.objects.filter(active=True).order_by("owner", "name")
 
     def create(self, request, *args, **kwargs):
+        url_input = request.data.get("url") or request.data.get("repository_url") or ""
         owner = request.data.get("owner", "").strip()
         name = request.data.get("name", "").strip()
         token = request.data.get("token")
+
+        if url_input:
+            from urllib.parse import urlparse
+
+            cleaned = url_input.strip().rstrip("/")
+            if "github.com" in cleaned:
+                parsed = urlparse(cleaned if "://" in cleaned else f"https://{cleaned}")
+                if parsed.netloc not in ("github.com", "www.github.com"):
+                    return Response(
+                        {"detail": "A URL precisa ser do domínio oficial github.com."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                parts = [p for p in parsed.path.strip("/").split("/") if p]
+                if len(parts) >= 2:
+                    owner, name = parts[0], parts[1].removesuffix(".git")
+            elif "/" in cleaned:
+                parts = [p for p in cleaned.split("/") if p]
+                if len(parts) == 2:
+                    owner, name = parts[0], parts[1]
+
         if not owner or not name:
-            return Response({"detail": "Informe o owner e o name do repositório."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Informe uma URL válida do GitHub (ex: https://github.com/owner/repo) ou o owner e o name."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             client = GitHubClient(token=token)
             repo_data = client.get_repository(owner, name)
