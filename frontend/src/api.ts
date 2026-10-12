@@ -145,11 +145,12 @@ export const api = {
       }
     ),
 
-  createRepository: (owner: string, name: string, token?: string) =>
+  createRepository: (params: { url?: string; owner?: string; name?: string; token?: string }) =>
     request<Repository>('/api/v1/repositories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ owner, name, token }),
+      body: JSON.stringify(params),
     }),
 }
+
 

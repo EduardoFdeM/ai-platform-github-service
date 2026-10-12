@@ -1,0 +1,203 @@
+import React, { useState } from 'react'
+import { X, AlertCircle, CheckCircle2, KeyRound } from 'lucide-react'
+import { api, type Repository } from '../api'
+
+interface ConnectRepoModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: (repo: Repository) => void
+}
+
+export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const [url, setUrl] = useState('')
+  const [token, setToken] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (!isOpen) return null
+
+  // Validação em tempo real se é URL válida do GitHub
+  const isValidGitHubUrl = (input: string): boolean => {
+    try {
+      const parsed = new URL(input.trim())
+      return (
+        (parsed.hostname === 'github.com' || parsed.hostname === 'www.github.com') &&
+        parsed.pathname.split('/').filter(Boolean).length >= 2
+      )
+    } catch {
+      return false
+    }
+  }
+
+  const isInvalidUrl = url.trim().length > 0 && !isValidGitHubUrl(url)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const cleanUrl = url.trim()
+
+    if (!cleanUrl) {
+      setError('Por favor, cole a URL do repositório do GitHub.')
+      return
+    }
+
+    if (!isValidGitHubUrl(cleanUrl)) {
+      setError('A URL informada deve pertencer obrigatoriamente ao domínio github.com (ex: https://github.com/owner/repo).')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const { status, data } = await api.createRepository({
+        url: cleanUrl,
+        token: token.trim() || undefined,
+      })
+
+      if (status === 201) {
+        onSuccess(data)
+        onClose()
+      } else {
+        const detail = (data as any)?.detail || (data as any)?.url || 'Falha ao conectar o repositório.'
+        setError(Array.isArray(detail) ? detail.join(' ') : String(detail))
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro de rede ao conectar repositório.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                border: '1px solid rgba(37, 99, 235, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#60A5FA',
+              }}
+            >
+              {/* GitHub SVG Icon */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF' }}>Conectar Repositório GitHub</h3>
+              <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>
+                Cole o link direto do repositório no GitHub para ingestão e rastreabilidade.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-tertiary)',
+              cursor: 'pointer',
+              padding: 4,
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {error && (
+          <div
+            style={{
+              padding: '10px 12px',
+              borderRadius: 6,
+              backgroundColor: 'var(--danger-subtle)',
+              border: '1px solid var(--danger-border)',
+              color: '#F87171',
+              fontSize: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <AlertCircle size={15} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label className="form-label">Link do Repositório (GitHub)</label>
+            <input
+              type="url"
+              className="form-input"
+              placeholder="https://github.com/EduardoFdeM/ai-platform-github-service"
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value)
+                setError(null)
+              }}
+              required
+              autoFocus
+            />
+            {isInvalidUrl ? (
+              <span style={{ fontSize: 11, color: '#EF4444', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                <AlertCircle size={12} /> Apenas links válidos do github.com são aceitos.
+              </span>
+            ) : url.trim().length > 0 ? (
+              <span style={{ fontSize: 11, color: '#10B981', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                <CheckCircle2 size={12} /> Link do GitHub verificado.
+              </span>
+            ) : (
+              <span className="form-help">
+                Exemplo: https://github.com/facebook/react ou https://github.com/owner/repository
+              </span>
+            )}
+          </div>
+
+          <div>
+            <label className="form-label">
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <KeyRound size={12} /> Personal Access Token (PAT) — Opcional
+              </span>
+            </label>
+            <input
+              type="password"
+              className="form-input"
+              placeholder="ghp_************************************"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+            />
+            <span className="form-help">
+              Necessário apenas se o repositório for privado ou para evitar rate limit de 60 req/h.
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="btn-nexus btn-nexus-secondary"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || isInvalidUrl || !url.trim()}
+              className="btn-nexus btn-nexus-primary"
+            >
+              {loading ? 'Conectando & Sincronizando...' : 'Conectar Repositório'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
