@@ -1,5 +1,5 @@
 -r requirements.txt
-bandit==1.8.6
+bandit==1.9.4
 coverage==7.10.7
 pip-audit==2.9.0
 pytest==8.4.2
