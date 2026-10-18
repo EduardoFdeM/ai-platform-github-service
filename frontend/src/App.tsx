@@ -20,17 +20,16 @@ import {
 } from './api'
 
 export default function App() {
-  // Modo de exibição: 'nexus' (novo design) ou 'legacy' (dashboard clássico para gravação/demo)
+  // Modo de exibição: 'legacy' (dashboard clássico MVP por padrão) ou 'nexus' (novo design)
   const [viewMode, setViewMode] = useState<'nexus' | 'legacy'>(() => {
     if (typeof window !== 'undefined') {
-      const isLegacy =
-        window.location.port === '5174' ||
-        window.location.pathname.startsWith('/legacy') ||
-        window.location.search.includes('legacy=true') ||
-        window.location.hash === '#legacy'
-      return isLegacy ? 'legacy' : 'nexus'
+      const isNexus =
+        window.location.pathname.startsWith('/nexus') ||
+        window.location.search.includes('nexus=true') ||
+        window.location.hash === '#nexus'
+      return isNexus ? 'nexus' : 'legacy'
     }
-    return 'nexus'
+    return 'legacy'
   })
 
   const [activeTab, setActiveTab] = useState<TabId>('overview')
@@ -51,12 +50,11 @@ export default function App() {
   // Sincroniza a rota ao usar os botões voltar/avançar do navegador
   useEffect(() => {
     const handlePopState = () => {
-      const isLegacy =
-        window.location.port === '5174' ||
-        window.location.pathname.startsWith('/legacy') ||
-        window.location.search.includes('legacy=true') ||
-        window.location.hash === '#legacy'
-      setViewMode(isLegacy ? 'legacy' : 'nexus')
+      const isNexus =
+        window.location.pathname.startsWith('/nexus') ||
+        window.location.search.includes('nexus=true') ||
+        window.location.hash === '#nexus'
+      setViewMode(isNexus ? 'nexus' : 'legacy')
     }
     window.addEventListener('popstate', handlePopState)
     window.addEventListener('hashchange', handlePopState)
@@ -67,12 +65,12 @@ export default function App() {
   }, [])
 
   const handleSwitchToLegacy = () => {
-    window.history.pushState(null, '', '/legacy')
+    window.history.pushState(null, '', '/')
     setViewMode('legacy')
   }
 
   const handleSwitchToNexus = () => {
-    window.history.pushState(null, '', '/')
+    window.history.pushState(null, '', '/nexus')
     setViewMode('nexus')
   }
 
