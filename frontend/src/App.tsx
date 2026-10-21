@@ -14,10 +14,12 @@ import LegacyDashboard from './components/legacy/LegacyDashboard'
 import { LandingPage } from './components/LandingPage'
 import {
   api,
+  type Branch,
   type Commit,
   type ConnectivityStatus,
   type Delivery,
   type FlowMetrics,
+  type PullRequest,
   type Repository,
 } from './api'
 
@@ -43,9 +45,13 @@ export default function App() {
   const [repositories, setRepositories] = useState<Repository[]>([])
   const [selectedRepo, setSelectedRepo] = useState<Repository | null>(null)
   const [commits, setCommits] = useState<Commit[]>([])
+  const [branches, setBranches] = useState<Branch[]>([])
+  const [pullRequests, setPullRequests] = useState<PullRequest[]>([])
   const [deliveries, setDeliveries] = useState<Delivery[]>([])
   const [flow, setFlow] = useState<FlowMetrics | null>(null)
   const [connectivity, setConnectivity] = useState<ConnectivityStatus | null>(null)
+  const [repoDataLoading, setRepoDataLoading] = useState(false)
+  const [repoDataError, setRepoDataError] = useState<string | null>(null)
 
   // Status de Sincronização
   const [syncing, setSyncing] = useState(false)
@@ -101,17 +107,31 @@ export default function App() {
   }
 
   const loadRepoCommitsAndDeliveries = async (repoId: number) => {
+    setRepoDataLoading(true)
+    setRepoDataError(null)
     try {
-      const [commitsRes, delivRes, flowRes] = await Promise.all([
-        api.commits(repoId).catch(() => ({ count: 0, next: null, previous: null, results: [] })),
-        api.deliveries(repoId).catch(() => []),
-        api.flow(repoId).catch(() => null),
+      const [commitsRes, branchesRes, pullRequestsRes, delivRes, flowRes] = await Promise.all([
+        api.commits(repoId),
+        api.branches(repoId),
+        api.pullRequests(repoId),
+        api.deliveries(repoId),
+        api.flow(repoId),
       ])
       setCommits(commitsRes.results)
+      setBranches(branchesRes.results)
+      setPullRequests(pullRequestsRes.results)
       setDeliveries(delivRes)
       setFlow(flowRes)
     } catch (err) {
       console.error('Erro ao carregar dados do repositório:', err)
+      setCommits([])
+      setBranches([])
+      setPullRequests([])
+      setDeliveries([])
+      setFlow(null)
+      setRepoDataError('Não foi possível carregar os dados indexados deste repositório.')
+    } finally {
+      setRepoDataLoading(false)
     }
   }
 
@@ -127,7 +147,7 @@ export default function App() {
     try {
       const { status, data } = await api.syncRepository(selectedRepo.id)
       if (status === 200) {
-        setSyncFeedback(`Sincronização concluída! ${data.commits_synced} commits atualizados.`)
+        setSyncFeedback(`Sincronização concluída: ${data.commits_synced} commits processados; branches e PRs reconciliados.`)
         await loadRepoCommitsAndDeliveries(selectedRepo.id)
       } else {
         setSyncFeedback(`Erro: HTTP ${status}`)
@@ -237,9 +257,13 @@ export default function App() {
           <SyncTab
             repository={selectedRepo}
             commits={commits}
+            branches={branches}
+            pullRequests={pullRequests}
             flow={flow}
             onSyncNow={handleSyncNow}
             syncing={syncing}
+            loading={repoDataLoading}
+            error={repoDataError}
           />
         )}
 
@@ -293,10 +317,10 @@ export default function App() {
             description="A documentação real já está acessível; estados de release, deploy e cobertura só aparecerão quando vierem de uma fonte verificável."
             available={[
               'Swagger UI e schema OpenAPI gerados pelo backend',
+              'Contrato OpenAPI validado sem erros ou avisos no CI',
               'Workflow de CI e arquivos de deployment versionados no repositório',
             ]}
             pending={[
-              'Completar cinco respostas ainda não inferidas no OpenAPI',
               'Expor status real de build, cobertura, release e deploy antes de recriar os cards da POC',
             ]}
             showDocumentation

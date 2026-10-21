@@ -5,23 +5,33 @@ import {
   Search,
   Download,
   UserCheck,
+  GitBranch,
+  GitPullRequest,
 } from 'lucide-react'
-import type { Commit, FlowMetrics, Repository } from '../../api'
+import type { Branch, Commit, FlowMetrics, PullRequest, Repository } from '../../api'
 
 interface SyncTabProps {
   repository: Repository | null
   commits: Commit[]
+  branches: Branch[]
+  pullRequests: PullRequest[]
   flow: FlowMetrics | null
   onSyncNow: () => void
   syncing: boolean
+  loading: boolean
+  error: string | null
 }
 
 export const SyncTab: React.FC<SyncTabProps> = ({
   repository,
   commits,
+  branches,
+  pullRequests,
   flow,
   onSyncNow,
   syncing,
+  loading,
+  error,
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('all')
@@ -52,13 +62,13 @@ export const SyncTab: React.FC<SyncTabProps> = ({
     return matches && (selectedFilter === 'all' || s.status === selectedFilter)
   })
 
-  const exportBindings = () => {
+  const exportContributors = () => {
     const content = JSON.stringify({ repository: repository?.full_name ?? null, contributors: filteredStudents }, null, 2)
     const blob = new Blob([content], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'vinculos-de-contribuintes.json'
+    link.download = 'contribuintes-git-indexados.json'
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -70,7 +80,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
         <div>
           <h2 className="section-intro-title">Indexação e sincronização do repositório</h2>
           <p className="section-intro-desc">
-            Acompanhe a carga histórica, reduza leituras redundantes e consolide identidades Git para análises acadêmicas confiáveis.
+            Consulte branches, commits, pull requests e identidades Git persistidos pelo Módulo 2.
           </p>
         </div>
 
@@ -83,6 +93,13 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           <span>Reconciliar Repositório (Compara commits locais + GitHub)</span>
         </button>
       </div>
+
+      {loading && (
+        <div className="status-pill status-pill-info">Carregando dados indexados do repositório...</div>
+      )}
+      {error && (
+        <div className="status-pill status-pill-danger">{error}</div>
+      )}
 
       {/* 4 KPIs de Sincronização */}
       <div className="kpi-grid-4">
@@ -110,6 +127,24 @@ export const SyncTab: React.FC<SyncTabProps> = ({
 
         <div className="kpi-card">
           <div className="kpi-card-header">
+            <span className="kpi-title">BRANCHES ATIVAS</span>
+            <GitBranch size={14} color="#60A5FA" />
+          </div>
+          <div className="kpi-value">{branches.length}</div>
+          <div className="kpi-sub">retornadas pela API</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-card-header">
+            <span className="kpi-title">PULL REQUESTS</span>
+            <GitPullRequest size={14} color="#A78BFA" />
+          </div>
+          <div className="kpi-value">{pullRequests.length}</div>
+          <div className="kpi-sub">na página atual da API</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-card-header">
             <span className="kpi-title">CONTRIBUIDORES REAIS</span>
             <span className="badge badge-success">Mapeado</span>
           </div>
@@ -125,6 +160,64 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           <div className="kpi-value">0</div>
           <div className="kpi-sub">nenhuma pendência crítica</div>
         </div>}
+      </div>
+
+      <div className="nexus-card">
+        <div className="nexus-card-header">
+          <div>
+            <div className="nexus-card-title">Estrutura indexada</div>
+            <div className="nexus-card-subtitle">
+              Dados reais dos endpoints de branches e pull requests do repositório selecionado.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.4fr)', gap: 18 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+              <GitBranch size={14} color="#60A5FA" />
+              <strong style={{ fontSize: 12 }}>Branches ativas</strong>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {branches.map((branch) => (
+                <div key={branch.id} className="code-box-dark" style={{ padding: '8px 10px' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{branch.name}</span>
+                  {branch.name === repository?.default_branch && (
+                    <span className="badge badge-info" style={{ float: 'right' }}>padrão</span>
+                  )}
+                </div>
+              ))}
+              {!loading && branches.length === 0 && (
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>Nenhuma branch ativa foi retornada.</span>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+              <GitPullRequest size={14} color="#A78BFA" />
+              <strong style={{ fontSize: 12 }}>Pull requests indexadas</strong>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {pullRequests.map((pullRequest) => (
+                <div key={pullRequest.id} className="code-box-dark" style={{ padding: '8px 10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                    <span style={{ fontSize: 11, color: '#FFFFFF' }}>#{pullRequest.number} {pullRequest.title}</span>
+                    <span className={`badge ${pullRequest.merged_at ? 'badge-success' : pullRequest.state === 'open' ? 'badge-info' : 'badge-neutral'}`}>
+                      {pullRequest.merged_at ? 'mergeada' : pullRequest.state}
+                    </span>
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-tertiary)' }}>
+                    Autor: {pullRequest.author || 'não informado'} · atualizada em {new Date(pullRequest.updated_at).toLocaleString('pt-BR')}
+                  </div>
+                </div>
+              ))}
+              {!loading && pullRequests.length === 0 && (
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>Nenhuma pull request foi retornada.</span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Carga Inicial & Delta Sync Incremental */}
@@ -284,9 +377,9 @@ export const SyncTab: React.FC<SyncTabProps> = ({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className="badge badge-success">● {students.length} identidades Git</span>
-            <button onClick={exportBindings} className="btn-nexus btn-nexus-secondary btn-nexus-sm">
+            <button onClick={exportContributors} className="btn-nexus btn-nexus-secondary btn-nexus-sm">
               <Download size={12} />
-              <span>Exportar vínculos</span>
+              <span>Exportar contribuintes</span>
             </button>
           </div>
         </div>
@@ -311,10 +404,6 @@ export const SyncTab: React.FC<SyncTabProps> = ({
               <option value="all">Todas as identidades</option>
               <option value="indexado">Identidades indexadas</option>
             </select>
-
-            <div className="select-chip">
-              <span>Turma 2026.2</span>
-            </div>
 
             <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 8 }}>
               {filteredStudents.length} identidade(s) exibida(s) • vínculo acadêmico depende do Módulo 1
@@ -410,6 +499,13 @@ export const SyncTab: React.FC<SyncTabProps> = ({
                   </td>
                 </tr>
               ))}
+              {!loading && filteredStudents.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: 28 }}>
+                    Nenhuma identidade Git corresponde aos filtros atuais.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

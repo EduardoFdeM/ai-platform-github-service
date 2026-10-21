@@ -24,7 +24,6 @@ Este recorte contém apenas trabalho que o nosso grupo consegue concluir sem esp
 
 | Área | Trabalho exclusivamente nosso |
 | --- | --- |
-| Sincronização | consumir `branches` e `pull-requests` na interface, com loading, vazio e erro reais |
 | Analytics | definir métricas que pertencem ao GitHub Sync e montar gráficos somente sobre endpoints reais |
 | Assistente IA (M2-131) | decidir se permanece no recorte; se sim, implementar endpoint, modelo/prompts, limites, segurança e testes antes de trocar “Em breve” |
 | DevOps | expor status verificável de CI, cobertura e versão; não mostrar release/deploy sem fonte |
@@ -35,12 +34,11 @@ Este recorte contém apenas trabalho que o nosso grupo consegue concluir sem esp
 
 Sequência recomendada para as próximas sessões do nosso grupo:
 
-1. Completar OpenAPI e contratos de erro.
-2. Sincronizar branches, PRs e arquivos na carga inicial.
-3. Fechar logging, retry, replay e health operacional.
-4. Conectar branches/PRs no frontend e só então evoluir Analytics.
-5. Decidir formalmente GraphQL e IA no recorte final.
-6. Publicar e registrar um E2E do nosso módulo isolado.
+1. Uniformizar contratos de erro.
+2. Fechar logging, retry, replay e health operacional.
+3. Definir as métricas reais antes de evoluir Analytics.
+4. Decidir formalmente GraphQL e IA no recorte final.
+5. Publicar e registrar um E2E do nosso módulo isolado.
 
 ## Fechado nesta revisão
 
@@ -49,6 +47,7 @@ Sequência recomendada para as próximas sessões do nosso grupo:
 - A suíte alcançou **31 testes e 85% de cobertura**; o CI agora exige no mínimo 80%, executa lint/build do frontend e análise Bandit do backend.
 - O contrato OpenAPI passou a ter serializers explícitos para health, conectividade, métricas, dashboard, cadastro e sincronização; a geração sem erros ou avisos agora é validada no CI.
 - A sincronização REST agora reconcilia branches e PRs, preserva commits históricos e busca arquivos de commits com limite configurável. O caminho de webhook também reconcilia arquivos de commits já existentes.
+- A aba de sincronização passou a consumir branches e pull requests reais, com estados de carregamento, vazio e erro, sem preencher lacunas com dados da POC.
 
 ## Não entra neste recorte
 

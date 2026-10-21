@@ -49,6 +49,26 @@ export interface Commit {
   files: CommitFile[]
 }
 
+export interface Branch {
+  id: number
+  repository: string
+  name: string
+  deleted_at: string | null
+}
+
+export interface PullRequest {
+  id: number
+  repository: string
+  number: number
+  title: string
+  state: string
+  author: string | null
+  opened_at: string
+  closed_at: string | null
+  merged_at: string | null
+  updated_at: string
+}
+
 export interface Paginated<T> {
   count: number
   next: string | null
@@ -138,6 +158,12 @@ export const api = {
 
   commits: (repositoryId: number) =>
     getJson<Paginated<Commit>>(`/api/v1/commits?repository_id=${repositoryId}&page_size=20`),
+
+  branches: (repositoryId: number) =>
+    getJson<Paginated<Branch>>(`/api/v1/branches?repository_id=${repositoryId}`),
+
+  pullRequests: (repositoryId: number) =>
+    getJson<Paginated<PullRequest>>(`/api/v1/pull-requests?repository_id=${repositoryId}`),
 
   flow: (repositoryId: number) => getJson<FlowMetrics>(`/api/v1/metrics/flow?repository_id=${repositoryId}`),
 
