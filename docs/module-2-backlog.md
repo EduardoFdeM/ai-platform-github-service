@@ -10,7 +10,6 @@ Este recorte contém apenas trabalho que o nosso grupo consegue concluir sem esp
 | Sincronizar branches e PRs na carga inicial | modelos, webhooks e endpoints de consulta existem, mas o sync REST inicial traz apenas branch padrão e commits | carga inicial e reconciliação de branches/PRs com paginação e testes |
 | Indexar arquivos no sync REST | arquivos alterados entram pelo webhook, mas não pela carga REST | detalhes de commit buscados com limites controlados; `CommitFile` consistente nos dois caminhos |
 | Fechar tratamento de falhas de cadastro/sync | o cadastro agora informa `initial_sync_status`, mas faltam estados uniformes nos demais fluxos | envelope de erro estável, logs sem segredos e respostas documentadas/testadas |
-| Elevar cobertura automatizada | baseline verificada em 21/10/2026: **73%**, abaixo da meta declarada de 80% | cobertura total ≥80%, com foco em `services/sync.py`, `services/github.py`, tasks e comandos |
 
 ## P1 — robustez e operação do nosso serviço
 
@@ -50,6 +49,7 @@ Sequência recomendada para as próximas sessões do nosso grupo:
 
 - Reconciliação de commits tornou-se incremental e não destrutiva: usa o commit local mais recente como `since`, preserva histórico anterior e possui testes para primeira carga e atualização incremental.
 - O cadastro deixou de esconder falhas da sincronização inicial e devolve `initial_sync_status`/`initial_sync_detail`.
+- A suíte alcançou **29 testes e 82% de cobertura**; o CI agora exige no mínimo 80%, executa lint/build do frontend e análise Bandit do backend.
 
 ## Não entra neste recorte
 

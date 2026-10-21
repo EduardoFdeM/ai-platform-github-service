@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, call, patch
 
 from apps.github_sync.services.github import GitHubClient
 
@@ -26,4 +26,55 @@ def test_handshake_returns_user_and_oauth_scopes(settings):
         timeout=10,
         verify="/certs/ca.pem",
     )
+    response.raise_for_status.assert_called_once()
+
+
+def test_get_repository_returns_github_payload():
+    client = GitHubClient()
+    response = Mock()
+    response.json.return_value = {"id": 42, "name": "service"}
+    client.get = Mock(return_value=response)
+
+    result = client.get_repository("team", "service")
+
+    assert result == {"id": 42, "name": "service"}
+    client.get.assert_called_once_with("/repos/team/service")
+
+
+def test_get_commits_paginates_with_since_and_stops_at_200():
+    client = GitHubClient()
+    first = Mock()
+    first.json.return_value = [{"sha": f"a{i}"} for i in range(100)]
+    second = Mock()
+    second.json.return_value = [{"sha": f"b{i}"} for i in range(100)]
+    client.get = Mock(side_effect=[first, second])
+
+    commits = client.get_commits("team", "service", since="2026-10-01T00:00:00Z")
+
+    assert len(commits) == 200
+    assert client.get.call_args_list == [
+        call(
+            "/repos/team/service/commits",
+            params={"per_page": 100, "page": 1, "since": "2026-10-01T00:00:00Z"},
+        ),
+        call(
+            "/repos/team/service/commits",
+            params={"per_page": 100, "page": 2, "since": "2026-10-01T00:00:00Z"},
+        ),
+    ]
+
+
+def test_get_waits_until_rate_limit_reset(settings):
+    settings.GITHUB_API_URL = "https://api.github.test"
+    response = Mock()
+    response.headers = {"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "110"}
+    client = GitHubClient()
+    client.session.get = Mock(return_value=response)
+    clock = Mock()
+    clock.time.return_value = 100
+
+    with patch("apps.github_sync.services.github.time", clock):
+        client.get("/meta")
+
+    clock.sleep.assert_called_once_with(10)
     response.raise_for_status.assert_called_once()

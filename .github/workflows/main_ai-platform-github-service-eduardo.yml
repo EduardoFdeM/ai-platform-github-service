@@ -28,6 +28,13 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
 
+      - name: Set up Node.js version
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
       - name: Instalar dependencias completas
         run: |
           python -m pip install --upgrade pip
@@ -36,6 +43,12 @@ jobs:
       - name: 1. Linting (Ruff)
         run: ruff check .
 
+      - name: 1.1. Frontend lint e build
+        run: |
+          npm ci --prefix frontend
+          npm run lint --prefix frontend
+          npm run build --prefix frontend
+
       - name: 2. Testes Automaticos (Pytest com Coverage)
         run: coverage run -m pytest
         env:
@@ -43,7 +56,10 @@ jobs:
           CREDENTIAL_MASTER_KEY: "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
 
       - name: Relatorio de Cobertura
-        run: coverage report
+        run: coverage report --fail-under=80
+
+      - name: Analise estatica de seguranca (Bandit)
+        run: bandit -q -r apps -x apps/github_sync/tests
 
       - name: 3. Verificacao de Vulnerabilidades (Pip-Audit)
         run: pip-audit -r requirements.txt
