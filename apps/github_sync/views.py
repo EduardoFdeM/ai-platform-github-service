@@ -42,6 +42,10 @@ from .tasks import process_webhook
 logger = logging.getLogger(__name__)
 
 
+def _error_response(code: str, detail: str, http_status: int) -> Response:
+    return Response({"code": code, "detail": detail}, status=http_status)
+
+
 @extend_schema(
     responses={
         200: HealthSerializer,
@@ -77,9 +81,13 @@ def github_connectivity(request):
                 "github_status": response.status_code,
             }
         )
-    except requests.RequestException as exc:
+    except requests.RequestException:
         return Response(
-            {"status": "down", "latency_ms": round((time.monotonic() - started_at) * 1000, 2), "detail": str(exc)},
+            {
+                "status": "down",
+                "latency_ms": round((time.monotonic() - started_at) * 1000, 2),
+                "detail": "Nao foi possivel contatar o GitHub.",
+            },
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
@@ -131,7 +139,8 @@ def github_handshake(request):
     request=None,
     responses={
         202: OpenApiResponse(description="Evento aceito"),
-        401: OpenApiResponse(description="Assinatura invalida"),
+        400: ErrorSerializer,
+        401: ErrorSerializer,
     },
 )
 @api_view(["POST"])
@@ -144,12 +153,14 @@ def github_webhook(request):
         payload = json.loads(request.body)
         repository = Repository.objects.get(github_id=payload["repository"]["id"], active=True)
     except (ValueError, json.JSONDecodeError, KeyError, Repository.DoesNotExist):
-        return Response(
-            {"detail": "Invalid delivery, payload, or unknown repository"}, status=status.HTTP_400_BAD_REQUEST
+        return _error_response(
+            "invalid_webhook_payload",
+            "Invalid delivery, payload, or unknown repository",
+            status.HTTP_400_BAD_REQUEST,
         )
 
     if not is_valid_github_signature(request.body, signature, decrypt_secret(repository.webhook_secret)):
-        return Response({"detail": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED)
+        return _error_response("invalid_webhook_signature", "Invalid signature", status.HTTP_401_UNAUTHORIZED)
 
     try:
         with transaction.atomic():
@@ -253,9 +264,11 @@ def dashboard_metrics(request):
         days, repository_id = _dashboard_params(request.query_params)
         repository, _ = dashboard_repository(repository_id)
     except (ValueError, Repository.DoesNotExist):
-        return Response({"detail": "Parâmetros inválidos."}, status=status.HTTP_400_BAD_REQUEST)
+        return _error_response("invalid_dashboard_parameters", "Parâmetros inválidos.", status.HTTP_400_BAD_REQUEST)
     if repository is None:
-        return Response({"detail": "Nenhum repositório ativo cadastrado."}, status=status.HTTP_404_NOT_FOUND)
+        return _error_response(
+            "repository_not_found", "Nenhum repositório ativo cadastrado.", status.HTTP_404_NOT_FOUND
+        )
     return Response(dashboard_summary(repository, days))
 
 
@@ -274,15 +287,23 @@ def repository_sync(request, pk):
     try:
         repository = Repository.objects.get(pk=pk, active=True)
     except Repository.DoesNotExist:
-        return Response({"detail": "Repositório não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        return _error_response("repository_not_found", "Repositório não encontrado.", status.HTTP_404_NOT_FOUND)
     token = request.data.get("token")
     try:
         commits_count = sync_repository_from_github(repository, token=token)
     except requests.HTTPError as exc:
         code = exc.response.status_code if exc.response is not None else 502
-        return Response({"detail": f"Erro na API do GitHub (HTTP {code})."}, status=code)
-    except Exception as exc:
-        return Response({"detail": f"Erro na sincronização: {str(exc)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        response_status = code if code in (401, 403, 404) else status.HTTP_502_BAD_GATEWAY
+        return _error_response(
+            "github_api_error", f"A API do GitHub recusou a sincronização (HTTP {code}).", response_status
+        )
+    except Exception:
+        logger.exception("repository_sync_failed", extra={"repository_id": repository.pk})
+        return _error_response(
+            "repository_sync_failed",
+            "A sincronização falhou. Tente novamente mais tarde.",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
     return Response({
         "status": "synced",
         "repository": str(repository),
@@ -314,14 +335,10 @@ class RepositoryListView(ListCreateAPIView):
         raw_secret = request.data.get("webhook_secret", "").strip()
 
         if len(raw_secret) < 16:
-            return Response(
-                {
-                    "detail": (
-                        "Informe webhook_secret com pelo menos 16 caracteres "
-                        "e use um valor exclusivo por repositório."
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+            return _error_response(
+                "invalid_webhook_secret",
+                "Informe webhook_secret com pelo menos 16 caracteres e use um valor exclusivo por repositório.",
+                status.HTTP_400_BAD_REQUEST,
             )
 
         if url_input:
@@ -331,9 +348,10 @@ class RepositoryListView(ListCreateAPIView):
             if "github.com" in cleaned:
                 parsed = urlparse(cleaned if "://" in cleaned else f"https://{cleaned}")
                 if parsed.netloc not in ("github.com", "www.github.com"):
-                    return Response(
-                        {"detail": "A URL precisa ser do domínio oficial github.com."},
-                        status=status.HTTP_400_BAD_REQUEST,
+                    return _error_response(
+                        "invalid_repository_url",
+                        "A URL precisa ser do domínio oficial github.com.",
+                        status.HTTP_400_BAD_REQUEST,
                     )
                 parts = [p for p in parsed.path.strip("/").split("/") if p]
                 if len(parts) >= 2:
@@ -344,18 +362,29 @@ class RepositoryListView(ListCreateAPIView):
                     owner, name = parts[0], parts[1]
 
         if not owner or not name:
-            return Response(
-                {"detail": "Informe uma URL válida do GitHub (ex: https://github.com/owner/repo) ou o owner e o name."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return _error_response(
+                "invalid_repository_reference",
+                "Informe uma URL válida do GitHub (ex: https://github.com/owner/repo) ou o owner e o name.",
+                status.HTTP_400_BAD_REQUEST,
             )
         try:
             client = GitHubClient(token=token)
             repo_data = client.get_repository(owner, name)
         except requests.HTTPError as exc:
             code = exc.response.status_code if exc.response is not None else 502
-            return Response({"detail": f"Repositório não encontrado no GitHub (HTTP {code})."}, status=code)
-        except Exception as exc:
-            return Response({"detail": f"Erro de conexão com o GitHub: {str(exc)}"}, status=status.HTTP_502_BAD_GATEWAY)
+            response_status = code if code in (401, 403, 404) else status.HTTP_502_BAD_GATEWAY
+            return _error_response(
+                "github_repository_lookup_failed",
+                f"Não foi possível consultar o repositório no GitHub (HTTP {code}).",
+                response_status,
+            )
+        except Exception:
+            logger.exception("github_repository_lookup_failed", extra={"owner": owner, "repository": name})
+            return _error_response(
+                "github_repository_lookup_failed",
+                "Não foi possível consultar o repositório no GitHub.",
+                status.HTTP_502_BAD_GATEWAY,
+            )
 
         repository, created = Repository.objects.update_or_create(
             github_id=repo_data["id"],

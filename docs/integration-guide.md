@@ -295,7 +295,7 @@ signature = "sha256=" + hmac.new(
 
 | Tema | Comportamento atual | Implicação para outro módulo |
 | --- | --- | --- |
-| Formato de erro | Geralmente {"detail":"…"}; handshake também retorna valid: false | Não existe envelope de erro versionado/uniforme. Trate status HTTP primeiro. |
+| Formato de erro | Erros REST usam `{"code":"...","detail":"..."}`; handshake também retorna `valid: false` | Trate o status HTTP primeiro e use `code` para automação; `detail` é mensagem humana. |
 | Paginação | GET /commits, /branches e /pull-requests usam a paginação padrão; repositórios e entregas não | Siga next/previous nas listas paginadas. |
 | Rate limit GitHub | O cliente aguarda até o reset se X-RateLimit-Remaining for zero | Uma chamada pode ficar bloqueada; defina timeout no consumidor. |
 | Timeout para GitHub | Configurável, padrão de 10 segundos por chamada | Falhas podem retornar 502, 503 ou o status do GitHub, conforme endpoint. |
@@ -315,7 +315,7 @@ Antes de integrar módulos em ambiente compartilhado, é necessário acordar e r
 1. Base URL e dono operacional de cada ambiente (desenvolvimento, homologação e demonstração), inclusive TLS e rotação de segredos.
 2. Autenticação institucional compartilhada (por exemplo, JWT validado por todos) e autorização por papel/repositório. A arquitetura registra isso como decisão futura; nada foi implementado aqui.
 3. Política CORS/gateway para os frontends e uma forma segura de não expor PATs no navegador.
-4. DTOs versionados para métricas e erros e paginação de repositórios/deliveries; o OpenAPI local já é validado, mas a versão compartilhada do contrato ainda precisa ser acordada.
+4. Versionamento compartilhado dos DTOs e paginação de repositórios/deliveries; erros já usam `code`/`detail` e o OpenAPI local é validado, mas a versão entre módulos ainda precisa ser acordada.
 5. Estratégia de eventos para consumidores: polling, broker/event bus ou callbacks, com retenção e política de reprocessamento.
 6. Limites da carga inicial/incremental e semântica de remoção de commits antes de qualquer dashboard tratar o histórico como definitivo.
 

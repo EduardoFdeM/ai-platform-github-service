@@ -77,6 +77,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "EXCEPTION_HANDLER": "apps.github_sync.exceptions.api_exception_handler",
     "PAGE_SIZE": 50,
 }
 SPECTACULAR_SETTINGS = {

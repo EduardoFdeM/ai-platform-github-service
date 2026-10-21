@@ -8,6 +8,7 @@ class HandshakeRequestSerializer(serializers.Serializer):
 
 
 class ErrorSerializer(serializers.Serializer):
+    code = serializers.CharField()
     detail = serializers.CharField()
 
 

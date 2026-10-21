@@ -69,6 +69,22 @@ def test_repository_sync_endpoint(client):
         assert response.json()["status"] == "synced"
 
 
+def test_repository_sync_returns_stable_error_without_exception_detail(client):
+    repo = Repository.objects.create(github_id=998, owner="owner", name="repo-error", webhook_secret=b"sec")
+    with patch(
+        "apps.github_sync.views.sync_repository_from_github",
+        side_effect=RuntimeError("temporary failure with token=secret-value"),
+    ):
+        response = client.post(reverse("repository-sync", kwargs={"pk": repo.pk}))
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "code": "repository_sync_failed",
+        "detail": "A sincronização falhou. Tente novamente mais tarde.",
+    }
+    assert "secret-value" not in response.content.decode()
+
+
 def test_create_repository_via_github_url(client, monkeypatch):
     import base64
     monkeypatch.setenv("CREDENTIAL_MASTER_KEY", base64.urlsafe_b64encode(b"0" * 32).decode())

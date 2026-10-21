@@ -4,9 +4,7 @@ Este recorte contém apenas trabalho que o nosso grupo consegue concluir sem esp
 
 ## P0 — fechar antes de chamar o módulo de pronto
 
-| Entrega | Situação atual | Definition of Done |
-| --- | --- | --- |
-| Fechar tratamento de falhas de cadastro/sync | o cadastro agora informa `initial_sync_status`, mas faltam estados uniformes nos demais fluxos | envelope de erro estável, logs sem segredos e respostas documentadas/testadas |
+Os bloqueios funcionais P0 identificados nesta revisão foram fechados e estão listados em **Fechado nesta revisão**. O módulo ainda precisa dos itens de robustez e prova operacional abaixo antes de ser tratado como pronto para produção.
 
 ## P1 — robustez e operação do nosso serviço
 
@@ -44,10 +42,11 @@ Sequência recomendada para as próximas sessões do nosso grupo:
 
 - Reconciliação de commits tornou-se incremental e não destrutiva: usa o commit local mais recente como `since`, preserva histórico anterior e possui testes para primeira carga e atualização incremental.
 - O cadastro deixou de esconder falhas da sincronização inicial e devolve `initial_sync_status`/`initial_sync_detail`.
-- A suíte alcançou **31 testes e 85% de cobertura**; o CI agora exige no mínimo 80%, executa lint/build do frontend e análise Bandit do backend.
+- A suíte alcançou **32 testes e 85% de cobertura**; o CI agora exige no mínimo 80%, executa lint/build do frontend e análise Bandit do backend.
 - O contrato OpenAPI passou a ter serializers explícitos para health, conectividade, métricas, dashboard, cadastro e sincronização; a geração sem erros ou avisos agora é validada no CI.
 - A sincronização REST agora reconcilia branches e PRs, preserva commits históricos e busca arquivos de commits com limite configurável. O caminho de webhook também reconcilia arquivos de commits já existentes.
 - A aba de sincronização passou a consumir branches e pull requests reais, com estados de carregamento, vazio e erro, sem preencher lacunas com dados da POC.
+- Erros REST próprios e exceções do DRF passaram a usar o envelope estável `code`/`detail`; falhas internas de sincronização não devolvem texto cru da exceção nem segredos ao cliente.
 
 ## Não entra neste recorte
 
