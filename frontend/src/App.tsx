@@ -148,6 +148,10 @@ export default function App() {
     })
     setSelectedRepo(newRepo)
     await loadRepoCommitsAndDeliveries(newRepo.id)
+    if (newRepo.initial_sync_status === 'failed') {
+      setSyncFeedback(newRepo.initial_sync_detail || 'Repositório conectado, mas a sincronização inicial falhou.')
+      setTimeout(() => setSyncFeedback(null), 6000)
+    }
   }
 
   // Se o usuário estiver no modo clássico para gravação ou na porta 5174 / rota /legacy:

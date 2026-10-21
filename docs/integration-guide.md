@@ -154,7 +154,7 @@ Content-Type: application/json
 }
 ```
 
-Com sucesso, retorna 201 e o contrato de repositório acima. O cadastro chama o GitHub para descobrir github_id, owner, nome e branch padrão e tenta uma sincronização inicial. Essa segunda etapa captura falhas internamente, portanto 201 **não prova** que commits tenham sido importados; consulte /commits ou execute a sincronização explícita para verificar.
+Com sucesso, retorna 201 e o contrato de repositório acima, acrescido de `initial_sync_status` (`completed` ou `failed`) e, em caso de falha, `initial_sync_detail`. O cadastro chama o GitHub para descobrir github_id, owner, nome e branch padrão e tenta uma sincronização inicial. Um 201 confirma o cadastro; consulte `initial_sync_status` e `/commits` antes de afirmar que a importação terminou.
 
 Erros previstos no cadastro: 400 para URL/owner/nome inválidos; código HTTP repassado pelo GitHub (por exemplo, 404) se o repositório não for encontrado; e 502 para erro de conexão tratado. Não envie segredos em logs, capturas de tela ou comentários de issues.
 

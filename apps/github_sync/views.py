@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 import uuid
 
@@ -27,6 +28,8 @@ from .services.github import GitHubClient
 from .services.signatures import is_valid_github_signature
 from .services.sync import sync_repository_from_github
 from .tasks import process_webhook
+
+logger = logging.getLogger(__name__)
 
 
 @api_view(["GET"])
@@ -262,7 +265,12 @@ class RepositoryListView(ListCreateAPIView):
 
         if len(raw_secret) < 16:
             return Response(
-                {"detail": "Informe webhook_secret com pelo menos 16 caracteres e use um valor exclusivo por repositório."},
+                {
+                    "detail": (
+                        "Informe webhook_secret com pelo menos 16 caracteres "
+                        "e use um valor exclusivo por repositório."
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -309,13 +317,24 @@ class RepositoryListView(ListCreateAPIView):
                 "active": True,
             },
         )
+        sync_status = "completed"
+        sync_detail = None
         try:
             sync_repository_from_github(repository, token=token)
-        except Exception:
-            pass
+        except Exception as exc:
+            sync_status = "failed"
+            sync_detail = "Repositório cadastrado, mas a sincronização inicial falhou. Tente sincronizar novamente."
+            logger.warning(
+                "initial_repository_sync_failed",
+                extra={"repository_id": repository.pk, "repository": str(repository)},
+                exc_info=exc,
+            )
 
         serializer = self.get_serializer(repository)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        response_data = {**serializer.data, "initial_sync_status": sync_status}
+        if sync_detail:
+            response_data["initial_sync_detail"] = sync_detail
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
 
 class WebhookDeliveryListView(ListAPIView):

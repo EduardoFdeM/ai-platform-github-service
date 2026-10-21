@@ -83,6 +83,25 @@ def test_create_repository_via_github_url(client, monkeypatch):
         assert response.status_code == 201
         assert response.json()["owner"] == "foo"
         assert response.json()["name"] == "bar"
+        assert response.json()["initial_sync_status"] == "completed"
+
+
+def test_create_repository_reports_initial_sync_failure(client, monkeypatch):
+    import base64
+
+    monkeypatch.setenv("CREDENTIAL_MASTER_KEY", base64.urlsafe_b64encode(b"0" * 32).decode())
+    fake_data = {"id": 54321, "name": "bar", "owner": {"login": "foo"}, "default_branch": "main"}
+    with patch("apps.github_sync.services.github.GitHubClient.get_repository", return_value=fake_data), patch(
+        "apps.github_sync.views.sync_repository_from_github", side_effect=RuntimeError("temporary failure")
+    ):
+        response = client.post(
+            reverse("repository-list"),
+            {"url": "https://github.com/foo/bar", "webhook_secret": "unique-webhook-secret"},
+        )
+
+    assert response.status_code == 201
+    assert response.json()["initial_sync_status"] == "failed"
+    assert "sincronização inicial falhou" in response.json()["initial_sync_detail"]
 
 
 def test_reject_non_github_url(client):

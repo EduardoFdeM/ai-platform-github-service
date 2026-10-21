@@ -28,6 +28,8 @@ export interface Repository {
   name: string
   full_name: string
   default_branch: string
+  initial_sync_status?: 'completed' | 'failed'
+  initial_sync_detail?: string
 }
 
 export interface CommitFile {

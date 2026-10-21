@@ -105,6 +105,7 @@ Meta de cobertura de testes: **80%**.
 - [Mapa de Integração da Plataforma](docs/platform-integration-map.md)
 - [Cobertura das POCs do frontend](docs/poc-coverage.md)
 - [Revisão de status do YouTrack](docs/youtrack-status-review.md)
+- [Backlog restante exclusivo do Módulo 2](docs/module-2-backlog.md)
 - [Decisões Arquiteturais (ADRs)](docs/adr/)
 - [Contexto da AP1 e Backlog](CONTEXTO.md)
 
