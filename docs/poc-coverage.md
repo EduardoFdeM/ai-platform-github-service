@@ -7,8 +7,8 @@ Este inventário separa o que é uma jornada funcional do Módulo 2, o que é de
 - `/` é a página institucional mínima, com entrada para o módulo e links para a documentação.
 - `/app` abre a jornada principal do GitHub Sync.
 - `/legacy` preserva a entrega anterior.
-- A navegação padrão mostra apenas **Visão Geral**, **Autenticação**, **Webhooks** e **Indexação & Contribuintes**.
-- `VITE_SHOW_IDEATION_TABS=true` reativa Analytics, Assistente IA, DevOps e blocos operacionais que vieram da ideação, sempre rotulados como demonstração/ideação.
+- A navegação padrão mostra as sete áreas da POC. Analytics, Assistente IA e DevOps abrem estados honestos de **em desenvolvimento/em breve**, sem métricas ou ações fictícias.
+- `VITE_SHOW_IDEATION_TABS=true` substitui esses estados pelas prévias completas da ideação para trabalho interno, sempre fora da jornada padrão.
 - `VITE_SHOW_PLATFORM_SHELL=true` exibe o shell visual dos demais módulos. Ele fica oculto por padrão porque ainda não há rotas integradas da plataforma.
 
 ## Matriz das sete telas
@@ -19,9 +19,9 @@ Este inventário separa o que é uma jornada funcional do Módulo 2, o que é de
 | 08 — Autenticação | Visível | handshake de PAT e escopos devolvidos pelo GitHub; PAT não é persistido | GitHub App, rotação, cofre, auditoria e base URL privada | M2-83 real; M2-84, M2-85, M2-88 a M2-92 pendentes/parciais |
 | 09 — Webhooks | Visível | lista de entregas, filtros, detalhe, HMAC por repositório e simulador assinado | KPIs de broker/fila e consumidores | M2-93, M2-94, M2-96, M2-104, M2-147, M2-150, M2-169 |
 | 10 — Sincronização | Visível | sincronização REST de commits, contagens e autores Git, busca e exportação local | progresso histórico, GraphQL, delta/ETag e vínculo acadêmico automático | M2-107, M2-108, M2-111, M2-114, M2-118 |
-| 11 — Analytics | Oculta | distribuição básica por autor pode reutilizar `/metrics/flow` | risco, carga, sentimento, PRs e recomendações avançadas | épico futuro de analytics |
-| 12 — Assistente IA | Oculta | ações somente locais no navegador | geração/análise por IA sem endpoint | M2-131 |
-| 13 — DevOps | Oculta | links para `/docs/` e `/api/schema/`; configuração de CI existe no repositório | release, deploy, cobertura e changelog mostrados como demo | M2-139, M2-141, M2-166, M2-167 |
+| 11 — Analytics | Visível como “em desenvolvimento” | `/metrics/flow`, commits, branches e PRs já formam a base real | risco, carga, sentimento e recomendações avançadas ficam fora da jornada padrão | épico futuro de analytics |
+| 12 — Assistente IA | Visível como “em breve” | commits/mensagens/arquivos formam a futura fonte | geração/análise por IA sem endpoint fica fora da jornada padrão | M2-131 |
+| 13 — DevOps | Visível como “em desenvolvimento” | links reais para `/docs/` e `/api/schema/`; CI/deployment versionados | release, deploy, cobertura e changelog só voltarão com fonte verificável | M2-139, M2-141, M2-166, M2-167 |
 
 ## Jornada demonstrável de ponta a ponta
 
@@ -45,4 +45,4 @@ Este inventário separa o que é uma jornada funcional do Módulo 2, o que é de
 1. Consumir identidade, projeto, turma e papéis do Módulo 1 e remover dados de perfil estáticos do shell.
 2. Consumir `GET /api/v1/branches` e `GET /api/v1/pull-requests` nas telas de sincronização e analytics.
 3. Trocar polling de entregas por contrato de eventos/gateway quando a turma definir o Data Bus.
-4. Reativar uma tela oculta somente quando seu endpoint, autorização, estados de erro e teste de contrato estiverem disponíveis.
+4. Substituir cada estado “em desenvolvimento” pela tela funcional somente quando endpoint, autorização, estados de erro e teste estiverem disponíveis.

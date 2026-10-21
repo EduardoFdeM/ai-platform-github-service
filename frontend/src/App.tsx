@@ -9,6 +9,7 @@ import { SyncTab } from './components/tabs/SyncTab'
 import { AnalyticsTab } from './components/tabs/AnalyticsTab'
 import { AiTab } from './components/tabs/AiTab'
 import { DevOpsTab } from './components/tabs/DevOpsTab'
+import { DevelopmentTab } from './components/tabs/DevelopmentTab'
 import LegacyDashboard from './components/legacy/LegacyDashboard'
 import { LandingPage } from './components/LandingPage'
 import {
@@ -21,6 +22,7 @@ import {
 } from './api'
 
 export default function App() {
+  const showIdeationPreviews = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
   // A landing é a porta de entrada institucional. O workspace ativo fica em
   // /app; a versão entregue anteriormente continua disponível em /legacy.
   const [viewMode, setViewMode] = useState<'landing' | 'workspace' | 'legacy'>(() => {
@@ -237,7 +239,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'analytics' && (
+        {activeTab === 'analytics' && showIdeationPreviews && (
           <AnalyticsTab
             repository={selectedRepo}
             commits={commits}
@@ -245,9 +247,57 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'ai' && <AiTab />}
+        {activeTab === 'analytics' && !showIdeationPreviews && (
+          <DevelopmentTab
+            title="Analytics de engenharia"
+            status="Em desenvolvimento"
+            description="A tab permanece visível, mas só será promovida quando usar dados reais e critérios aceitos do Módulo 2."
+            available={[
+              'Contagem de commits e distribuição por autor em /api/v1/metrics/flow',
+              'Consultas de commits, branches e pull requests por repositório',
+            ]}
+            pending={[
+              'Definir métricas do escopo do Módulo 2 sem inventar produtividade ou risco',
+              'Substituir gráficos da POC por respostas reais e testadas',
+            ]}
+          />
+        )}
 
-        {activeTab === 'devops' && <DevOpsTab />}
+        {activeTab === 'ai' && showIdeationPreviews && <AiTab />}
+
+        {activeTab === 'ai' && !showIdeationPreviews && (
+          <DevelopmentTab
+            title="Assistente IA"
+            status="Em breve"
+            description="A POC antecipou esta experiência, mas ainda não existe um serviço de IA conectado ao Módulo 2."
+            available={[
+              'Commits, mensagens, autores e arquivos indexados como futura fonte de análise',
+            ]}
+            pending={[
+              'Implementar a US M2-131 e definir modelo, prompts, limites e tratamento de erro',
+              'Criar endpoint e testes antes de oferecer geração ou recomendação na interface',
+            ]}
+          />
+        )}
+
+        {activeTab === 'devops' && showIdeationPreviews && <DevOpsTab />}
+
+        {activeTab === 'devops' && !showIdeationPreviews && (
+          <DevelopmentTab
+            title="DevOps e documentação"
+            status="Em desenvolvimento"
+            description="A documentação real já está acessível; estados de release, deploy e cobertura só aparecerão quando vierem de uma fonte verificável."
+            available={[
+              'Swagger UI e schema OpenAPI gerados pelo backend',
+              'Workflow de CI e arquivos de deployment versionados no repositório',
+            ]}
+            pending={[
+              'Completar cinco respostas ainda não inferidas no OpenAPI',
+              'Expor status real de build, cobertura, release e deploy antes de recriar os cards da POC',
+            ]}
+            showDocumentation
+          />
+        )}
       </main>
 
       {/* Modal para Conectar Repositório via Link do GitHub */}

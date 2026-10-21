@@ -40,11 +40,6 @@ export const Header: React.FC<HeaderProps> = ({
   connectivity,
   onSwitchToLegacy,
 }) => {
-  // Analytics avançado, IA e DevOps vieram da ideação/Figma. Permanecem
-  // implementados para demonstração, mas ficam fora da navegação padrão até
-  // que as respectivas USs e contratos de backend sejam aceitos.
-  const showIdeationTabs = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
-
   // Breadcrumb e Título baseados na tela ativa
   const getHeaderMeta = () => {
     switch (activeTab) {
@@ -238,36 +233,32 @@ export const Header: React.FC<HeaderProps> = ({
           <span>Indexação & Contribuintes</span>
         </button>
 
-        {showIdeationTabs && (
-          <>
-            <button
-              className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-              onClick={() => onSelectTab('analytics')}
-              title="Ideação: métricas avançadas ainda não têm contrato próprio"
-            >
-              <BarChart3 size={13} />
-              <span>Analytics · ideação</span>
-            </button>
+        <button
+          className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+          onClick={() => onSelectTab('analytics')}
+          title="Em desenvolvimento: somente dados reais serão exibidos"
+        >
+          <BarChart3 size={13} />
+          <span>Analytics · em desenvolvimento</span>
+        </button>
 
-            <button
-              className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
-              onClick={() => onSelectTab('ai')}
-              title="Ideação: backend de IA ainda não está disponível neste módulo"
-            >
-              <Bot size={13} />
-              <span>Assistente IA · ideação</span>
-            </button>
+        <button
+          className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
+          onClick={() => onSelectTab('ai')}
+          title="Em breve: backend de IA ainda não implementado"
+        >
+          <Bot size={13} />
+          <span>Assistente IA · em breve</span>
+        </button>
 
-            <button
-              className={`tab-btn ${activeTab === 'devops' ? 'active' : ''}`}
-              onClick={() => onSelectTab('devops')}
-              title="Ideação: não há consulta de release/deploy neste módulo"
-            >
-              <Rocket size={13} />
-              <span>DevOps & Release · ideação</span>
-            </button>
-          </>
-        )}
+        <button
+          className={`tab-btn ${activeTab === 'devops' ? 'active' : ''}`}
+          onClick={() => onSelectTab('devops')}
+          title="Em desenvolvimento: documentação real já disponível"
+        >
+          <Rocket size={13} />
+          <span>DevOps & Docs · em desenvolvimento</span>
+        </button>
       </nav>
     </header>
   )
