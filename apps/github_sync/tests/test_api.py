@@ -2,8 +2,9 @@ from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 
-from apps.github_sync.models import Repository
+from apps.github_sync.models import Branch, Contributor, PullRequest, Repository
 
 pytestmark = pytest.mark.django_db
 
@@ -20,6 +21,43 @@ def test_commit_list_is_paginated(client):
 
     assert response.status_code == 200
     assert response.json() == {"count": 0, "next": None, "previous": None, "results": []}
+
+
+def test_branch_list_filters_repository_and_hides_deleted(client):
+    repo = Repository.objects.create(github_id=991, owner="owner", name="repo", webhook_secret=b"sec")
+    other = Repository.objects.create(github_id=992, owner="owner", name="other", webhook_secret=b"sec")
+    Branch.objects.create(repository=repo, name="main")
+    Branch.objects.create(repository=repo, name="old", deleted_at=timezone.now())
+    Branch.objects.create(repository=other, name="develop")
+
+    response = client.get(reverse("branch-list"), {"repository_id": repo.pk})
+
+    assert response.status_code == 200
+    assert [item["name"] for item in response.json()["results"]] == ["main"]
+
+
+def test_pull_request_list_filters_repository_state_and_author(client):
+    repo = Repository.objects.create(github_id=993, owner="owner", name="repo", webhook_secret=b"sec")
+    author = Contributor.objects.create(github_id=123, login="aluna")
+    now = timezone.now()
+    PullRequest.objects.create(
+        repository=repo,
+        author=author,
+        number=42,
+        title="Integra o módulo",
+        state="open",
+        opened_at=now,
+        updated_at=now,
+    )
+
+    response = client.get(
+        reverse("pull-request-list"),
+        {"repository_id": repo.pk, "state": "open", "author": "aluna"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["count"] == 1
+    assert response.json()["results"][0]["number"] == 42
 
 
 def test_repository_sync_endpoint(client):

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Commit, CommitFile, Repository, WebhookDelivery
+from .models import Branch, Commit, CommitFile, PullRequest, Repository, WebhookDelivery
 
 
 class HandshakeRequestSerializer(serializers.Serializer):
@@ -55,3 +55,31 @@ class CommitSerializer(serializers.ModelSerializer):
     class Meta:
         model = Commit
         fields = ("sha", "repository", "branch", "author", "message", "authored_at", "url", "forced_push", "files")
+
+
+class BranchSerializer(serializers.ModelSerializer):
+    repository = serializers.StringRelatedField()
+
+    class Meta:
+        model = Branch
+        fields = ("id", "repository", "name", "deleted_at")
+
+
+class PullRequestSerializer(serializers.ModelSerializer):
+    repository = serializers.StringRelatedField()
+    author = serializers.SlugRelatedField(read_only=True, slug_field="login")
+
+    class Meta:
+        model = PullRequest
+        fields = (
+            "id",
+            "repository",
+            "number",
+            "title",
+            "state",
+            "author",
+            "opened_at",
+            "closed_at",
+            "merged_at",
+            "updated_at",
+        )

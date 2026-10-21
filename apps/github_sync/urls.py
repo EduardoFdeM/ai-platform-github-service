@@ -1,7 +1,9 @@
 from django.urls import path
 
 from .views import (
+    BranchListView,
     CommitListView,
+    PullRequestListView,
     RepositoryListView,
     WebhookDeliveryListView,
     dashboard_metrics,
@@ -22,6 +24,8 @@ urlpatterns = [
     path("webhooks/github", github_webhook, name="github-webhook"),
     path("webhooks/deliveries", WebhookDeliveryListView.as_view(), name="webhook-deliveries"),
     path("commits", CommitListView.as_view(), name="commit-list"),
+    path("branches", BranchListView.as_view(), name="branch-list"),
+    path("pull-requests", PullRequestListView.as_view(), name="pull-request-list"),
     path("metrics/flow", flow_metrics, name="flow-metrics"),
     path("metrics/dashboard", dashboard_metrics, name="dashboard-metrics"),
 ]

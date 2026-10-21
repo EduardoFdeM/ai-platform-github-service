@@ -13,10 +13,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .dashboard import dashboard_repository, dashboard_summary
-from .models import Commit, Repository, WebhookDelivery
+from .models import Branch, Commit, PullRequest, Repository, WebhookDelivery
 from .serializers import (
+    BranchSerializer,
     CommitSerializer,
     HandshakeRequestSerializer,
+    PullRequestSerializer,
     RepositorySerializer,
     WebhookDeliverySerializer,
 )
@@ -158,6 +160,36 @@ class CommitListView(ListAPIView):
             queryset = queryset.filter(authored_at__gte=since)
         if until:
             queryset = queryset.filter(authored_at__lte=until)
+        return queryset
+
+
+class BranchListView(ListAPIView):
+    serializer_class = BranchSerializer
+
+    def get_queryset(self):
+        queryset = Branch.objects.select_related("repository").order_by("repository_id", "name")
+        repository_id = self.request.query_params.get("repository_id")
+        if repository_id:
+            queryset = queryset.filter(repository_id=repository_id)
+        if self.request.query_params.get("include_deleted", "false").lower() != "true":
+            queryset = queryset.filter(deleted_at__isnull=True)
+        return queryset
+
+
+class PullRequestListView(ListAPIView):
+    serializer_class = PullRequestSerializer
+
+    def get_queryset(self):
+        queryset = PullRequest.objects.select_related("repository", "author").order_by("-updated_at")
+        repository_id = self.request.query_params.get("repository_id")
+        state_filter = self.request.query_params.get("state")
+        author = self.request.query_params.get("author")
+        if repository_id:
+            queryset = queryset.filter(repository_id=repository_id)
+        if state_filter:
+            queryset = queryset.filter(state=state_filter)
+        if author:
+            queryset = queryset.filter(author__login=author)
         return queryset
 
 
