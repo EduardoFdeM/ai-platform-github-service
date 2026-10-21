@@ -12,7 +12,6 @@ import {
   Settings,
   FileText,
   ChevronDown,
-  MoreVertical,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -23,12 +22,12 @@ export const Sidebar: React.FC<SidebarProps> = () => {
   return (
     <aside className="nexus-sidebar">
       <div className="sidebar-top">
-        {/* Marca Nexus */}
+        {/* Identificação do módulo. */}
         <div className="nexus-brand">
-          <div className="nexus-logo-icon">N</div>
+          <div className="nexus-logo-icon">M2</div>
           <div className="nexus-logo-text">
-            <span className="nexus-brand-name">Nexus</span>
-            <span className="nexus-brand-sub">ACADEMIC INTELLIGENCE</span>
+            <span className="nexus-brand-name">GitHub Sync</span>
+            <span className="nexus-brand-sub">MÓDULO 2</span>
           </div>
         </div>
 
@@ -113,22 +112,10 @@ export const Sidebar: React.FC<SidebarProps> = () => {
         <div className="user-profile-strip">
           <div className="user-avatar-circle">MC</div>
           <div className="user-meta">
-            <span className="user-meta-name">Marina Costa</span>
-            <span className="user-meta-role">Engenharia de plataforma</span>
+            <span className="user-meta-name">Perfil de demonstração</span>
+            <span className="user-meta-role">Contexto acadêmico</span>
           </div>
-          <button
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-tertiary)',
-              cursor: 'pointer',
-              display: 'flex',
-              padding: 4,
-            }}
-            title="Menu do Usuário"
-          >
-            <MoreVertical size={14} />
-          </button>
+          <span className="badge badge-info" title="Perfil de demonstração">Demo</span>
         </div>
       </div>
     </aside>

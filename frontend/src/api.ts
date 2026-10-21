@@ -91,6 +91,20 @@ export class ApiError extends Error {
   }
 }
 
+// During local development Vite runs on a different port from Django. The API
+// proxy covers fetch calls, but a browser navigation to /docs would otherwise
+// remain on Vite and return 404. Point documentation links to Django directly.
+export const apiOrigin = import.meta.env.VITE_API_TARGET || (
+  import.meta.env.DEV
+    ? 'http://localhost:8000'
+    : (typeof window === 'undefined' ? '' : window.location.origin)
+)
+
+export const apiDocumentation = {
+  swagger: `${apiOrigin}/docs/`,
+  schema: `${apiOrigin}/api/schema/`,
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<{ status: number; data: T }> {
   // Os cookies de localhost são compartilhados entre portas: se houver sessão do
   // Django admin aberta, o DRF passaria a exigir CSRF. A SPA só usa endpoints

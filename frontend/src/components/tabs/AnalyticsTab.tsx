@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   TrendingDown,
   AlertTriangle,
@@ -21,6 +21,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   commits,
   flow,
 }) => {
+  const [period, setPeriod] = useState('Últimos 14 dias')
+  const [planCreated, setPlanCreated] = useState(false)
+  const [contactedMembers, setContactedMembers] = useState<string[]>([])
+  const [feedback, setFeedback] = useState<string | null>(null)
   const totalRealCommits = flow?.total_commits ?? (commits?.length ?? 21)
 
   const members =
@@ -40,6 +44,46 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           },
         ]
   const maxCommits = Math.max(...members.map((m) => m.commits), 1)
+
+  const showFeedback = (message: string) => setFeedback(message)
+
+  const exportDemoReport = () => {
+    const report = {
+      kind: 'demonstracao-analytics-fluxo',
+      generated_at: new Date().toISOString(),
+      period,
+      repository: repository?.full_name ?? null,
+      disclaimer: 'Cenário demonstrativo. Os indicadores de lead time, PRs, hotspots e recomendações não foram calculados por uma API.',
+      contributors: members,
+    }
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'analytics-fluxo-demonstracao.json'
+    link.click()
+    URL.revokeObjectURL(url)
+    showFeedback('Relatório demonstrativo exportado em JSON. Nenhum dado foi enviado para fora do navegador.')
+  }
+
+  const toggleContact = (name: string) => {
+    const alreadyPrepared = contactedMembers.includes(name)
+    setContactedMembers((current) =>
+      alreadyPrepared ? current.filter((member) => member !== name) : [...current, name]
+    )
+    showFeedback(alreadyPrepared ? `Mensagem demonstrativa removida para ${name}.` : `Mensagem demonstrativa preparada para ${name}; nenhum contato foi enviado.`)
+  }
+
+  const shareDailySummary = async () => {
+    const text = `Resumo demonstrativo de fluxo (${period}): cenário de ideação; validar indicadores antes de compartilhar.`
+    try {
+      await navigator.clipboard.writeText(text)
+      showFeedback('Resumo demonstrativo copiado para a área de transferência. Revise os números antes de compartilhar.')
+    } catch {
+      showFeedback('Não foi possível acessar a área de transferência. O resumo continua sendo apenas demonstrativo.')
+    }
+  }
+
   return (
     <div className="view-container">
       {/* Sub-header da Tela 11 */}
@@ -49,13 +93,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             Visão executiva do fluxo{repository ? ` • ${repository.name}` : ''}
           </h2>
           <p className="section-intro-desc">
-            Indicadores de velocidade e qualidade para detectar espera sistêmica — não para avaliar performance individual.
+            Cenário demonstrativo de velocidade e qualidade para discutir espera sistêmica — não para avaliar performance individual.
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="badge badge-success">● Dados sincronizados (há 3 min)</span>
-          <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
+          <span className="badge badge-info">Dados de demonstração</span>
+          <button onClick={exportDemoReport} className="btn-nexus btn-nexus-secondary btn-nexus-sm">
             <Download size={12} />
             <span>Exportar relatório</span>
           </button>
@@ -64,10 +108,21 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
       {/* Seletor de Período e Equipe */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <div className="select-chip">
+        <label className="select-chip">
           <span>período:</span>
-          <strong>Últimos 14 dias</strong>
-        </div>
+          <select
+            value={period}
+            onChange={(event) => {
+              setPeriod(event.target.value)
+              showFeedback(`Cenário demonstrativo atualizado para ${event.target.value}.`)
+            }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', font: 'inherit', fontWeight: 600 }}
+          >
+            <option value="Últimos 7 dias">Últimos 7 dias</option>
+            <option value="Últimos 14 dias">Últimos 14 dias</option>
+            <option value="Últimos 30 dias">Últimos 30 dias</option>
+          </select>
+        </label>
         <div className="select-chip">
           <span>branch:</span>
           <strong>main</strong>
@@ -77,6 +132,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           <strong>Squad Plataforma</strong>
         </div>
       </div>
+
+      {feedback && (
+        <div className="status-pill status-pill-info" role="status">
+          {feedback}
+        </div>
+      )}
 
       {/* 3 KPIs Executivos de Fluxo */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
@@ -139,8 +200,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
           <div style={{ display: 'flex', gap: 10 }}>
             <span className="badge badge-danger">6 itens críticos</span>
-            <button className="btn-nexus btn-nexus-danger btn-nexus-sm">
-              <span>Criar plano de ação</span>
+            <button
+              className="btn-nexus btn-nexus-danger btn-nexus-sm"
+              onClick={() => {
+                setPlanCreated(true)
+                showFeedback('Plano de ação demonstrativo criado localmente. Não foi aberto nenhum ticket.')
+              }}
+            >
+              <span>{planCreated ? 'Plano demonstrativo criado' : 'Criar plano de ação'}</span>
             </button>
           </div>
         </div>
@@ -186,8 +253,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="badge badge-danger">67h parado</span>
-                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
-                    <ExternalLink size={10} /> Abrir PR
+                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm" onClick={() => showFeedback('PR #284 é uma referência de demonstração; não há URL de pull request configurada.')}>
+                    <ExternalLink size={10} /> Ver referência (demo)
                   </button>
                 </div>
               </div>
@@ -212,8 +279,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="badge badge-danger">55h parado</span>
-                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
-                    <ExternalLink size={10} /> Abrir PR
+                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm" onClick={() => showFeedback('PR #279 é uma referência de demonstração; não há URL de pull request configurada.')}>
+                    <ExternalLink size={10} /> Ver referência (demo)
                   </button>
                 </div>
               </div>
@@ -238,8 +305,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="badge badge-danger">49h parado</span>
-                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
-                    <ExternalLink size={10} /> Abrir PR
+                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm" onClick={() => showFeedback('PR #276 é uma referência de demonstração; não há URL de pull request configurada.')}>
+                    <ExternalLink size={10} /> Ver referência (demo)
                   </button>
                 </div>
               </div>
@@ -284,8 +351,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="badge badge-danger">91h sem commits</span>
-                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
-                    <MessageSquare size={10} /> Contatar
+                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm" onClick={() => toggleContact('Carla Souza')}>
+                    <MessageSquare size={10} /> {contactedMembers.includes('Carla Souza') ? 'Mensagem preparada' : 'Preparar contato'}
                   </button>
                 </div>
               </div>
@@ -308,8 +375,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="badge badge-danger">82h sem commits</span>
-                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
-                    <MessageSquare size={10} /> Contatar
+                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm" onClick={() => toggleContact('Diego Freitas')}>
+                    <MessageSquare size={10} /> {contactedMembers.includes('Diego Freitas') ? 'Mensagem preparada' : 'Preparar contato'}
                   </button>
                 </div>
               </div>
@@ -332,8 +399,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="badge badge-danger">76h sem commits</span>
-                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
-                    <MessageSquare size={10} /> Contatar
+                  <button className="btn-nexus btn-nexus-secondary btn-nexus-sm" onClick={() => toggleContact('Lucas Almeida')}>
+                    <MessageSquare size={10} /> {contactedMembers.includes('Lucas Almeida') ? 'Mensagem preparada' : 'Preparar contato'}
                   </button>
                 </div>
               </div>
@@ -457,7 +524,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               Síntese do diagnóstico para preparar a daily e reduzir tempo de espera nesta sprint.
             </div>
           </div>
-          <button className="btn-nexus btn-nexus-primary btn-nexus-sm">
+          <button className="btn-nexus btn-nexus-primary btn-nexus-sm" onClick={shareDailySummary}>
             <Send size={12} />
             <span>Compartilhar na daily</span>
           </button>

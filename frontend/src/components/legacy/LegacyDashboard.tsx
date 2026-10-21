@@ -41,7 +41,7 @@ async function computeHmacSha256(secret: string, message: string): Promise<strin
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-export default function LegacyDashboard({ onSwitchToNexus }: { onSwitchToNexus?: () => void }) {
+export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWorkspace?: () => void }) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [loading, setLoading] = useState(false)
   const [repositories, setRepositories] = useState<Repository[]>([])
@@ -329,9 +329,9 @@ export default function LegacyDashboard({ onSwitchToNexus }: { onSwitchToNexus?:
               {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
             </button>
 
-            {onSwitchToNexus && (
+            {onSwitchToWorkspace && (
               <button
-                onClick={onSwitchToNexus}
+                onClick={onSwitchToWorkspace}
                 className="btn btn-primary btn-sm"
                 style={{
                   background: '#2563EB',
@@ -340,9 +340,9 @@ export default function LegacyDashboard({ onSwitchToNexus }: { onSwitchToNexus?:
                   fontWeight: 600,
                   boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
                 }}
-                title="Alternar para a nova interface Nexus (Academic Intelligence)"
+                title="Alternar para a interface do Módulo 2 GitHub Sync"
               >
-                ✨ Voltar ao Nexus
+                ✨ Ir para o GitHub Sync
               </button>
             )}
           </div>

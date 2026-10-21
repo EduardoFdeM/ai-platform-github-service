@@ -10,33 +10,75 @@ import {
   Sliders,
 } from 'lucide-react'
 
+const reviewExamples = [
+  'Exemplo de resumo: nesta semana, o time simulou avanços na estabilização do fluxo de matrículas e na observabilidade da integração GitHub. O conteúdo abaixo usa métricas fictícias para demonstrar como um rascunho poderia apoiar uma Review. Antes de compartilhar, substitua todos os números e referências pelos dados verificados do projeto.',
+  'Exemplo alternativo: a amostra local destaca uma possível dependência entre revisão de PRs e cobertura de testes. Esta é apenas uma variação de interface — nenhuma análise foi executada, nenhum repositório foi consultado e nenhum insight deve orientar decisão sem validação humana.',
+] as const
+
+const prDescriptionExamples = [
+  '## Contexto\nExemplo de descrição para uma mudança de matrícula. Este texto é apenas um preview local.\n\n## Alterações\n- descreve uma possível extração de serviço assíncrono\n- lista um retry idempotente como exemplo de implementação\n- sugere validar cenários de matrícula duplicada\n\n## Validação necessária\n- confirmar comandos, issue e evidências antes de abrir o PR',
+  '## Contexto\nOutro exemplo local de descrição de PR. Nenhum diff foi lido para compor este rascunho.\n\n## Alterações\n- apresenta uma hipótese de mudança\n- separa impacto e validação como campos revisáveis\n\n## Validação necessária\n- substituir este conteúdo por evidências do repositório',
+] as const
+
+const safeCommandsExample = '# Exemplo para revisão local — confirme o contexto antes de executar\ngit status\ngit log --oneline -5\ngit diff --check'
+
 export const AiTab: React.FC = () => {
   const [copiedReview, setCopiedReview] = useState(false)
   const [copiedPrDesc, setCopiedPrDesc] = useState(false)
+  const [copiedCommands, setCopiedCommands] = useState(false)
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isEditingReview, setIsEditingReview] = useState(false)
+  const [reviewText, setReviewText] = useState<string>(reviewExamples[0])
+  const [reviewDraft, setReviewDraft] = useState<string>(reviewExamples[0])
+  const [reviewExampleIndex, setReviewExampleIndex] = useState(0)
+  const [prExampleIndex, setPrExampleIndex] = useState(0)
+  const [prDescription, setPrDescription] = useState<string>(prDescriptionExamples[0])
+  const [localNotice, setLocalNotice] = useState('')
 
-  const copyText = (text: string, type: 'review' | 'pr') => {
-    navigator.clipboard.writeText(text)
-    if (type === 'review') {
-      setCopiedReview(true)
-      setTimeout(() => setCopiedReview(false), 2000)
-    } else {
-      setCopiedPrDesc(true)
-      setTimeout(() => setCopiedPrDesc(false), 2000)
+  const copyText = async (text: string, type: 'review' | 'pr' | 'commands') => {
+    try {
+      await navigator.clipboard.writeText(text)
+      if (type === 'review') {
+        setCopiedReview(true)
+        setTimeout(() => setCopiedReview(false), 2000)
+      } else if (type === 'pr') {
+        setCopiedPrDesc(true)
+        setTimeout(() => setCopiedPrDesc(false), 2000)
+      } else {
+        setCopiedCommands(true)
+        setTimeout(() => setCopiedCommands(false), 2000)
+      }
+      setLocalNotice('')
+      setCopyFeedback('Conteúdo de exemplo copiado localmente. Revise antes de usar fora desta tela.')
+    } catch {
+      setLocalNotice('')
+      setCopyFeedback('A cópia automática não está disponível neste navegador. Selecione o conteúdo e copie manualmente.')
     }
   }
 
-  const reviewText = `Nesta semana, o produto avançou na estabilização do fluxo de matrículas e na observabilidade da integração GitHub. Foram concluídos 11 PRs, incluindo a correção do cálculo de frequência e a nova trilha de auditoria. A cobertura de testes subiu de 35,2% para 38,6%, enquanto o tempo médio de revisão caiu 1h18. O principal ponto de atenção é o PR #284, parado há 67 horas e com 428 linhas alteradas; recomenda-se dividir o escopo antes da próxima Review.`
+  const regenerateReview = () => {
+    const nextIndex = (reviewExampleIndex + 1) % reviewExamples.length
+    const nextExample = reviewExamples[nextIndex]
+    setReviewExampleIndex(nextIndex)
+    setReviewText(nextExample)
+    setReviewDraft(nextExample)
+    setIsEditingReview(false)
+    setLocalNotice('Outro exemplo local foi carregado. Nenhuma IA, API ou repositório foi consultado.')
+  }
 
-  const prMarkdown = `## Contexto
-Simplifica o pipeline de matrícula e adiciona rastreabilidade à validação de frequência.
+  const regeneratePrDescription = () => {
+    const nextIndex = (prExampleIndex + 1) % prDescriptionExamples.length
+    setPrExampleIndex(nextIndex)
+    setPrDescription(prDescriptionExamples[nextIndex])
+    setLocalNotice('Outro rascunho de descrição foi carregado localmente. Nenhum diff foi analisado.')
+  }
 
-## Alterações
-- extrai EnrollmentService para fluxo assíncrono
-- adiciona retry idempotente e métricas de latência
-- cobre cenários de matrícula duplicada
-
-## Validação
-\`pnpm test enrollment --runInBand\` • YT-1842`
+  const saveReviewDraft = () => {
+    setReviewText(reviewDraft.trim() || reviewText)
+    setIsEditingReview(false)
+    setLocalNotice('Rascunho atualizado somente nesta sessão do navegador.')
+  }
 
   return (
     <div className="view-container">
@@ -45,18 +87,45 @@ Simplifica o pipeline de matrícula e adiciona rastreabilidade à validação de
         <div>
           <h2 className="section-intro-title">Painel Executivo para o PO</h2>
           <p className="section-intro-desc">
-            Síntese semanal para preparar a Review com contexto verificável e supervisão humana.
+            Protótipo navegável com dados de exemplo. Nenhuma análise de IA ou fonte externa é consultada nesta tela.
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="badge badge-success">✦ IA assistiva ativa • Fontes auditáveis</span>
-          <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
+          <span className="badge badge-warning">◌ Demonstração local • dados fictícios</span>
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen((isOpen) => !isOpen)}
+            aria-expanded={isSettingsOpen}
+            className="btn-nexus btn-nexus-secondary btn-nexus-sm"
+          >
             <Sliders size={12} />
-            <span>Configurar IA</span>
+            <span>{isSettingsOpen ? 'Fechar configuração' : 'Configurar demonstração'}</span>
           </button>
         </div>
       </div>
+
+      {isSettingsOpen && (
+        <div
+          className="nexus-card"
+          role="status"
+          style={{ borderColor: 'rgba(96, 165, 250, 0.35)', backgroundColor: 'rgba(30, 41, 59, 0.62)' }}
+        >
+          <div className="nexus-card-title">Configuração local da demonstração</div>
+          <p className="nexus-card-subtitle">
+            Esta tela alterna apenas estados visuais e rascunhos no navegador. Não envia prompts, commits ou credenciais.
+          </p>
+        </div>
+      )}
+
+      {(localNotice || copyFeedback) && (
+        <div
+          role="status"
+          style={{ fontSize: 11, color: '#BFDBFE', borderLeft: '2px solid #60A5FA', paddingLeft: 10 }}
+        >
+          {localNotice || copyFeedback}
+        </div>
+      )}
 
       {/* Grid: Painel Executivo PO */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 18 }}>
@@ -67,26 +136,26 @@ Simplifica o pipeline de matrícula e adiciona rastreabilidade à validação de
               <Sparkles size={15} style={{ color: '#C084FC' }} />
               <span>Resumo semanal para Review</span>
             </div>
-            <span className="badge badge-purple">✦ Gerado por IA + revisar</span>
+              <span className="badge badge-purple">✦ Rascunho fictício + revisar</span>
           </div>
 
           {/* 4 Metadados da Geração */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, fontSize: 10.5 }}>
             <div>
-              <span style={{ color: 'var(--text-dim)', display: 'block' }}>PERÍODO ANALISADO</span>
-              <strong style={{ color: '#FFFFFF' }}>23-27 set 2026</strong>
+                <span style={{ color: 'var(--text-dim)', display: 'block' }}>PERÍODO ILUSTRATIVO</span>
+                <strong style={{ color: '#FFFFFF' }}>Exemplo local</strong>
             </div>
             <div>
-              <span style={{ color: 'var(--text-dim)', display: 'block' }}>FONTES CONSIDERADAS</span>
-              <strong style={{ color: '#FFFFFF' }}>74 commits • 18 PRs</strong>
+                <span style={{ color: 'var(--text-dim)', display: 'block' }}>AMOSTRA EXIBIDA</span>
+                <strong style={{ color: '#FFFFFF' }}>Métricas fictícias</strong>
             </div>
             <div>
-              <span style={{ color: 'var(--text-dim)', display: 'block' }}>ESCOPO</span>
-              <strong style={{ color: '#FFFFFF' }}>main + 8 branches</strong>
+                <span style={{ color: 'var(--text-dim)', display: 'block' }}>ESCOPO</span>
+                <strong style={{ color: '#FFFFFF' }}>Sem repositório conectado</strong>
             </div>
             <div>
-              <span style={{ color: 'var(--text-dim)', display: 'block' }}>EXECUÇÃO</span>
-              <span style={{ color: '#93C5FD', fontFamily: 'var(--font-mono)' }}>nxs-ai-8f31</span>
+                <span style={{ color: 'var(--text-dim)', display: 'block' }}>EXECUÇÃO</span>
+                <span style={{ color: '#93C5FD', fontFamily: 'var(--font-mono)' }}>preview-local</span>
             </div>
           </div>
 
@@ -102,21 +171,69 @@ Simplifica o pipeline de matrícula e adiciona rastreabilidade à validação de
               color: '#E2E8F0',
             }}
           >
-            {reviewText}
+            {isEditingReview ? (
+              <textarea
+                value={reviewDraft}
+                onChange={(event) => setReviewDraft(event.target.value)}
+                aria-label="Editar rascunho de Review de exemplo"
+                style={{ width: '100%', minHeight: 112, resize: 'vertical', color: '#E2E8F0', background: '#0A0F1D', border: 0, font: 'inherit', lineHeight: 'inherit' }}
+              />
+            ) : (
+              reviewText
+            )}
           </div>
 
           {/* Footer de Ações do Resumo */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-              Rascunho assistivo: valide números e contexto antes de compartilhar.
+              Exemplo local: valide números e contexto antes de compartilhar.
             </span>
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
-                <Edit3 size={11} />
-                <span>Revisar e editar</span>
-              </button>
+              {isEditingReview ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReviewDraft(reviewText)
+                      setIsEditingReview(false)
+                      setLocalNotice('Edição local descartada.')
+                    }}
+                    className="btn-nexus btn-nexus-secondary btn-nexus-sm"
+                  >
+                    <span>Cancelar</span>
+                  </button>
+                  <button type="button" onClick={saveReviewDraft} className="btn-nexus btn-nexus-primary btn-nexus-sm">
+                    <Check size={11} />
+                    <span>Salvar localmente</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReviewDraft(reviewText)
+                      setIsEditingReview(true)
+                      setLocalNotice('Modo de edição local ativado. O texto não será enviado para um serviço externo.')
+                    }}
+                    className="btn-nexus btn-nexus-secondary btn-nexus-sm"
+                  >
+                    <Edit3 size={11} />
+                    <span>Revisar e editar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={regenerateReview}
+                    className="btn-nexus btn-nexus-secondary btn-nexus-sm"
+                  >
+                    <RotateCw size={11} />
+                    <span>Trocar exemplo</span>
+                  </button>
+                </>
+              )}
               <button
+                type="button"
                 onClick={() => copyText(reviewText, 'review')}
                 className="btn-nexus btn-nexus-primary btn-nexus-sm"
               >
@@ -132,9 +249,9 @@ Simplifica o pipeline de matrícula e adiciona rastreabilidade à validação de
           <div className="nexus-card-header">
             <div>
               <div className="nexus-card-title">Análise de Sentimento</div>
-              <div className="nexus-card-subtitle">Tom agregado dos comentários (126 reviews).</div>
+              <div className="nexus-card-subtitle">Amostra fictícia para demonstrar a visualização; não há reviews analisados.</div>
             </div>
-            <span className="badge badge-success">Tendência +8 p.p.</span>
+            <span className="badge badge-warning">Exemplo estático</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -191,7 +308,7 @@ Simplifica o pipeline de matrícula e adiciona rastreabilidade à validação de
                 lineHeight: 1.4,
               }}
             >
-              Comentários estão mais objetivos e colaborativos. O tom hostil caiu 3 p.p.; acompanhe o padrão, não indivíduos.
+                Exemplo de leitura: apresente tendências agregadas, nunca avaliações de indivíduos. Os percentuais desta tela não vieram do backend.
             </div>
           </div>
         </div>
@@ -206,13 +323,13 @@ Simplifica o pipeline de matrícula e adiciona rastreabilidade à validação de
               <span>Assistente para Desenvolvedores — Copilot Git</span>
             </div>
             <div className="nexus-card-subtitle">
-              Apoio operacional sobre o diff local. Sugestões são explicáveis, revisáveis e nunca executadas automaticamente.
+              Preview de interface para rascunhos revisáveis. Nenhum diff local, repositório ou serviço de IA é acessado.
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <div className="select-chip">Últimos 7 dias</div>
-            <div className="select-chip">branch: feat/enrollment-pipeline</div>
+            <div className="select-chip">janela ilustrativa</div>
+            <div className="select-chip">branch: exemplo/local</div>
           </div>
         </div>
 
@@ -233,38 +350,39 @@ Simplifica o pipeline de matrícula e adiciona rastreabilidade à validação de
               <span style={{ fontSize: 12.5, fontWeight: 700, color: '#FFFFFF' }}>
                 Descrição automática de PR em Markdown
               </span>
-              <span className="badge badge-info">✦ Preview pronto</span>
+              <span className="badge badge-info">✦ Conteúdo de exemplo</span>
             </div>
 
             <div style={{ display: 'flex', gap: 8, fontSize: 10.5 }}>
-              <span className="badge badge-purple">PR #284 • feat/enrollment-pipeline</span>
+              <span className="badge badge-purple">PR fictício • exemplo/local</span>
               <span className="badge" style={{ backgroundColor: '#1E293B', color: '#CBD5E1' }}>
-                DIFF 14 arquivos • 428 linhas
+                DIFF ilustrativo • sem leitura de arquivos
               </span>
               <span className="badge" style={{ backgroundColor: '#1E293B', color: '#CBD5E1' }}>
-                7 commits analisados
+                sem commits consultados
               </span>
             </div>
 
             <div className="code-box-dark" style={{ minHeight: 150, fontSize: 11.5 }}>
-              <pre>{prMarkdown}</pre>
+              <pre>{prDescription}</pre>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#10B981', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <CheckCircle2 size={12} /> Revise fatos, comandos e impacto antes de abrir o PR.
+                <CheckCircle2 size={12} /> Revise fatos, comandos e impacto antes de abrir o PR. Este texto não foi gerado por IA.
               </span>
 
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
+                <button type="button" onClick={regeneratePrDescription} className="btn-nexus btn-nexus-secondary btn-nexus-sm">
                   <RotateCw size={11} />
-                  <span>Regenerar</span>
+                  <span>Trocar exemplo</span>
                 </button>
                 <button
-                  onClick={() => copyText(prMarkdown, 'pr')}
+                  type="button"
+                  onClick={() => copyText(prDescription, 'pr')}
                   className="btn-nexus btn-nexus-primary btn-nexus-sm"
                 >
-                  <Copy size={11} />
+                  {copiedPrDesc ? <Check size={11} /> : <Copy size={11} />}
                   <span>{copiedPrDesc ? 'Copiado!' : 'Usar descrição'}</span>
                 </button>
               </div>
@@ -287,21 +405,21 @@ Simplifica o pipeline de matrícula e adiciona rastreabilidade à validação de
             >
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#FFFFFF' }}>Clareza semântica dos commits</span>
-                <span className="badge badge-warning">78 / 100</span>
+                  <span className="badge badge-warning">exemplo visual</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', color: '#93C5FD' }}>8f3a91c: feat(enrollment): add idempotent retry</span>
-                  <span className="badge badge-success">Claro</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', color: '#93C5FD' }}>exemplo: feat(módulo): descreve a mudança</span>
+                  <span className="badge badge-success">Modelo claro</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>c4b7d2e: ajustes finais</span>
-                  <span className="badge badge-warning">Revisar</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>exemplo: ajustes finais</span>
+                  <span className="badge badge-warning">Modelo a revisar</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>1ab08de: fix: corrige erro</span>
-                  <span className="badge badge-danger">Vago</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>exemplo: corrige erro</span>
+                  <span className="badge badge-danger">Modelo vago</span>
                 </div>
               </div>
             </div>
@@ -320,14 +438,20 @@ Simplifica o pipeline de matrícula e adiciona rastreabilidade à validação de
             >
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#FFFFFF' }}>Validador de requisito • YouTrack</span>
-                <span className="badge badge-warning">2 commits sem chave</span>
+                <span className="badge badge-warning">Sem validação conectada</span>
               </div>
               <p style={{ fontSize: 10.5, color: 'var(--text-tertiary)' }}>
-                Padrão obrigatório no corpo ou assunto: <code style={{ color: '#FBBF24' }}>YT-[0-9]+</code>
+                Exemplo de padrão que um projeto pode adotar no corpo ou assunto: <code style={{ color: '#FBBF24' }}>YT-[0-9]+</code>. Esta tela não consulta o YouTrack.
               </p>
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                <button className="btn-nexus btn-nexus-secondary btn-nexus-sm" style={{ flex: 1 }}>
-                  <span>Copiar comandos seguros</span>
+                <button
+                  type="button"
+                  onClick={() => copyText(safeCommandsExample, 'commands')}
+                  className="btn-nexus btn-nexus-secondary btn-nexus-sm"
+                  style={{ flex: 1 }}
+                >
+                  {copiedCommands ? <Check size={11} /> : <Copy size={11} />}
+                  <span>{copiedCommands ? 'Comandos copiados!' : 'Copiar comandos de exemplo'}</span>
                 </button>
               </div>
             </div>

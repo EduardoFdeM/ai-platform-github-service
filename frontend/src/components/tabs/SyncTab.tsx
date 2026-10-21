@@ -62,6 +62,17 @@ export const SyncTab: React.FC<SyncTabProps> = ({
     return matches
   })
 
+  const exportBindings = () => {
+    const content = JSON.stringify({ repository: repository?.full_name ?? null, contributors: filteredStudents }, null, 2)
+    const blob = new Blob([content], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'vinculos-de-contribuintes.json'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="view-container">
       {/* Sub-header da Tela 10 */}
@@ -284,7 +295,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className="badge badge-success">● 177 confirmados</span>
             <span className="badge badge-warning">● 7 requerem revisão</span>
-            <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
+            <button onClick={exportBindings} className="btn-nexus btn-nexus-secondary btn-nexus-sm">
               <Download size={12} />
               <span>Exportar vínculos</span>
             </button>
@@ -397,14 +408,14 @@ export const SyncTab: React.FC<SyncTabProps> = ({
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     {item.status === 'confirmado' ? (
-                      <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
+                      <button className="btn-nexus btn-nexus-secondary btn-nexus-sm" disabled title="A revisão manual de vínculos ainda não possui endpoint.">
                         <Users size={11} />
-                        <span>Revisar</span>
+                        <span>Revisão em desenvolvimento</span>
                       </button>
                     ) : (
-                      <button className="btn-nexus btn-nexus-primary btn-nexus-sm">
+                      <button className="btn-nexus btn-nexus-primary btn-nexus-sm" disabled title="A resolução de vínculos ainda não possui endpoint.">
                         <UserCheck size={11} />
-                        <span>Resolver</span>
+                        <span>Resolução em desenvolvimento</span>
                       </button>
                     )}
                   </td>

@@ -1,12 +1,12 @@
 /* ==========================================================================
-   NEXUS ACADEMIC INTELLIGENCE · DESIGN SYSTEM OFICIAL (DARK LUXURY THEME)
-   Inspirado nos layouts do Figma da plataforma Nexus (Módulo 2 GitHub Sync)
+   MÓDULO 2 · GITHUB SYNC · DESIGN SYSTEM OFICIAL (DARK LUXURY THEME)
+   Inspirado nos layouts do Figma do Módulo 2 GitHub Sync
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Paleta Base Nexus Dark */
+  /* Paleta base do tema escuro do módulo. */
   --bg-app: #080C14;
   --bg-sidebar: #060910;
   --bg-card: #0D1322;
@@ -90,7 +90,151 @@ html, body {
   overflow-x: hidden;
 }
 
-/* Scrollbar Personalizada Nexus */
+/* ==========================================================================
+   LANDING INSTITUCIONAL E PRÉVIAS DE FUNCIONALIDADES
+   ========================================================================== */
+.landing-page {
+  min-height: 100vh;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 52px;
+}
+
+.landing-header,
+.landing-footer,
+.landing-actions,
+.feature-preview-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.landing-doc-link,
+.landing-footer a {
+  color: #93C5FD;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+
+.landing-doc-link:hover,
+.landing-footer a:hover {
+  color: #BFDBFE;
+  text-decoration: underline;
+}
+
+.landing-hero {
+  max-width: 820px;
+  padding: 58px 0 12px;
+}
+
+.landing-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #93C5FD;
+  background: var(--primary-subtle);
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius-pill);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.landing-hero h1 {
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1.08;
+  letter-spacing: -1.8px;
+  margin: 18px 0;
+  color: #FFF;
+}
+
+.landing-hero p {
+  max-width: 700px;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1.65;
+  margin-bottom: 26px;
+}
+
+.landing-actions {
+  justify-content: flex-start;
+}
+
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.landing-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  gap: 13px;
+  min-height: 190px;
+}
+
+.landing-card h2 {
+  font-size: 15px;
+  color: #FFF;
+  margin: 10px 0 6px;
+}
+
+.landing-card p {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.landing-card-icon { flex: 0 0 auto; }
+.landing-card-icon.success { color: #34D399; }
+.landing-card-icon.info { color: #38BDF8; }
+.landing-card-icon.warning { color: #FBBF24; }
+
+.landing-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 18px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.feature-preview {
+  min-height: 350px;
+  border: 1px dashed var(--border-highlight);
+  background: linear-gradient(135deg, var(--bg-card) 0%, #0A1020 100%);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px;
+  gap: 13px;
+  max-width: 820px;
+}
+
+.feature-preview > svg { color: #FBBF24; }
+.feature-preview h3 { color: #FFF; font-size: 19px; }
+.feature-preview p { color: var(--text-muted); max-width: 630px; font-size: 13px; line-height: 1.6; }
+.feature-preview-actions { justify-content: flex-start; margin-top: 8px; }
+
+@media (max-width: 780px) {
+  .landing-page { padding: 18px; gap: 34px; }
+  .landing-hero { padding-top: 24px; }
+  .landing-grid { grid-template-columns: 1fr; }
+  .feature-preview { padding: 28px; }
+}
+
+/* Scrollbar personalizada do módulo. */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -479,7 +623,7 @@ html, body {
   border: 1px solid var(--danger-border);
 }
 
-/* Botões do Sistema Nexus */
+/* Botões do sistema. */
 .btn-nexus {
   display: inline-flex;
   align-items: center;

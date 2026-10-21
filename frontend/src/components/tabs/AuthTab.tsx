@@ -21,17 +21,12 @@ interface AuthTabProps {
 
 export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
   const [tokenType, setTokenType] = useState<'pat' | 'app'>('pat')
-  const [token, setToken] = useState('ghp_LiveMockedVaultToken_7K9Q')
+  const [token, setToken] = useState('')
   const [showToken, setShowToken] = useState(false)
   const [customBaseUrl, setCustomBaseUrl] = useState('https://github.enterprise.local/api/v3')
   const [env, setEnv] = useState('Produção local')
   const [loading, setLoading] = useState(false)
-  const [handshakeResult, setHandshakeResult] = useState<HandshakeResult | null>({
-    valid: true,
-    login: 'EduardoFdeM',
-    name: 'Eduardo Ferreira de Mattos',
-    scopes: ['repo:status', 'read:org'],
-  })
+  const [handshakeResult, setHandshakeResult] = useState<HandshakeResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleTestHandshake = async () => {
@@ -63,8 +58,8 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
             Gerencie credenciais, valide permissões mínimas e acompanhe a trilha de acesso ao repositório ativo.
           </p>
         </div>
-        <div className="badge badge-success" style={{ fontSize: 11, padding: '4px 10px' }}>
-          ● Autenticação saudável
+        <div className={`badge ${handshakeResult?.valid ? 'badge-success' : 'badge-info'}`} style={{ fontSize: 11, padding: '4px 10px' }}>
+          ● {handshakeResult?.valid ? 'Handshake validado' : 'Aguardando validação'}
         </div>
       </div>
 
@@ -100,10 +95,12 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF' }}>
-              Postura de acesso dentro da política
+              {handshakeResult?.valid ? 'Handshake validado' : 'Valide um token para consultar permissões'}
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>
-              Handshake concluído para {handshakeResult?.login || 'usuário autenticado'}, segredo protegido e nenhum escopo administrativo detectado.
+              {handshakeResult?.valid
+                ? `Handshake concluído para ${handshakeResult.login || 'usuário autenticado'}.`
+                : 'O token é usado somente nesta requisição de handshake e não é persistido pela SPA.'}
             </div>
           </div>
         </div>
@@ -111,7 +108,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 24, fontSize: 11 }}>
           <div>
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>MÉTODO</span>
-            <strong style={{ color: '#FFFFFF' }}>PAT gerenciado</strong>
+              <strong style={{ color: '#FFFFFF' }}>{handshakeResult?.valid ? 'PAT validado' : 'PAT não validado'}</strong>
           </div>
           <div>
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>PRÓXIMA ROTAÇÃO</span>
@@ -217,9 +214,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
                 {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
-            <p className="form-help">
-              Armazenado em cofre isolado. A credencial será validada sem ser registrada em logs ou telemetria.
-            </p>
+            <p className="form-help">Enviado apenas para o endpoint de handshake. Esta SPA não salva a credencial.</p>
           </div>
 
           {/* Custom Base URL & Ambiente */}
@@ -297,7 +292,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
             <div style={{ display: 'flex', gap: 18, fontSize: 10.5, color: 'var(--text-tertiary)' }}>
               <div>
                 <span style={{ display: 'block', color: 'var(--text-dim)' }}>ORIGEM</span>
-                <span style={{ color: 'var(--text-main)' }}>Cofre Nexus • Produção</span>
+                <span style={{ color: 'var(--text-main)' }}>Cofre do módulo • Produção</span>
               </div>
               <div>
                 <span style={{ display: 'block', color: 'var(--text-dim)' }}>RESPONSÁVEL</span>
@@ -315,7 +310,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
               className="btn-nexus btn-nexus-primary"
             >
               <RotateCw size={12} className={loading ? 'animate-spin' : ''} />
-              <span>{loading ? 'Validando...' : 'Testar Handshake e Salvar'}</span>
+              <span>{loading ? 'Validando...' : 'Testar handshake'}</span>
             </button>
           </div>
 

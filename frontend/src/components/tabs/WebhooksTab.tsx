@@ -72,6 +72,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
   const [simFile, setSimFile] = useState('frontend/src/App.tsx')
   const [simStatus, setSimStatus] = useState<string | null>(null)
   const [simulating, setSimulating] = useState(false)
+  const hasLiveDeliveries = deliveries.length > 0
 
   // Eventos do Figma
   const defaultEvents: WebhookEventItem[] = [
@@ -259,10 +260,10 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div className="status-pill status-pill-success">
-            <Radio size={12} className={streamActive ? 'animate-pulse' : ''} />
-            <span>CANAL DE EVENTOS AO VIVO • 87 ms</span>
-            <strong>● Operacional</strong>
+          <div className={`status-pill ${hasLiveDeliveries ? 'status-pill-success' : 'status-pill-info'}`}>
+            <Radio size={12} className={hasLiveDeliveries && streamActive ? 'animate-pulse' : ''} />
+            <span>{hasLiveDeliveries ? 'EVENTOS RECEBIDOS NESTA SESSÃO' : 'PRÉVIA DE MONITORAMENTO'}</span>
+            <strong>{hasLiveDeliveries ? '● Dados disponíveis' : 'Sem eventos persistidos'}</strong>
           </div>
 
           <button
@@ -316,7 +317,9 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF' }}>Saúde do webhook</span>
-              <span className="badge badge-success">● Recebendo eventos</span>
+              <span className={`badge ${hasLiveDeliveries ? 'badge-success' : 'badge-info'}`}>
+                {hasLiveDeliveries ? '● Entregas persistidas' : 'Prévia sem entregas'}
+              </span>
             </div>
             <div
               style={{
@@ -491,14 +494,23 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
       <div className="nexus-card">
         <div className="nexus-card-header">
           <div>
-            <div className="nexus-card-title">Eventos recentes</div>
+            <div className="nexus-card-title">
+              Eventos recentes
+              {!hasLiveDeliveries && <span className="badge badge-info">Dados de demonstração</span>}
+            </div>
             <div className="nexus-card-subtitle">
-              Últimas entregas recebidas. Selecione uma linha para inspecionar o payload bruto.
+              {hasLiveDeliveries
+                ? 'Últimas entregas recebidas. Selecione uma linha para inspecionar o payload bruto.'
+                : 'Exemplos de payload para navegação. Envie um evento no simulador para consultar dados persistidos.'}
             </div>
           </div>
-          <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
+          <button
+            className="btn-nexus btn-nexus-secondary btn-nexus-sm"
+            disabled
+            title="A exportação de eventos ainda não possui endpoint próprio."
+          >
             <Download size={12} />
-            <span>Exportar eventos</span>
+            <span>Exportação em desenvolvimento</span>
           </button>
         </div>
 
@@ -805,13 +817,23 @@ User-Agent: GitHub-Hookshot/8f3a91c`}</pre>
 
             {/* Ações do Drawer */}
             <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-              <button className="btn-nexus btn-nexus-primary" style={{ flex: 1 }}>
+              <button
+                className="btn-nexus btn-nexus-primary"
+                style={{ flex: 1 }}
+                disabled
+                title="O trace distribuído ainda não é fornecido por este módulo."
+              >
                 <ExternalLink size={12} />
-                <span>Abrir trace distribuído</span>
+                <span>Trace em desenvolvimento</span>
               </button>
-              <button className="btn-nexus btn-nexus-secondary" style={{ flex: 1 }}>
+              <button
+                className="btn-nexus btn-nexus-secondary"
+                style={{ flex: 1 }}
+                disabled
+                title="A consulta de logs centralizados ainda não é fornecida por este módulo."
+              >
                 <Terminal size={12} />
-                <span>Logs</span>
+                <span>Logs em desenvolvimento</span>
               </button>
             </div>
           </div>

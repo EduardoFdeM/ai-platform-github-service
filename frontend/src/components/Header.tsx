@@ -213,7 +213,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Barra de Abas (Navegação pelas 7 telas do Figma) */}
+      {/* Navegação pelas áreas previstas nas POCs. IA e DevOps permanecem como prévias até haver contrato de backend. */}
       <nav className="nexus-tabs-bar" aria-label="Navegação do Módulo 2">
         <button
           className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
@@ -250,25 +250,28 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
           onClick={() => onSelectTab('analytics')}
+          title="Prévia: métricas básicas aparecem na visão geral e na sincronização"
         >
           <BarChart3 size={13} />
-          <span>Analytics de Fluxo</span>
+          <span>Analytics · prévia</span>
         </button>
 
         <button
           className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
           onClick={() => onSelectTab('ai')}
+          title="Prévia de interface: backend de IA ainda não está disponível neste módulo"
         >
           <Bot size={13} />
-          <span>Assistente IA</span>
+          <span>Assistente IA · prévia</span>
         </button>
 
         <button
           className={`tab-btn ${activeTab === 'devops' ? 'active' : ''}`}
           onClick={() => onSelectTab('devops')}
+          title="Prévia de interface: não há consulta de release/deploy neste módulo"
         >
           <Rocket size={13} />
-          <span>DevOps & Release</span>
+          <span>DevOps & Release · prévia</span>
         </button>
       </nav>
     </header>

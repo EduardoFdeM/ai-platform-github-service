@@ -80,7 +80,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
       : `[SUCCESS] Sincronização e indexação concluídas em ${item.duration || '2m 14s'}`,
   ]
 
-  const curlCommand = `curl -X POST https://nexus.uftech.edu.br/api/v1/webhooks/github \\
+  const curlCommand = `curl -X POST https://seu-dominio.example/api/v1/webhooks/github \\
   -H "Content-Type: application/json" \\
   -H "X-GitHub-Event: push" \\
   -H "X-Hub-Signature-256: sha256=e2d98a0c..." \\

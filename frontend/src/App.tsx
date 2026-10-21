@@ -10,6 +10,7 @@ import { AnalyticsTab } from './components/tabs/AnalyticsTab'
 import { AiTab } from './components/tabs/AiTab'
 import { DevOpsTab } from './components/tabs/DevOpsTab'
 import LegacyDashboard from './components/legacy/LegacyDashboard'
+import { LandingPage } from './components/LandingPage'
 import {
   api,
   type Commit,
@@ -20,14 +21,15 @@ import {
 } from './api'
 
 export default function App() {
-  // Modo de exibição: 'legacy' (dashboard clássico MVP por padrão) ou 'nexus' (novo design)
-  const [viewMode, setViewMode] = useState<'nexus' | 'legacy'>(() => {
+  // A landing é a porta de entrada institucional. O workspace ativo fica em
+  // /app; a versão entregue anteriormente continua disponível em /legacy.
+  const [viewMode, setViewMode] = useState<'landing' | 'workspace' | 'legacy'>(() => {
     if (typeof window !== 'undefined') {
-      const isNexus =
-        window.location.pathname.startsWith('/nexus') ||
-        window.location.search.includes('nexus=true') ||
-        window.location.hash === '#nexus'
-      return isNexus ? 'nexus' : 'legacy'
+      if (window.location.pathname.startsWith('/legacy')) return 'legacy'
+      if (
+        window.location.pathname.startsWith('/app')
+      ) return 'workspace'
+      return 'landing'
     }
     return 'legacy'
   })
@@ -50,11 +52,12 @@ export default function App() {
   // Sincroniza a rota ao usar os botões voltar/avançar do navegador
   useEffect(() => {
     const handlePopState = () => {
-      const isNexus =
-        window.location.pathname.startsWith('/nexus') ||
-        window.location.search.includes('nexus=true') ||
-        window.location.hash === '#nexus'
-      setViewMode(isNexus ? 'nexus' : 'legacy')
+      if (window.location.pathname.startsWith('/legacy')) {
+        setViewMode('legacy')
+        return
+      }
+      const isWorkspace = window.location.pathname.startsWith('/app')
+      setViewMode(isWorkspace ? 'workspace' : 'landing')
     }
     window.addEventListener('popstate', handlePopState)
     window.addEventListener('hashchange', handlePopState)
@@ -65,13 +68,13 @@ export default function App() {
   }, [])
 
   const handleSwitchToLegacy = () => {
-    window.history.pushState(null, '', '/')
+    window.history.pushState(null, '', '/legacy')
     setViewMode('legacy')
   }
 
-  const handleSwitchToNexus = () => {
-    window.history.pushState(null, '', '/nexus')
-    setViewMode('nexus')
+  const handleSwitchToWorkspace = () => {
+    window.history.pushState(null, '', '/app')
+    setViewMode('workspace')
   }
 
   // Carregar dados iniciais da API Django
@@ -147,12 +150,16 @@ export default function App() {
 
   // Se o usuário estiver no modo clássico para gravação ou na porta 5174 / rota /legacy:
   if (viewMode === 'legacy') {
-    return <LegacyDashboard onSwitchToNexus={handleSwitchToNexus} />
+    return <LegacyDashboard onSwitchToWorkspace={handleSwitchToWorkspace} />
+  }
+
+  if (viewMode === 'landing') {
+    return <LandingPage onEnterWorkspace={handleSwitchToWorkspace} />
   }
 
   return (
     <div className="nexus-layout">
-      {/* Sidebar Lateral Nexus Dark (Fixa e acompanha a viewport) */}
+      {/* Sidebar lateral do Módulo 2 (fixa e acompanha a viewport). */}
       <Sidebar />
 
       {/* Área de Conteúdo Principal */}
