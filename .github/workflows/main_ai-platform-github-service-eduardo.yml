@@ -55,6 +55,9 @@ jobs:
           CELERY_TASK_ALWAYS_EAGER: "true"
           CREDENTIAL_MASTER_KEY: "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
 
+      - name: Validar contrato OpenAPI
+        run: python manage.py spectacular --validate --fail-on-warn --file /tmp/openapi.yaml
+
       - name: Relatorio de Cobertura
         run: coverage report --fail-under=80
 

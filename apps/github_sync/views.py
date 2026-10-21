@@ -18,9 +18,19 @@ from .models import Branch, Commit, PullRequest, Repository, WebhookDelivery
 from .serializers import (
     BranchSerializer,
     CommitSerializer,
+    DashboardMetricsSerializer,
+    ErrorSerializer,
+    FlowMetricsSerializer,
+    GitHubConnectivitySerializer,
     HandshakeRequestSerializer,
+    HandshakeResponseSerializer,
+    HealthSerializer,
     PullRequestSerializer,
+    RepositoryCreateRequestSerializer,
+    RepositoryCreateResponseSerializer,
     RepositorySerializer,
+    RepositorySyncRequestSerializer,
+    RepositorySyncResponseSerializer,
     WebhookDeliverySerializer,
 )
 from .services.crypto import decrypt_secret, encrypt_secret
@@ -32,6 +42,12 @@ from .tasks import process_webhook
 logger = logging.getLogger(__name__)
 
 
+@extend_schema(
+    responses={
+        200: HealthSerializer,
+        503: HealthSerializer,
+    },
+)
 @api_view(["GET"])
 def health(request):
     try:
@@ -43,6 +59,12 @@ def health(request):
     return Response({"status": "healthy", "database": "up"})
 
 
+@extend_schema(
+    responses={
+        200: GitHubConnectivitySerializer,
+        503: GitHubConnectivitySerializer,
+    },
+)
 @api_view(["GET"])
 def github_connectivity(request):
     started_at = time.monotonic()
@@ -65,10 +87,11 @@ def github_connectivity(request):
 @extend_schema(
     request=HandshakeRequestSerializer,
     responses={
-        200: OpenApiResponse(description="Token valido: identidade e escopos concedidos"),
-        400: OpenApiResponse(description="Token ausente"),
-        401: OpenApiResponse(description="Token recusado pelo GitHub"),
-        503: OpenApiResponse(description="GitHub indisponivel"),
+        200: HandshakeResponseSerializer,
+        400: HandshakeResponseSerializer,
+        401: HandshakeResponseSerializer,
+        502: HandshakeResponseSerializer,
+        503: HandshakeResponseSerializer,
     },
 )
 @api_view(["POST"])
@@ -196,6 +219,7 @@ class PullRequestListView(ListAPIView):
         return queryset
 
 
+@extend_schema(responses={200: FlowMetricsSerializer})
 @api_view(["GET"])
 def flow_metrics(request):
     queryset = Commit.objects.all()
@@ -214,6 +238,14 @@ def _dashboard_params(params):
     return int(days), repository_id
 
 
+@extend_schema(
+    responses={
+        200: DashboardMetricsSerializer,
+        400: ErrorSerializer,
+        401: ErrorSerializer,
+        404: ErrorSerializer,
+    },
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def dashboard_metrics(request):
@@ -227,6 +259,15 @@ def dashboard_metrics(request):
     return Response(dashboard_summary(repository, days))
 
 
+@extend_schema(
+    request=RepositorySyncRequestSerializer,
+    responses={
+        200: RepositorySyncResponseSerializer,
+        404: ErrorSerializer,
+        500: ErrorSerializer,
+        502: ErrorSerializer,
+    },
+)
 @api_view(["POST"])
 def repository_sync(request, pk):
     """Sincroniza commits e dados reais de um repositorio via GitHub API (M2-111 / M2-114)."""
@@ -256,6 +297,15 @@ class RepositoryListView(ListCreateAPIView):
     def get_queryset(self):
         return Repository.objects.filter(active=True).order_by("owner", "name")
 
+    @extend_schema(
+        request=RepositoryCreateRequestSerializer,
+        responses={
+            201: RepositoryCreateResponseSerializer,
+            400: ErrorSerializer,
+            404: ErrorSerializer,
+            502: ErrorSerializer,
+        },
+    )
     def create(self, request, *args, **kwargs):
         url_input = request.data.get("url") or request.data.get("repository_url") or ""
         owner = request.data.get("owner", "").strip()
