@@ -6,7 +6,6 @@ import {
   Terminal,
   FileCode2,
   ExternalLink,
-  ShieldCheck,
 } from 'lucide-react'
 
 export interface InspectorItem {
@@ -49,42 +48,20 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
   }
 
   const jsonPayload = item.payload || {
-    execution_id: item.executionId || item.id,
-    repository: 'EduardoFdeM/ai-platform-github-service',
-    ref: `refs/heads/${item.branch || 'main'}`,
-    commit: {
-      sha: item.commit || item.id,
-      author: item.author || 'Eduardo F. de M.',
-      timestamp: item.when || new Date().toISOString(),
-      verified: true,
-    },
-    pipeline: {
-      stages: ['webhook', 'signature_validation', 'discovery', 'indexing'],
-      duration_ms: 138000,
-      status: item.status.toLowerCase(),
-      objects_indexed: 312,
-    },
-    security: {
-      hmac_sha256: 'valid',
-      token_type: 'encrypted_aes256_gcm',
-    },
+    id: item.id,
+    execution_id: item.executionId || null,
+    title: item.title || null,
+    status: item.status,
+    commit: item.commit || null,
+    branch: item.branch || null,
+    author: item.author || null,
+    observed_at: item.when || null,
+    notice: 'Resumo montado no navegador; o payload bruto não está disponível neste endpoint.',
   }
 
-  const logs = item.logs || [
-    `[INFO] Início da execução ${item.executionId || item.id} para ref ${item.branch || 'main'}`,
-    `[INFO] Assinatura X-Hub-Signature-256 validada com sucesso contra secret criptografado`,
-    `[INFO] Descobertas alterações no commit ${item.commit || item.id.slice(0, 7)}`,
-    `[INFO] Indexando modelo relacional no PostgreSQL (Commit, Repository, Author)`,
-    item.status === 'Falha'
-      ? `[ERROR] Falha de concorrência ou timeout na fila Celery`
-      : `[SUCCESS] Sincronização e indexação concluídas em ${item.duration || '2m 14s'}`,
-  ]
-
-  const curlCommand = `curl -X POST https://seu-dominio.example/api/v1/webhooks/github \\
-  -H "Content-Type: application/json" \\
-  -H "X-GitHub-Event: push" \\
-  -H "X-Hub-Signature-256: sha256=e2d98a0c..." \\
-  -d '${JSON.stringify(jsonPayload).slice(0, 80)}...'`
+  const logs = item.logs?.length
+    ? item.logs
+    : ['Nenhum registro de execução foi anexado a este item pela API.']
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -150,9 +127,9 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
               {item.executionId || item.id.slice(0, 10)}
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, fontSize: 12, color: 'var(--text-muted)' }}>
-              <span>branch: <strong style={{ color: '#E2E8F0' }}>{item.branch || 'main'}</strong></span>
+              <span>branch: <strong style={{ color: '#E2E8F0' }}>{item.branch || 'Não informada'}</strong></span>
               <span>•</span>
-              <span>autor: <strong style={{ color: '#E2E8F0' }}>{item.author || 'Eduardo F. de M.'}</strong></span>
+              <span>autor: <strong style={{ color: '#E2E8F0' }}>{item.author || 'Não informado'}</strong></span>
               {item.when && (
                 <>
                   <span>•</span>
@@ -204,7 +181,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
             }}
           >
             <FileCode2 size={14} />
-            <span>Payload JSON</span>
+            <span>Resumo JSON</span>
           </button>
 
           <button
@@ -224,7 +201,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
             }}
           >
             <Terminal size={14} />
-            <span>Logs do Celery</span>
+            <span>Registros</span>
           </button>
 
           <button
@@ -243,7 +220,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
               gap: 6,
             }}
           >
-            <span>cURL Replay</span>
+            <span>Replay</span>
           </button>
         </div>
 
@@ -252,7 +229,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
           {activeTab === 'payload' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Corpo bruto recebido via webhook / API:</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Dados disponibilizados para este item:</span>
                 <button
                   onClick={() => handleCopy(JSON.stringify(jsonPayload, null, 2))}
                   className="btn-nexus btn-nexus-secondary btn-nexus-sm"
@@ -283,8 +260,8 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
           {activeTab === 'logs' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Trilha de execução dos workers Celery:</span>
-                <span className="badge badge-success">● Worker #1 Ativo</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Registros disponibilizados pela API:</span>
+                <span className="badge badge-info">Sem stream em tempo real</span>
               </div>
 
               <div
@@ -316,16 +293,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
 
           {activeTab === 'curl' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Comando para reprodução local via terminal:</span>
-                <button
-                  onClick={() => handleCopy(curlCommand)}
-                  className="btn-nexus btn-nexus-secondary btn-nexus-sm"
-                >
-                  {copied ? <Check size={12} color="#10B981" /> : <Copy size={12} />}
-                  <span>{copied ? 'Copiado!' : 'Copiar cURL'}</span>
-                </button>
-              </div>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Reprodução local:</span>
 
               <pre
                 style={{
@@ -341,7 +309,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
                   lineHeight: 1.6,
                 }}
               >
-                {curlCommand}
+                Replay indisponível: o payload bruto e a assinatura não são expostos por este endpoint.
               </pre>
             </div>
           )}
@@ -359,8 +327,8 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-tertiary)' }}>
-            <ShieldCheck size={14} color="#10B981" />
-            <span>Auditoria criptografada em banco</span>
+            <FileCode2 size={14} color="#60A5FA" />
+            <span>Dados exibidos conforme o contrato atual da API</span>
           </div>
 
           {item.url && (

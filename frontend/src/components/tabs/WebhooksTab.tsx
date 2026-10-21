@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import {
   Radio,
   CheckCircle2,
-  Activity,
   Play,
   Pause,
   Download,
@@ -13,7 +12,6 @@ import {
   ExternalLink,
   ShieldCheck,
   Check,
-  Clock,
 } from 'lucide-react'
 import { api, apiOrigin, type Delivery, type Repository } from '../../api'
 
@@ -27,11 +25,42 @@ interface WebhookEventItem {
   id: string
   event: string
   deliveryId: string
-  author: string
+  author: string | null
   timestamp: string
-  forcePush: boolean
+  forcePush: boolean | null
   status: string
   branch: string
+  attempts?: number
+  error?: string | null
+  receivedAt?: string
+  processedAt?: string | null
+  commitsCount?: number
+  isDemo?: boolean
+}
+
+const deliveryStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    pending: 'Pendente',
+    processing: 'Processando',
+    processed: 'Processado',
+    failed: 'Falhou',
+  }
+  return labels[status] || status
+}
+
+const deliveryStatusBadge = (status: string) => {
+  if (status === 'processed' || status === '202 Accepted') return 'badge-success'
+  if (status === 'failed') return 'badge-danger'
+  if (status === 'processing') return 'badge-info'
+  return 'badge-warning'
+}
+
+const deliveryStatusDescription = (event: WebhookEventItem) => {
+  if (event.isDemo) return 'Registro demonstrativo da ideação; não representa uma entrega processada.'
+  if (event.status === 'processed') return 'A entrega foi processada pelo módulo e possui estado final persistido.'
+  if (event.status === 'failed') return event.error || 'A entrega falhou sem detalhe adicional exposto pela API.'
+  if (event.status === 'processing') return 'A entrega foi aceita e está sendo processada.'
+  return 'A entrega foi aceita e aguarda processamento.'
 }
 
 // Utilitário para calcular HMAC-SHA256 no browser
@@ -150,14 +179,15 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
     },
   ]
 
-  // Mesclando com entregas reais salvas no banco
+  // Entregas persistidas têm prioridade. A amostra do Figma só aparece quando
+  // a flag explícita de ideação está habilitada.
   const displayEvents: WebhookEventItem[] =
     deliveries.length > 0
       ? deliveries.map((d) => ({
           id: d.delivery_id,
           event: d.event,
           deliveryId: d.delivery_id,
-          author: 'EduardoFdeM',
+          author: null,
           timestamp: new Date(d.received_at).toLocaleString('pt-BR', {
             day: '2-digit',
             month: 'short',
@@ -165,16 +195,23 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
             hour: '2-digit',
             minute: '2-digit',
           }),
-          forcePush: false,
-          status: d.status === 'processed' ? '202 Accepted' : d.status,
-          branch: d.ref ? d.ref.replace('refs/heads/', '') : 'main',
+          forcePush: null,
+          status: d.status,
+          branch: d.ref ? d.ref.replace('refs/heads/', '') : 'Não informado',
+          attempts: d.attempts,
+          error: d.error || null,
+          receivedAt: d.received_at,
+          processedAt: d.processed_at,
+          commitsCount: d.commits_count,
         }))
-      : defaultEvents
+      : showOperationalIdeation
+        ? defaultEvents.map((event) => ({ ...event, isDemo: true }))
+        : []
 
   const filteredEvents = displayEvents.filter((item) => {
     const matchesSearch =
       item.deliveryId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.author || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.event.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesEvent = selectedEventType === 'all' || item.event === selectedEventType
     const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus
@@ -515,12 +552,19 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
           <div>
             <div className="nexus-card-title">
               Eventos recentes
-              {!hasLiveDeliveries && <span className="badge badge-info">Dados de demonstração</span>}
+              {!hasLiveDeliveries && showOperationalIdeation && (
+                <span className="badge badge-warning">Ideação demonstrativa</span>
+              )}
+              {!hasLiveDeliveries && !showOperationalIdeation && (
+                <span className="badge badge-info">Sem eventos persistidos</span>
+              )}
             </div>
             <div className="nexus-card-subtitle">
               {hasLiveDeliveries
-                ? 'Últimas entregas recebidas. Selecione uma linha para inspecionar o payload bruto.'
-                : 'Exemplos de payload para navegação. Envie um evento no simulador para consultar dados persistidos.'}
+                ? 'Últimas entregas recebidas. Selecione uma linha para consultar os metadados persistidos.'
+                : showOperationalIdeation
+                  ? 'Amostra visual da ideação. Estes registros não vieram do backend.'
+                  : 'Nenhuma entrega foi persistida. Envie um evento no simulador para validar o fluxo real.'}
             </div>
           </div>
           <button
@@ -562,7 +606,11 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
               onChange={(e) => setSelectedStatus(e.target.value)}
             >
               <option value="all">Todos os status</option>
-              <option value="202 Accepted">202 Accepted</option>
+              <option value="pending">Pendente</option>
+              <option value="processing">Processando</option>
+              <option value="processed">Processado</option>
+              <option value="failed">Falhou</option>
+              {showOperationalIdeation && <option value="202 Accepted">202 Accepted (ideação)</option>}
             </select>
 
             <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 8 }}>
@@ -595,37 +643,52 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
                     </span>
                   </td>
                   <td>
-                    <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{item.author}</span>
+                    <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
+                      {item.author || 'Não exposto pela API'}
+                    </span>
                   </td>
                   <td style={{ color: 'var(--text-tertiary)' }}>{item.timestamp}</td>
                   <td>
-                    {item.forcePush ? (
+                    {item.forcePush === null ? (
+                      <span style={{ color: 'var(--text-dim)' }}>Não informado</span>
+                    ) : item.forcePush ? (
                       <span className="badge badge-warning">Sim</span>
                     ) : (
                       <span style={{ color: 'var(--text-dim)' }}>Não</span>
                     )}
                   </td>
                   <td>
-                    <span className="badge badge-success">● {item.status}</span>
+                    <span className={`badge ${deliveryStatusBadge(item.status)}`}>
+                      ● {deliveryStatusLabel(item.status)}
+                    </span>
                   </td>
                 </tr>
               ))}
+              {filteredEvents.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: 28 }}>
+                    Nenhum evento corresponde aos filtros atuais.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* GAVETA LATERAL DE INSPEÇÃO JSON (DRAWER DA SCREEN 09) */}
-      {drawerOpen && (
+      {/* GAVETA LATERAL DE INSPEÇÃO (DRAWER DA SCREEN 09) */}
+      {drawerOpen && selectedEvent && (
         <aside className="inspector-drawer">
           <div className="drawer-header">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 14 }}>Inspeção JSON</span>
-                <span className="badge badge-success">● 202 Accepted</span>
+                <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 14 }}>Inspeção da entrega</span>
+                <span className={`badge ${deliveryStatusBadge(selectedEvent.status)}`}>
+                  ● {deliveryStatusLabel(selectedEvent.status)}
+                </span>
               </div>
               <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                {selectedEvent?.deliveryId}
+                {selectedEvent.deliveryId}
               </span>
             </div>
             <button
@@ -651,104 +714,52 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
             >
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#FFFFFF' }}>Evento selecionado</span>
-                <span className="badge badge-info">{selectedEvent?.event}</span>
+                <span className="badge badge-info">{selectedEvent.event}</span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, fontSize: 11 }}>
                 <div>
                   <span style={{ color: 'var(--text-tertiary)', display: 'block', fontSize: 10 }}>AUTOR</span>
-                  <span style={{ color: '#FFFFFF', fontWeight: 500 }}>{selectedEvent?.author}</span>
+                  <span style={{ color: '#FFFFFF', fontWeight: 500 }}>
+                    {selectedEvent.author || 'Não exposto'}
+                  </span>
                 </div>
                 <div>
                   <span style={{ color: 'var(--text-tertiary)', display: 'block', fontSize: 10 }}>BRANCH</span>
-                  <span style={{ color: '#93C5FD' }}>{selectedEvent?.branch}</span>
+                  <span style={{ color: '#93C5FD' }}>{selectedEvent.branch}</span>
                 </div>
                 <div>
                   <span style={{ color: 'var(--text-tertiary)', display: 'block', fontSize: 10 }}>RECEBIDO</span>
-                  <span style={{ fontFamily: 'var(--font-mono)' }}>14:32:18.041</span>
+                  <span style={{ fontFamily: 'var(--font-mono)' }}>{selectedEvent.timestamp}</span>
                 </div>
               </div>
 
-              <div style={{ fontSize: 11, color: '#34D399', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ fontSize: 11, color: selectedEvent.isDemo ? '#FBBF24' : '#34D399', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <CheckCircle2 size={12} />
-                <span>HMAC-SHA256 verificado antes do enfileiramento</span>
+                <span>
+                  {selectedEvent.isDemo
+                    ? 'Amostra visual: dados não persistidos'
+                    : 'Assinatura HMAC-SHA256 validada antes da persistência'}
+                </span>
               </div>
             </div>
 
-            {/* Stepper: Processamento em segundo plano */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#FFFFFF' }}>Processamento em segundo plano</span>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>1,8 s</span>
+            <div className="nexus-card" style={{ margin: 0 }}>
+              <div className="nexus-card-title">Dados persistidos da entrega</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginTop: 12, fontSize: 11 }}>
+                <div><span style={{ color: 'var(--text-tertiary)', display: 'block' }}>TENTATIVAS</span>{selectedEvent.attempts ?? 'Não informado'}</div>
+                <div><span style={{ color: 'var(--text-tertiary)', display: 'block' }}>COMMITS</span>{selectedEvent.commitsCount ?? 'Não informado'}</div>
+                <div><span style={{ color: 'var(--text-tertiary)', display: 'block' }}>RECEBIDO EM</span>{selectedEvent.receivedAt ? new Date(selectedEvent.receivedAt).toLocaleString('pt-BR') : 'Não informado'}</div>
+                <div><span style={{ color: 'var(--text-tertiary)', display: 'block' }}>PROCESSADO EM</span>{selectedEvent.processedAt ? new Date(selectedEvent.processedAt).toLocaleString('pt-BR') : 'Ainda não concluído'}</div>
               </div>
-
-              <div className="drawer-timeline-step">
-                <div className="stage-step-icon success" style={{ width: 22, height: 22 }}>
-                  <CheckCircle2 size={12} />
+              {selectedEvent.error && (
+                <div style={{ color: '#FCA5A5', marginTop: 12, fontSize: 11 }}>
+                  <strong>Erro:</strong> {selectedEvent.error}
                 </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#FFFFFF' }}>Webhook recebido</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Assinatura validada • 84 ms</div>
-                </div>
-              </div>
-
-              <div className="drawer-timeline-step">
-                <div className="stage-step-icon success" style={{ width: 22, height: 22 }}>
-                  <CheckCircle2 size={12} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#FFFFFF' }}>Idempotência verificada</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>delivery_id inédito • Redis SETNX</div>
-                </div>
-              </div>
-
-              <div className="drawer-timeline-step">
-                <div className="stage-step-icon success" style={{ width: 22, height: 22 }}>
-                  <CheckCircle2 size={12} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#FFFFFF' }}>Evento publicado na fila</div>
-                  <div style={{ fontSize: 11, color: '#38BDF8' }}>github.events.v1 • partition 04</div>
-                </div>
-              </div>
-
-              <div className="drawer-timeline-step">
-                <div className="stage-step-icon warning" style={{ width: 22, height: 22 }}>
-                  <Activity size={12} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#60A5FA', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>Normalização e persistência</span>
-                    <span className="badge badge-info" style={{ fontSize: 9.5 }}>Em processamento</span>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Worker event-consumer-07 • tentativa 1/3</div>
-                </div>
-              </div>
-
-              <div className="drawer-timeline-step">
-                <div
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: '50%',
-                    backgroundColor: '#1E293B',
-                    border: '1px solid var(--border-default)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-dim)',
-                  }}
-                >
-                  <Clock size={11} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-dim)' }}>Indexação analítica</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Aguardando conclusão da persistência</div>
-                </div>
-              </div>
+              )}
             </div>
 
-            {/* Code Box: Payload JSON Bruto */}
+            {/* Resumo do contrato disponível */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', gap: 10, borderBottom: '1px solid var(--border-default)', paddingBottom: 6 }}>
                 <button
@@ -762,7 +773,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
                     cursor: 'pointer',
                   }}
                 >
-                  Payload JSON bruto
+                  Resumo da API
                 </button>
                 <button
                   onClick={() => setActiveJsonTab('headers')}
@@ -775,43 +786,33 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
                     cursor: 'pointer',
                   }}
                 >
-                  Headers
+                  Headers disponíveis
                 </button>
               </div>
 
               <div className="code-box-dark">
                 {activeJsonTab === 'payload' ? (
-                  <pre>{`{
-  "ref": "refs/heads/${selectedEvent?.branch || 'main'}",
-  "before": "8f3a91ce7f86d6a0",
-  "after": "c4b7d2e84a91f0bc",
-  "forced": ${selectedEvent?.forcePush ? 'true' : 'false'},
-  "compare": "https://github.com/${repository?.full_name || 'uftech/academic-ms'}/compare/8f3a91c...c4b7d2e",
-  "repository": {
-    "id": 884120376,
-    "full_name": "${repository?.full_name || 'uftech/academic-ms'}",
-    "private": true,
-    "default_branch": "main"
-  },
-  "pusher": {
-    "name": "${selectedEvent?.author || 'rafael-lima'}",
-    "email": "${selectedEvent?.author || 'rafael'}@uftech.edu.br"
-  },
-  "commits": [
-    {
-      "id": "c4b7d2e84a91f0bc",
-      "message": "feat(events): adiciona consumidor Redis",
-      "distinct": true,
-      "modified": ["src/workers/event-consumer.ts"]
-    }
-  ]
-}`}</pre>
+                  <pre>{JSON.stringify({
+                    delivery_id: selectedEvent.deliveryId,
+                    event: selectedEvent.event,
+                    repository: repository?.full_name || null,
+                    ref: selectedEvent.branch === 'Não informado' ? null : `refs/heads/${selectedEvent.branch}`,
+                    status: selectedEvent.status,
+                    attempts: selectedEvent.attempts ?? null,
+                    commits_count: selectedEvent.commitsCount ?? null,
+                    received_at: selectedEvent.receivedAt || null,
+                    processed_at: selectedEvent.processedAt || null,
+                    error: selectedEvent.error || null,
+                    notice: selectedEvent.isDemo
+                      ? 'Amostra visual da ideação; não persistida.'
+                      : 'Resumo montado com campos expostos pela API; o payload bruto não é retornado.',
+                  }, null, 2)}</pre>
                 ) : (
-                  <pre>{`X-GitHub-Delivery: ${selectedEvent?.deliveryId}
-X-GitHub-Event: ${selectedEvent?.event}
-X-Hub-Signature-256: sha256=9b7a80e08dfdd6a917e29c40bcd104f0287d52db9a45b207d
-Content-Type: application/json
-User-Agent: GitHub-Hookshot/8f3a91c`}</pre>
+                  <pre>{`X-GitHub-Delivery: ${selectedEvent.deliveryId}
+X-GitHub-Event: ${selectedEvent.event}
+X-Hub-Signature-256: validada no recebimento; valor não exposto
+
+Os demais headers originais não são persistidos pelo contrato atual.`}</pre>
                 )}
               </div>
             </div>
@@ -828,9 +829,9 @@ User-Agent: GitHub-Hookshot/8f3a91c`}</pre>
                 lineHeight: 1.4,
               }}
             >
-              ℹ️ <strong>Estado atual: persistindo commit</strong>
+              ℹ️ <strong>Estado atual: {deliveryStatusLabel(selectedEvent.status)}</strong>
               <p style={{ marginTop: 4, color: 'var(--text-muted)' }}>
-                A resposta HTTP foi desacoplada do processamento. O consumidor segue ativo e nenhuma repetição foi necessária.
+                {deliveryStatusDescription(selectedEvent)}
               </p>
             </div>
 

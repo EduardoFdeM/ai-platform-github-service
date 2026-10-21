@@ -37,6 +37,7 @@ Este inventário separa o que é uma jornada funcional do Módulo 2, o que é de
 - Não existe login/cadastro de usuário da plataforma no Módulo 2.
 - Exportações de JSON/CSV, cópia para clipboard e rascunhos das telas de ideação são ações locais do navegador.
 - Um `202 Accepted` no webhook confirma recepção, não conclusão do worker; o estado final deve ser consultado em `webhooks/deliveries`.
+- Nas áreas conectadas, a interface não completa lacunas do contrato com autores, horários, payloads, headers ou estados inventados. Campos ausentes aparecem como **Não informado**, **Não exposto** ou **Indisponível**.
 - A interface não guarda o segredo de webhook depois do fluxo. O usuário deve administrá-lo fora do frontend e configurar o mesmo valor no GitHub.
 - Vínculo entre identidade Git e aluno/projeto depende do Módulo 1.
 
