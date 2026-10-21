@@ -3,16 +3,16 @@ import { GitCommit, CheckCircle2, Zap, Radio } from 'lucide-react'
 
 interface OverviewKpisProps {
   totalCommits: number
-  successRate?: string
   latencyMs?: number
-  webhookActive?: boolean
+  connectivityStatus?: 'up' | 'down'
+  showIdeation?: boolean
 }
 
 export const OverviewKpis: React.FC<OverviewKpisProps> = ({
   totalCommits,
-  successRate = '99,4%',
-  latencyMs = 42,
-  webhookActive = true,
+  latencyMs,
+  connectivityStatus,
+  showIdeation = false,
 }) => {
   return (
     <div className="nexus-kpi-grid">
@@ -32,7 +32,7 @@ export const OverviewKpis: React.FC<OverviewKpisProps> = ({
       </div>
 
       {/* KPI 2: Taxa de Sucesso */}
-      <div className="kpi-box">
+      {showIdeation && <div className="kpi-box">
         <div className="kpi-top">
           <span className="kpi-title">TAXA DE SUCESSO</span>
           <div className="kpi-icon-wrap" style={{ color: '#34D399' }}>
@@ -40,11 +40,11 @@ export const OverviewKpis: React.FC<OverviewKpisProps> = ({
           </div>
         </div>
         <div className="kpi-value-row">
-          <span className="kpi-number">{successRate}</span>
+          <span className="kpi-number">99,4%</span>
           <span className="kpi-trend trend-up">↑ +0,2%</span>
         </div>
         <span className="kpi-footnote">Últimas 100 execuções do Celery</span>
-      </div>
+      </div>}
 
       {/* KPI 3: Latência da API do GitHub (REAL DO HEALTH CHECK) */}
       <div className="kpi-box">
@@ -55,16 +55,16 @@ export const OverviewKpis: React.FC<OverviewKpisProps> = ({
           </div>
         </div>
         <div className="kpi-value-row">
-          <span className="kpi-number">{latencyMs} ms</span>
-          <span className="kpi-trend" style={{ color: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
-            Excelente
+          <span className="kpi-number">{latencyMs == null ? '—' : `${latencyMs} ms`}</span>
+          <span className="kpi-trend" style={{ color: connectivityStatus === 'up' ? '#10B981' : '#F59E0B', backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
+            {connectivityStatus === 'up' ? 'Conectado' : 'Sem leitura'}
           </span>
         </div>
         <span className="kpi-footnote">Endpoint /health/github-connectivity</span>
       </div>
 
       {/* KPI 4: Webhook Status */}
-      <div className="kpi-box">
+      {showIdeation && <div className="kpi-box">
         <div className="kpi-top">
           <span className="kpi-title">STATUS DO WEBHOOK</span>
           <div className="kpi-icon-wrap" style={{ color: '#38BDF8' }}>
@@ -73,12 +73,12 @@ export const OverviewKpis: React.FC<OverviewKpisProps> = ({
         </div>
         <div className="kpi-value-row">
           <span className="kpi-number" style={{ fontSize: 20 }}>
-            {webhookActive ? 'Operacional' : 'Inativo'}
+            Demonstração
           </span>
           <span className="kpi-trend trend-up">● HMAC Ativo</span>
         </div>
         <span className="kpi-footnote">Fila Celery pronta para eventos Git</span>
-      </div>
+      </div>}
     </div>
   )
 }

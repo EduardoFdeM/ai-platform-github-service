@@ -25,6 +25,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('all')
+  const showIdeation = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
 
   const totalCommits = flow?.total_commits ?? commits.length
 
@@ -32,26 +33,15 @@ export const SyncTab: React.FC<SyncTabProps> = ({
     flow?.commits_by_author && flow.commits_by_author.length > 0
       ? flow.commits_by_author.map((item, idx) => ({
           id: String(idx + 1),
-          name: item.author__login || 'Eduardo F. de M.',
-          course: 'Engenharia de Software • Mackenzie',
-          ra: `GIT-${(item.author__login || 'MACK').toUpperCase().slice(0, 10)}`,
-          emails: [`${item.author__login || 'contribuinte'}@users.noreply.github.com`],
+          name: item.author__login || 'Autor não identificado',
+          course: 'Identidade GitHub indexada',
+          ra: item.author__login || 'não informado',
+          emails: [] as string[],
           commits: String(item.commits),
-          status: 'confirmado',
-          confidence: '100%',
+          status: 'indexado',
+          confidence: 'não calculada',
         }))
-      : [
-          {
-            id: '1',
-            name: 'Eduardo F. de M.',
-            course: 'Engenharia de Software • Mackenzie',
-            ra: 'GIT-EDUARDO',
-            emails: ['eduardo@mackenzista.com.br'],
-            commits: String(totalCommits || 21),
-            status: 'confirmado',
-            confidence: '100%',
-          },
-        ]
+      : []
 
 
   const filteredStudents = students.filter((s) => {
@@ -59,7 +49,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.ra.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.emails.some((e) => e.toLowerCase().includes(searchTerm.toLowerCase()))
-    return matches
+    return matches && (selectedFilter === 'all' || s.status === selectedFilter)
   })
 
   const exportBindings = () => {
@@ -96,7 +86,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
 
       {/* 4 KPIs de Sincronização */}
       <div className="kpi-grid-4">
-        <div className="kpi-card">
+        {showIdeation && <div className="kpi-card">
           <div className="kpi-card-header">
             <span className="kpi-title">ESTADO DA INDEXAÇÃO</span>
             <span className={`badge ${commits.length > 0 ? 'badge-success' : 'badge-info'}`}>
@@ -107,7 +97,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           <div className="kpi-sub">
             {commits.length > 0 ? 'base de commits sincronizada' : 'carga histórica em curso'}
           </div>
-        </div>
+        </div>}
 
         <div className="kpi-card">
           <div className="kpi-card-header">
@@ -127,18 +117,18 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           <div className="kpi-sub">autores identificados no git</div>
         </div>
 
-        <div className="kpi-card">
+        {showIdeation && <div className="kpi-card">
           <div className="kpi-card-header">
             <span className="kpi-title">PENDÊNCIAS DE VÍNCULO</span>
             <span className="badge badge-success">OK</span>
           </div>
           <div className="kpi-value">0</div>
           <div className="kpi-sub">nenhuma pendência crítica</div>
-        </div>
+        </div>}
       </div>
 
       {/* Carga Inicial & Delta Sync Incremental */}
-      <div className="nexus-card">
+      {showIdeation && <div className="nexus-card">
         <div className="nexus-card-header">
           <div>
             <div className="nexus-card-title">Carga inicial e estratégia incremental</div>
@@ -280,7 +270,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Tabela: Vínculo de Contribuintes */}
       <div className="nexus-card">
@@ -293,8 +283,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="badge badge-success">● 177 confirmados</span>
-            <span className="badge badge-warning">● 7 requerem revisão</span>
+            <span className="badge badge-success">● {students.length} identidades Git</span>
             <button onClick={exportBindings} className="btn-nexus btn-nexus-secondary btn-nexus-sm">
               <Download size={12} />
               <span>Exportar vínculos</span>
@@ -319,9 +308,8 @@ export const SyncTab: React.FC<SyncTabProps> = ({
               value={selectedFilter}
               onChange={(e) => setSelectedFilter(e.target.value)}
             >
-              <option value="all">Todos os vínculos</option>
-              <option value="confirmado">Confirmados</option>
-              <option value="revisao">Revisão pendente</option>
+              <option value="all">Todas as identidades</option>
+              <option value="indexado">Identidades indexadas</option>
             </select>
 
             <div className="select-chip">
@@ -329,7 +317,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
             </div>
 
             <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 8 }}>
-              184 estudantes • 327 identidades Git consolidadas
+              {filteredStudents.length} identidade(s) exibida(s) • vínculo acadêmico depende do Módulo 1
             </span>
           </div>
         </div>
@@ -360,6 +348,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
                   </td>
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {item.emails.length === 0 && <span style={{ color: 'var(--text-dim)', fontSize: 10.5 }}>Não exposto pela API</span>}
                       {item.emails.map((email, idx) => (
                         <span
                           key={idx}
@@ -381,11 +370,11 @@ export const SyncTab: React.FC<SyncTabProps> = ({
                     </span>
                   </td>
                   <td>
-                    {item.status === 'confirmado' && (
+                    {item.status === 'indexado' && (
                       <div>
-                        <span className="badge badge-success">● Vínculo confirmado</span>
+                        <span className="badge badge-info">● Identidade Git indexada</span>
                         <span style={{ color: 'var(--text-tertiary)', fontSize: 10, display: 'block', marginTop: 2 }}>
-                          Confiança do vínculo: {item.confidence}
+                          Vínculo acadêmico: não realizado
                         </span>
                       </div>
                     )}
@@ -407,10 +396,10 @@ export const SyncTab: React.FC<SyncTabProps> = ({
                     )}
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    {item.status === 'confirmado' ? (
+                    {item.status === 'indexado' ? (
                       <button className="btn-nexus btn-nexus-secondary btn-nexus-sm" disabled title="A revisão manual de vínculos ainda não possui endpoint.">
                         <Users size={11} />
-                        <span>Revisão em desenvolvimento</span>
+                        <span>Aguardando integração M1</span>
                       </button>
                     ) : (
                       <button className="btn-nexus btn-nexus-primary btn-nexus-sm" disabled title="A resolução de vínculos ainda não possui endpoint.">

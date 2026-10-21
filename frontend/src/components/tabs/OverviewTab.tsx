@@ -24,6 +24,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   syncing,
 }) => {
   const [inspectedItem, setInspectedItem] = useState<InspectorItem | null>(null)
+  const showIdeation = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
 
   const totalCommits = flow?.total_commits ?? commits.length
 
@@ -32,13 +33,13 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       {/* 4 KPIs de Topo */}
       <OverviewKpis
         totalCommits={totalCommits}
-        successRate="99,4%"
-        latencyMs={connectivity?.latency_ms ?? 42}
-        webhookActive={connectivity?.status === 'up'}
+        latencyMs={connectivity?.latency_ms}
+        connectivityStatus={connectivity?.status}
+        showIdeation={showIdeation}
       />
 
       {/* Bloco: Atividade e saúde da integração (2 Colunas) */}
-      <div className="nexus-card">
+      {showIdeation && <div className="nexus-card">
         <div className="nexus-card-header">
           <div>
             <div className="nexus-card-title">
@@ -69,7 +70,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             testing={syncing}
           />
         </div>
-      </div>
+      </div>}
 
       {/* Tabela de Execuções e Commits Reais */}
       <ExecutionsTable

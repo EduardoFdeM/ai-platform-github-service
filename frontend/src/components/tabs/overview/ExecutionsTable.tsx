@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import {
   Search,
   CheckCircle2,
-  XCircle,
   GitBranch,
   ExternalLink,
   RefreshCw,
@@ -27,25 +26,22 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
   repoName,
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failure'>('all')
-
   // Mapeia commits reais da API do GitHub para o formato do visualizador
-  const executions: InspectorItem[] = commits.map((c, i) => {
-    const isFirst = i === 0
+  const executions: InspectorItem[] = commits.map((c) => {
     return {
       id: c.sha,
       title: c.message.split('\n')[0] || c.sha.slice(0, 7),
       status: 'Sucesso',
       commit: c.sha.slice(0, 7),
       branch: c.branch || 'main',
-      author: c.author || 'Eduardo F. de M.',
+      author: c.author || 'Autor não identificado',
       authorInitials: (c.author || 'EF')
         .split(' ')
         .map((n) => n[0])
         .join('')
         .slice(0, 2)
         .toUpperCase(),
-      duration: isFirst ? '2m 14s' : '1m 45s',
+      duration: 'Não medido',
       when: new Date(c.authored_at).toLocaleString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
@@ -64,11 +60,9 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
         files: c.files || [],
       },
       logs: [
-        `[INFO] Início da sincronização para o commit ${c.sha.slice(0, 7)}`,
-        `[INFO] Autor verificado: ${c.author || 'Eduardo F. de M.'}`,
-        `[INFO] Mensagem: "${c.message.split('\n')[0]}"`,
-        `[INFO] Arquivos associados indexados: ${c.files?.length || 0}`,
-        `[SUCCESS] Commit persistido na tabela Commit do PostgreSQL`,
+        `[RESUMO LOCAL] Commit ${c.sha.slice(0, 7)} indexado`,
+        `[RESUMO LOCAL] Autor: ${c.author || 'não identificado'}`,
+        `[RESUMO LOCAL] Arquivos associados: ${c.files?.length || 0}`,
       ],
     }
   })
@@ -80,12 +74,7 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
       (ex.title && ex.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (ex.branch && ex.branch.toLowerCase().includes(searchTerm.toLowerCase()))
 
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'success' && ex.status === 'Sucesso') ||
-      (statusFilter === 'failure' && ex.status === 'Falha')
-
-    return matchesSearch && matchesStatus
+    return matchesSearch
   })
 
   return (
@@ -93,13 +82,13 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
       <div className="nexus-card-header">
         <div>
           <div className="nexus-card-title">
-            Execuções e Sincronizações Reais
+            Commits indexados
             <span className="badge badge-success" style={{ marginLeft: 6 }}>
               ● {commits.length} commits sincronizados
             </span>
           </div>
           <div className="nexus-card-subtitle">
-            Histórico real de commits recebidos da API do GitHub e persistidos no banco de dados.
+            Registros devolvidos por GET /api/v1/commits para o repositório selecionado.
           </div>
         </div>
 
@@ -116,27 +105,6 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
             />
           </div>
 
-          {/* Filtros rápidos */}
-          <div className="filter-button-group">
-            <button
-              className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('all')}
-            >
-              Todos
-            </button>
-            <button
-              className={`filter-btn ${statusFilter === 'success' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('success')}
-            >
-              Sucesso
-            </button>
-            <button
-              className={`filter-btn ${statusFilter === 'failure' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('failure')}
-            >
-              Falhas
-            </button>
-          </div>
         </div>
       </div>
 
@@ -149,7 +117,7 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
                 <th style={{ width: 140 }}>COMMIT</th>
                 <th>BRANCH / MENSAGEM</th>
                 <th style={{ width: 180 }}>AUTOR</th>
-                <th style={{ width: 100 }}>DURAÇÃO</th>
+                <th style={{ width: 100 }}>PROCESSAMENTO</th>
                 <th style={{ width: 140 }}>DATA / HORA</th>
                 <th style={{ width: 80, textAlign: 'right' }}>AÇÕES</th>
               </tr>
@@ -160,20 +128,15 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
                   key={item.id}
                   onClick={() => onSelectExecution(item)}
                   style={{ cursor: 'pointer' }}
-                  title="Clique para abrir o Inspetor JSON e logs detalhados"
+                  title="Clique para abrir o JSON e um resumo local do registro"
                 >
                   <td>
                     {item.status === 'Sucesso' ? (
                       <span className="badge badge-success">
                         <CheckCircle2 size={11} />
-                        Sucesso
+                        Indexado
                       </span>
-                    ) : (
-                      <span className="badge badge-danger">
-                        <XCircle size={11} />
-                        Falha
-                      </span>
-                    )}
+                    ) : null}
                   </td>
                   <td>
                     <span className="mono-badge">{item.commit}</span>
