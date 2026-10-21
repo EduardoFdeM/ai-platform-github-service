@@ -6,7 +6,6 @@ Este recorte contém apenas trabalho que o nosso grupo consegue concluir sem esp
 
 | Entrega | Situação atual | Definition of Done |
 | --- | --- | --- |
-| Corrigir reconciliação de commits | A sincronização lê no máximo 200 commits e remove registros locais que não vieram nessa janela; isso pode apagar histórico válido | sincronização incremental não destrutiva, cursor/data de corte persistidos e testes com histórico maior que 200 commits |
 | Completar OpenAPI | cinco funções ainda não possuem resposta inferida e o cadastro usa schema de saída como entrada | schema sem erros, serializers explícitos de entrada/saída e exemplos para todos os status relevantes |
 | Sincronizar branches e PRs na carga inicial | modelos, webhooks e endpoints de consulta existem, mas o sync REST inicial traz apenas branch padrão e commits | carga inicial e reconciliação de branches/PRs com paginação e testes |
 | Indexar arquivos no sync REST | arquivos alterados entram pelo webhook, mas não pela carga REST | detalhes de commit buscados com limites controlados; `CommitFile` consistente nos dois caminhos |
@@ -40,13 +39,17 @@ Este recorte contém apenas trabalho que o nosso grupo consegue concluir sem esp
 
 Sequência recomendada para as próximas sessões do nosso grupo:
 
-1. Corrigir a reconciliação destrutiva e ampliar os testes do sync.
-2. Completar OpenAPI e contratos de erro.
-3. Sincronizar branches, PRs e arquivos na carga inicial.
-4. Fechar logging, retry, replay e health operacional.
-5. Conectar branches/PRs no frontend e só então evoluir Analytics.
-6. Decidir formalmente GraphQL e IA no recorte final.
-7. Publicar e registrar um E2E do nosso módulo isolado.
+1. Completar OpenAPI e contratos de erro.
+2. Sincronizar branches, PRs e arquivos na carga inicial.
+3. Fechar logging, retry, replay e health operacional.
+4. Conectar branches/PRs no frontend e só então evoluir Analytics.
+5. Decidir formalmente GraphQL e IA no recorte final.
+6. Publicar e registrar um E2E do nosso módulo isolado.
+
+## Fechado nesta revisão
+
+- Reconciliação de commits tornou-se incremental e não destrutiva: usa o commit local mais recente como `since`, preserva histórico anterior e possui testes para primeira carga e atualização incremental.
+- O cadastro deixou de esconder falhas da sincronização inicial e devolve `initial_sync_status`/`initial_sync_detail`.
 
 ## Não entra neste recorte
 

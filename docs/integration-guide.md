@@ -169,7 +169,7 @@ Content-Type: application/json
 {"status":"synced","repository":"organizacao-exemplo/projeto-exemplo","commits_synced":42}
 ```
 
-Esta implementação lê páginas REST de commits de até 100 itens e para ao atingir 200 itens. A sincronização atual reconcilia estritamente os SHAs retornados: quando recebe uma lista não vazia, remove do banco os commits daquele repositório que não estejam nela. Consumidores não devem usá-la como trilha imutável de auditoria nem inferir paginação completa do histórico. Erros conhecidos: 404 para ID local inativo/inexistente, código HTTP retornado pelo GitHub e 500 para exceções de sincronização não tratadas.
+Esta implementação lê páginas REST de commits de até 100 itens e para ao atingir 200 itens por execução. Quando já existe histórico local, envia `since` com a data do commit mais recente e faz atualização incremental, sem remover commits antigos que não vieram na janela atual. O limite ainda impede afirmar que uma carga inicial com mais de 200 commits esteja completa. Erros conhecidos: 404 para ID local inativo/inexistente, código HTTP retornado pelo GitHub e 500 para exceções de sincronização não tratadas.
 
 ### Commits, filtros e paginação
 
