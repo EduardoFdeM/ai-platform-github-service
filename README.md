@@ -101,6 +101,10 @@ Meta de cobertura de testes: **80%**.
 
 - [Guia de Deployment](DEPLOYMENT.md)
 - [Arquitetura e Riscos](docs/architecture.md)
+- [Guia de Integração para outros módulos](docs/integration-guide.md)
+- [Mapa de Integração da Plataforma](docs/platform-integration-map.md)
+- [Cobertura das POCs do frontend](docs/poc-coverage.md)
+- [Revisão de status do YouTrack](docs/youtrack-status-review.md)
 - [Decisões Arquiteturais (ADRs)](docs/adr/)
 - [Contexto da AP1 e Backlog](CONTEXTO.md)
 
