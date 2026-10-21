@@ -33,19 +33,36 @@ class GitHubClient:
     def get_repository(self, owner: str, name: str) -> dict:
         return self.get(f"/repos/{owner}/{name}").json()
 
-    def get_commits(self, owner: str, name: str, since: str = None, per_page: int = 100) -> list:
-        all_commits = []
+    def get_paginated(self, path: str, params: dict | None = None, per_page: int = 100, limit: int = 200) -> list:
+        items_found = []
         page = 1
         while True:
-            params = {"per_page": per_page, "page": page}
-            if since:
-                params["since"] = since
-            resp = self.get(f"/repos/{owner}/{name}/commits", params=params)
-            items = resp.json()
+            page_params = {**(params or {}), "per_page": per_page, "page": page}
+            response = self.get(path, params=page_params)
+            items = response.json()
             if not items or not isinstance(items, list):
                 break
-            all_commits.extend(items)
-            if len(items) < per_page or len(all_commits) >= 200:
+            items_found.extend(items)
+            if len(items) < per_page or len(items_found) >= limit:
                 break
             page += 1
-        return all_commits
+        return items_found[:limit]
+
+    def get_commits(self, owner: str, name: str, since: str = None, per_page: int = 100) -> list:
+        params = {}
+        if since:
+            params["since"] = since
+        return self.get_paginated(f"/repos/{owner}/{name}/commits", params=params, per_page=per_page)
+
+    def get_branches(self, owner: str, name: str, per_page: int = 100) -> list:
+        return self.get_paginated(f"/repos/{owner}/{name}/branches", per_page=per_page)
+
+    def get_pull_requests(self, owner: str, name: str, per_page: int = 100) -> list:
+        return self.get_paginated(
+            f"/repos/{owner}/{name}/pulls",
+            params={"state": "all", "sort": "updated", "direction": "desc"},
+            per_page=per_page,
+        )
+
+    def get_commit(self, owner: str, name: str, sha: str) -> dict:
+        return self.get(f"/repos/{owner}/{name}/commits/{sha}").json()

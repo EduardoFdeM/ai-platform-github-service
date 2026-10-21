@@ -96,6 +96,7 @@ CELERY_TASK_EAGER_PROPAGATES = True
 GITHUB_API_URL = os.getenv("GITHUB_API_URL", "https://api.github.com")
 GITHUB_CA_BUNDLE = os.getenv("GITHUB_CA_BUNDLE") or True
 GITHUB_HTTP_TIMEOUT = int(os.getenv("GITHUB_HTTP_TIMEOUT", "10"))
+GITHUB_COMMIT_DETAILS_LIMIT = int(os.getenv("GITHUB_COMMIT_DETAILS_LIMIT", "50"))
 IGNORE_BRANCHES = [value.strip() for value in os.getenv("IGNORE_BRANCHES", "tmp/*").split(",") if value.strip()]
 DELIVERY_SLA_HOURS = int(os.getenv("DELIVERY_SLA_HOURS", "72"))
 DASHBOARD_DEFAULT_REPOSITORY = os.getenv("DASHBOARD_DEFAULT_REPOSITORY", "HenriqueRSouza/mod2-github-sync")

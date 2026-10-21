@@ -29,7 +29,7 @@ def _process_push(delivery):
     branch, _ = Branch.objects.get_or_create(repository=delivery.repository, name=branch_name)
     for item in payload.get("commits", []):
         author = _contributor(item.get("author") or {})
-        commit, created = Commit.objects.update_or_create(
+        commit, _ = Commit.objects.update_or_create(
             repository=delivery.repository,
             sha=item["id"],
             defaults={
@@ -41,7 +41,8 @@ def _process_push(delivery):
                 "forced_push": payload.get("forced", False),
             },
         )
-        if created:
+        if any(change_type in item for change_type in CommitFile.ChangeType.values):
+            commit.files.all().delete()
             for change_type in CommitFile.ChangeType.values:
                 CommitFile.objects.bulk_create(
                     [

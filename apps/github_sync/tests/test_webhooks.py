@@ -8,7 +8,7 @@ import uuid
 import pytest
 from django.urls import reverse
 
-from apps.github_sync.models import Commit, Repository, WebhookDelivery
+from apps.github_sync.models import Commit, CommitFile, Repository, WebhookDelivery
 from apps.github_sync.services.crypto import encrypt_secret
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -84,5 +84,29 @@ def test_processes_push_and_ignores_duplicate(client, repository, settings):
 
     assert response.status_code == 202
     assert duplicate.status_code == 200
-    assert Commit.objects.filter(repository=repository, sha="a" * 40).exists()
+    commit = Commit.objects.get(repository=repository, sha="a" * 40)
+    assert list(commit.files.values_list("path", "change_type")) == [
+        ("apps/example.py", CommitFile.ChangeType.ADDED)
+    ]
     assert WebhookDelivery.objects.get(delivery_id=delivery_id).status == WebhookDelivery.Status.PROCESSED
+
+    updated_payload = {
+        **payload,
+        "commits": [
+            {
+                **payload["commits"][0],
+                "added": [],
+                "modified": ["apps/example.py"],
+                "removed": [],
+            }
+        ],
+    }
+    updated_body = json.dumps(updated_payload).encode()
+    updated = client.post(
+        reverse("github-webhook"), data=updated_body, content_type="application/json", **signed_headers(updated_body)
+    )
+
+    assert updated.status_code == 202
+    assert list(commit.files.values_list("path", "change_type")) == [
+        ("apps/example.py", CommitFile.ChangeType.MODIFIED)
+    ]

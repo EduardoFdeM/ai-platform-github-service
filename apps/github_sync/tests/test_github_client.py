@@ -41,6 +41,31 @@ def test_get_repository_returns_github_payload():
     client.get.assert_called_once_with("/repos/team/service")
 
 
+def test_repository_resource_wrappers_use_expected_github_routes():
+    client = GitHubClient()
+    client.get_paginated = Mock(side_effect=[[{"name": "main"}], [{"number": 7}]])
+    response = Mock()
+    response.json.return_value = {"sha": "a" * 40, "files": []}
+    client.get = Mock(return_value=response)
+
+    branches = client.get_branches("team", "service")
+    pull_requests = client.get_pull_requests("team", "service")
+    commit = client.get_commit("team", "service", "a" * 40)
+
+    assert branches == [{"name": "main"}]
+    assert pull_requests == [{"number": 7}]
+    assert commit["sha"] == "a" * 40
+    assert client.get_paginated.call_args_list == [
+        call("/repos/team/service/branches", per_page=100),
+        call(
+            "/repos/team/service/pulls",
+            params={"state": "all", "sort": "updated", "direction": "desc"},
+            per_page=100,
+        ),
+    ]
+    client.get.assert_called_once_with(f"/repos/team/service/commits/{'a' * 40}")
+
+
 def test_get_commits_paginates_with_since_and_stops_at_200():
     client = GitHubClient()
     first = Mock()

@@ -68,8 +68,8 @@ As rotas abaixo não terminam com barra. Envios JSON devem usar Content-Type: ap
 | GET /api/v1/health/github-connectivity | Não | Consulta /meta do GitHub e informa latência. Retorna 200 ou 503. |
 | POST /api/v1/github/handshake | Não (PAT no corpo) | Valida um PAT contra /user do GitHub sem persistir o token. |
 | GET /api/v1/repositories | Não | Lista repositórios ativos já cadastrados. Sem paginação. |
-| POST /api/v1/repositories | Não (PAT opcional no corpo) | Valida um repositório no GitHub, persiste metadados/segredo e tenta carga inicial de commits. |
-| POST /api/v1/repositories/{id}/sync | Não (PAT opcional no corpo) | Reconsulta GitHub e sincroniza até 200 commits; pode atualizar/remover commits locais conforme a resposta recebida. |
+| POST /api/v1/repositories | Não (PAT opcional no corpo) | Valida um repositório no GitHub, persiste metadados/segredo e tenta carga inicial de branches, commits, arquivos e PRs. |
+| POST /api/v1/repositories/{id}/sync | Não (PAT opcional no corpo) | Reconsulta GitHub e reconcilia branches, até 200 commits e até 200 PRs; preserva o histórico local de commits. |
 | GET /api/v1/branches | Não | Lista branches paginadas; aceita repository_id e include_deleted=true. |
 | GET /api/v1/commits | Não | Lista commits paginados, com filtros descritos abaixo. |
 | GET /api/v1/pull-requests | Não | Lista PRs paginadas; aceita repository_id, state e author. |
@@ -169,7 +169,7 @@ Content-Type: application/json
 {"status":"synced","repository":"organizacao-exemplo/projeto-exemplo","commits_synced":42}
 ```
 
-Esta implementação lê páginas REST de commits de até 100 itens e para ao atingir 200 itens por execução. Quando já existe histórico local, envia `since` com a data do commit mais recente e faz atualização incremental, sem remover commits antigos que não vieram na janela atual. O limite ainda impede afirmar que uma carga inicial com mais de 200 commits esteja completa. Erros conhecidos: 404 para ID local inativo/inexistente, código HTTP retornado pelo GitHub e 500 para exceções de sincronização não tratadas.
+Esta implementação lê páginas REST de até 100 itens e limita cada execução a 200 commits, 200 branches e 200 PRs. Quando já existe histórico local, envia `since` com a data do commit mais recente e faz atualização incremental, sem remover commits antigos que não vieram na janela atual. Busca detalhes e arquivos para, no máximo, `GITHUB_COMMIT_DETAILS_LIMIT` commits por execução (padrão 50). Branches ausentes só são marcadas como removidas quando a listagem foi comprovadamente exaustiva, isto é, trouxe menos de 200 itens. O limite ainda impede afirmar que uma carga inicial maior esteja completa. Erros conhecidos: 404 para ID local inativo/inexistente, código HTTP retornado pelo GitHub e 500 para exceções de sincronização não tratadas.
 
 ### Commits, filtros e paginação
 
@@ -296,19 +296,17 @@ signature = "sha256=" + hmac.new(
 | Tema | Comportamento atual | Implicação para outro módulo |
 | --- | --- | --- |
 | Formato de erro | Geralmente {"detail":"…"}; handshake também retorna valid: false | Não existe envelope de erro versionado/uniforme. Trate status HTTP primeiro. |
-| Paginação | Só GET /commits; 50 itens por página | Siga next/previous; não presuma paginação para repositórios ou entregas. |
+| Paginação | GET /commits, /branches e /pull-requests usam a paginação padrão; repositórios e entregas não | Siga next/previous nas listas paginadas. |
 | Rate limit GitHub | O cliente aguarda até o reset se X-RateLimit-Remaining for zero | Uma chamada pode ficar bloqueada; defina timeout no consumidor. |
 | Timeout para GitHub | Configurável, padrão de 10 segundos por chamada | Falhas podem retornar 502, 503 ou o status do GitHub, conforme endpoint. |
-| Sincronização REST | Limita leitura a 200 commits e pode remover SHAs locais ausentes na resposta | Não use como fonte de auditoria completa nem como feed de eventos. |
+| Sincronização REST | Limita leitura a 200 commits/branches/PRs e detalhes de arquivos ao limite configurado; commits antigos são preservados | Não use como feed de eventos nem presuma carga histórica completa acima desses limites. |
 | Entregas assíncronas | Aceitas antes de processar | Polling de deliveries é a única observabilidade exposta; não há callback/event bus interno publicado. |
 | Branches ignoradas | IGNORE_BRANCHES=tmp/* por padrão | Commits dessas branches não entram pelo fluxo push. |
 | Disponibilidade | Apenas implementação e testes locais foram verificados neste repositório | Não trate /health ou Swagger local como prova de produção. |
 
-## Limitações do OpenAPI atual
+## Contrato OpenAPI atual
 
-O Swagger UI em /docs/ e o schema em /api/schema/ são gerados por drf-spectacular. A geração atual completa, porém emite erros de inferência de serializer para health, github-connectivity, metrics/dashboard, metrics/flow e repositories/{id}/sync. Por isso, suas respostas e parâmetros podem aparecer como corpo vazio/incompleto no Swagger.
-
-Há também uma diferença relevante no POST /api/v1/repositories: o schema gerado mostra o serializer de saída (github_id, owner, name), mas o handler em execução aceita url/repository_url, owner, name, token e webhook_secret. Até que serializers de entrada/saída explícitos sejam adicionados, este guia e testes do repositório prevalecem para integração.
+O Swagger UI em /docs/ e o schema em /api/schema/ são gerados por drf-spectacular. Health, conectividade, métricas, dashboard, cadastro e sincronização possuem serializers explícitos de entrada/saída. O CI executa `python manage.py spectacular --validate --fail-on-warn`; erro ou aviso na geração bloqueia a entrega.
 
 ## Próximos contratos a acordar com a turma
 
@@ -317,7 +315,7 @@ Antes de integrar módulos em ambiente compartilhado, é necessário acordar e r
 1. Base URL e dono operacional de cada ambiente (desenvolvimento, homologação e demonstração), inclusive TLS e rotação de segredos.
 2. Autenticação institucional compartilhada (por exemplo, JWT validado por todos) e autorização por papel/repositório. A arquitetura registra isso como decisão futura; nada foi implementado aqui.
 3. Política CORS/gateway para os frontends e uma forma segura de não expor PATs no navegador.
-4. DTOs versionados para métricas e erros, paginação de repositórios/deliveries e contrato OpenAPI completo com testes de contrato.
+4. DTOs versionados para métricas e erros e paginação de repositórios/deliveries; o OpenAPI local já é validado, mas a versão compartilhada do contrato ainda precisa ser acordada.
 5. Estratégia de eventos para consumidores: polling, broker/event bus ou callbacks, com retenção e política de reprocessamento.
 6. Limites da carga inicial/incremental e semântica de remoção de commits antes de qualquer dashboard tratar o histórico como definitivo.
 
@@ -333,4 +331,4 @@ Consulte também o [mapa de integração entre módulos](platform-integration-ma
 
 ### Evidência de validação deste guia
 
-Os endpoints e contratos foram confrontados com config/urls.py, apps/github_sync/urls.py, views, serializers, tasks e testes do repositório. Em 21/10/2026, python manage.py spectacular --validate gerou o schema OpenAPI 3.0.3, mas reportou os cinco grupos de endpoints com serializer não inferido descritos acima. Essa é uma limitação conhecida da documentação gerada, não uma afirmação de indisponibilidade das rotas.
+Os endpoints e contratos foram confrontados com config/urls.py, apps/github_sync/urls.py, views, serializers, tasks e testes do repositório. Em 21/10/2026, `python manage.py spectacular --validate --fail-on-warn` gerou e validou o schema OpenAPI 3.0.3 sem erros nem avisos.
