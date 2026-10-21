@@ -20,6 +20,9 @@ interface AuthTabProps {
 }
 
 export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
+  // Campos de GitHub App, cofre, rotação e auditoria vieram da POC, mas não
+  // possuem contrato de backend aceito. Só aparecem quando a ideação é ativada.
+  const showCredentialIdeation = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
   const [tokenType, setTokenType] = useState<'pat' | 'app'>('pat')
   const [token, setToken] = useState('')
   const [showToken, setShowToken] = useState(false)
@@ -110,14 +113,14 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>MÉTODO</span>
               <strong style={{ color: '#FFFFFF' }}>{handshakeResult?.valid ? 'PAT validado' : 'PAT não validado'}</strong>
           </div>
-          <div>
+          {showCredentialIdeation && <div>
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>PRÓXIMA ROTAÇÃO</span>
             <strong style={{ color: '#FBBF24' }}>em 17 dias</strong>
-          </div>
-          <div>
+          </div>}
+          {showCredentialIdeation && <div>
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>POLÍTICA</span>
             <strong style={{ color: '#34D399' }}>Conforme</strong>
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -130,18 +133,18 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
               <KeyRound size={15} style={{ color: '#60A5FA' }} />
               <span>Gestão de Credenciais e PAT</span>
             </div>
-            <span className="badge badge-success" style={{ fontSize: 10 }}>
+            {showCredentialIdeation && <span className="badge badge-warning" style={{ fontSize: 10 }}>
               <Lock size={10} style={{ marginRight: 3 }} />
-              Criptografado via AES-256-GCM
-            </span>
+              Ideação sem persistência de PAT
+            </span>}
           </div>
 
           <p className="nexus-card-subtitle" style={{ marginTop: -8 }}>
-            Configure a credencial usada nas chamadas autenticadas à API do GitHub. O segredo nunca é exibido após o salvamento.
+            Valide uma credencial diretamente no GitHub. O token não é persistido por esta interface.
           </p>
 
           {/* Abas PAT vs GitHub App */}
-          <div style={{ display: 'flex', gap: 6, backgroundColor: '#0A0F1D', padding: 4, borderRadius: 6 }}>
+          {showCredentialIdeation && <div style={{ display: 'flex', gap: 6, backgroundColor: '#0A0F1D', padding: 4, borderRadius: 6 }}>
             <button
               onClick={() => setTokenType('pat')}
               style={{
@@ -184,11 +187,11 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
               <Layers size={12} />
               <span>GitHub App Installation Token</span>
             </button>
-          </div>
+          </div>}
 
           {/* Campo de Token */}
           <div>
-            <label className="form-label">PERSONAL ACCESS TOKEN (PAT) OU INSTALLATION TOKEN</label>
+            <label className="form-label">PERSONAL ACCESS TOKEN (PAT)</label>
             <div style={{ position: 'relative' }}>
               <input
                 type={showToken ? 'text' : 'password'}
@@ -218,7 +221,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
           </div>
 
           {/* Custom Base URL & Ambiente */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+          {showCredentialIdeation && <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
             <div>
               <label className="form-label">CUSTOM BASE URL</label>
               <input
@@ -244,10 +247,10 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
                 <option value="Desenvolvimento">Desenvolvimento</option>
               </select>
             </div>
-          </div>
+          </div>}
 
           {/* Status TLS e Última Rotação */}
-          <div
+          {showCredentialIdeation && <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -267,10 +270,10 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
               <span>Última rotação</span>
               <strong style={{ color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>30 set • 09:12</strong>
             </div>
-          </div>
+          </div>}
 
           {/* Alerta de Rotação Obrigatória */}
-          <div
+          {showCredentialIdeation && <div
             style={{
               backgroundColor: 'rgba(245, 158, 11, 0.1)',
               border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -285,11 +288,11 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
           >
             <span>Rotação automática obrigatória a cada 90 dias.</span>
             <strong style={{ color: '#FBBF24' }}>vence em 19 out 2026</strong>
-          </div>
+          </div>}
 
           {/* Metadados e Botão de Ação */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ display: 'flex', gap: 18, fontSize: 10.5, color: 'var(--text-tertiary)' }}>
+            {showCredentialIdeation && <div style={{ display: 'flex', gap: 18, fontSize: 10.5, color: 'var(--text-tertiary)' }}>
               <div>
                 <span style={{ display: 'block', color: 'var(--text-dim)' }}>ORIGEM</span>
                 <span style={{ color: 'var(--text-main)' }}>Cofre do módulo • Produção</span>
@@ -302,7 +305,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
                 <span style={{ display: 'block', color: 'var(--text-dim)' }}>USO MAIS RECENTE</span>
                 <span style={{ color: 'var(--text-main)' }}>02 out • 14:31 BRT</span>
               </div>
-            </div>
+            </div>}
 
             <button
               onClick={handleTestHandshake}
@@ -328,7 +331,9 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
               <ShieldCheck size={15} style={{ color: '#34D399' }} />
               <span>Inspeção de Permissões</span>
             </div>
-            <span className="badge badge-success">● Conforme</span>
+            <span className={`badge ${handshakeResult?.valid ? 'badge-success' : 'badge-info'}`}>
+              ● {handshakeResult?.valid ? 'Resposta validada' : 'Sem validação'}
+            </span>
           </div>
 
           <p className="nexus-card-subtitle" style={{ marginTop: -8 }}>
@@ -339,19 +344,20 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
           <div className="code-box-dark">
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 10.5 }}>
               <span style={{ color: '#93C5FD', fontWeight: 600 }}>X-OAuth-Scopes</span>
-              <span style={{ color: 'var(--text-tertiary)' }}>HEAD /user • 14:31:52 BRT</span>
+              <span style={{ color: 'var(--text-tertiary)' }}>Resposta do handshake atual</span>
             </div>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-              <span className="badge badge-info">[x] repo:status</span>
-              <span className="badge badge-info">[x] read:org</span>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+              {handshakeResult?.scopes?.length
+                ? handshakeResult.scopes.map((scope) => <span key={scope} className="badge badge-info">{scope}</span>)
+                : <span className="badge badge-info">Execute o handshake para consultar escopos</span>}
             </div>
             <div style={{ color: 'var(--text-tertiary)', fontSize: 10.5 }}>
-              x-oauth-scopes: repo:status, read:org
+              x-oauth-scopes: {handshakeResult?.scopes?.join(', ') || 'não consultado'}
             </div>
           </div>
 
           {/* Least Privilege Box */}
-          <div
+          {showCredentialIdeation && <div
             style={{
               backgroundColor: 'rgba(16, 185, 129, 0.08)',
               border: '1px solid rgba(16, 185, 129, 0.25)',
@@ -369,10 +375,10 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
             <p style={{ fontSize: 11, color: '#A7F3D0', lineHeight: 1.4 }}>
               A credencial possui somente leitura organizacional e escrita limitada a status de commits.
             </p>
-          </div>
+          </div>}
 
           {/* Checklist de Permissões */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 11.5 }}>
+          {showCredentialIdeation && <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 11.5 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Check size={14} style={{ color: '#10B981' }} />
@@ -404,10 +410,10 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
               </div>
               <span style={{ color: 'var(--text-dim)' }}>não concedido</span>
             </div>
-          </div>
+          </div>}
 
           {/* Footer com Fingerprint */}
-          <div
+          {showCredentialIdeation && <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -427,12 +433,12 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
               <RotateCw size={11} />
               <span>Reinspecionar</span>
             </button>
-          </div>
+          </div>}
         </div>
       </div>
 
       {/* Auditoria de Acesso (Tabela Inferior) */}
-      <div className="nexus-card">
+      {showCredentialIdeation && <div className="nexus-card">
         <div className="nexus-card-header">
           <div>
             <div className="nexus-card-title">Auditoria de Acesso</div>
@@ -568,7 +574,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
     </div>
   )
 }

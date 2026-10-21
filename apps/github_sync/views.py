@@ -226,6 +226,13 @@ class RepositoryListView(ListCreateAPIView):
         owner = request.data.get("owner", "").strip()
         name = request.data.get("name", "").strip()
         token = request.data.get("token")
+        raw_secret = request.data.get("webhook_secret", "").strip()
+
+        if len(raw_secret) < 16:
+            return Response(
+                {"detail": "Informe webhook_secret com pelo menos 16 caracteres e use um valor exclusivo por repositório."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if url_input:
             from urllib.parse import urlparse
@@ -260,7 +267,6 @@ class RepositoryListView(ListCreateAPIView):
         except Exception as exc:
             return Response({"detail": f"Erro de conexão com o GitHub: {str(exc)}"}, status=status.HTTP_502_BAD_GATEWAY)
 
-        raw_secret = request.data.get("webhook_secret") or "mackenzie-secret-2026"
         repository, created = Repository.objects.update_or_create(
             github_id=repo_data["id"],
             defaults={

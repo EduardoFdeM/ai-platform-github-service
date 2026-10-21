@@ -159,7 +159,7 @@ export const api = {
       }
     ),
 
-  createRepository: (params: { url?: string; owner?: string; name?: string; token?: string }) =>
+  createRepository: (params: { url?: string; owner?: string; name?: string; token?: string; webhook_secret: string }) =>
     request<Repository>('/api/v1/repositories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

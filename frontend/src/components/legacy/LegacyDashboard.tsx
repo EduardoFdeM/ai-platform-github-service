@@ -76,8 +76,10 @@ export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWor
   const [showAddRepo, setShowAddRepo] = useState(false)
   const [newOwner, setNewOwner] = useState('')
   const [newName, setNewName] = useState('')
+  const [newWebhookSecret, setNewWebhookSecret] = useState('')
   const [addRepoLoading, setAddRepoLoading] = useState(false)
   const [addRepoError, setAddRepoError] = useState<string | null>(null)
+  const [simSecret, setSimSecret] = useState('')
 
   // Alternar tema
   useEffect(() => {
@@ -178,7 +180,7 @@ export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWor
 
   const handleAddRepo = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newOwner.trim() || !newName.trim()) return
+    if (!newOwner.trim() || !newName.trim() || newWebhookSecret.length < 16) return
     setAddRepoLoading(true)
     setAddRepoError(null)
     try {
@@ -186,6 +188,7 @@ export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWor
         owner: newOwner.trim(),
         name: newName.trim(),
         token: patToken || undefined,
+        webhook_secret: newWebhookSecret,
       })
       if (status === 201) {
         setRepositories((prev) => [...prev.filter((r) => r.id !== data.id), data])
@@ -193,6 +196,8 @@ export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWor
         setShowAddRepo(false)
         setNewOwner('')
         setNewName('')
+        setSimSecret(newWebhookSecret)
+        setNewWebhookSecret('')
         setSyncMessage(`Repositório ${data.full_name} conectado e sincronizado com sucesso!`)
         await loadRepoData(data.id)
       } else {
@@ -206,7 +211,7 @@ export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWor
   }
 
   const handleSimulatePush = async () => {
-    if (!selectedRepo) return
+    if (!selectedRepo || simSecret.length < 16) return
 
     setSimulating(true)
     setSimStatus('Preparando payload e calculando digest HMAC-SHA256...')
@@ -246,9 +251,7 @@ export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWor
       }
 
       const bodyStr = JSON.stringify(payload)
-      // Segredo configurado no seed: 'mackenzie-secret-2026'
-      const secret = 'mackenzie-secret-2026'
-      const signatureHex = await computeHmacSha256(secret, bodyStr)
+      const signatureHex = await computeHmacSha256(simSecret, bodyStr)
 
       setSimStatus('Enviando requisição POST /webhooks/github...')
 
@@ -475,6 +478,18 @@ export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWor
                 />
               </div>
             </div>
+            <div className="form-group">
+              <label className="form-label">Segredo exclusivo do webhook:</label>
+              <input
+                type="password"
+                className="input-text input-mono"
+                placeholder="mínimo de 16 caracteres"
+                value={newWebhookSecret}
+                minLength={16}
+                onChange={(e) => setNewWebhookSecret(e.target.value)}
+                required
+              />
+            </div>
             {addRepoError && (
               <span style={{ color: 'var(--color-danger)', fontSize: '0.85rem' }}>{addRepoError}</span>
             )}
@@ -592,9 +607,22 @@ export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWor
               />
             </div>
 
+            <div className="form-group">
+              <label className="form-label">Segredo do webhook deste repositório:</label>
+              <input
+                type="password"
+                className="input-text input-mono"
+                placeholder="mesmo segredo informado no cadastro"
+                value={simSecret}
+                minLength={16}
+                onChange={(e) => setSimSecret(e.target.value)}
+                required
+              />
+            </div>
+
             <button
               onClick={handleSimulatePush}
-              disabled={simulating || !selectedRepo}
+              disabled={simulating || !selectedRepo || simSecret.length < 16}
               className="btn btn-primary"
             >
               <Send size={15} />

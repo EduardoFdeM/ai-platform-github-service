@@ -38,13 +38,26 @@ def test_create_repository_via_github_url(client, monkeypatch):
     with patch("apps.github_sync.services.github.GitHubClient.get_repository", return_value=fake_data), patch(
         "apps.github_sync.views.sync_repository_from_github", return_value=10
     ):
-        response = client.post(reverse("repository-list"), {"url": "https://github.com/foo/bar"})
+        response = client.post(
+            reverse("repository-list"),
+            {"url": "https://github.com/foo/bar", "webhook_secret": "unique-webhook-secret"},
+        )
         assert response.status_code == 201
         assert response.json()["owner"] == "foo"
         assert response.json()["name"] == "bar"
 
 
 def test_reject_non_github_url(client):
-    response = client.post(reverse("repository-list"), {"url": "https://gitlab.com/foo/bar"})
+    response = client.post(
+        reverse("repository-list"),
+        {"url": "https://gitlab.com/foo/bar", "webhook_secret": "unique-webhook-secret"},
+    )
     assert response.status_code == 400
     assert "github.com" in response.json()["detail"]
+
+
+def test_repository_requires_unique_webhook_secret(client):
+    response = client.post(reverse("repository-list"), {"url": "https://github.com/foo/bar"})
+
+    assert response.status_code == 400
+    assert "webhook_secret" in response.json()["detail"]

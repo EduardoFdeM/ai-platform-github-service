@@ -11,6 +11,7 @@ interface ConnectRepoModalProps {
 export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
+  const [webhookSecret, setWebhookSecret] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,6 +46,11 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
       return
     }
 
+    if (webhookSecret.trim().length < 16) {
+      setError('Informe um segredo de webhook com pelo menos 16 caracteres.')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -52,6 +58,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
       const { status, data } = await api.createRepository({
         url: cleanUrl,
         token: token.trim() || undefined,
+        webhook_secret: webhookSecret.trim(),
       })
 
       if (status === 201) {
@@ -164,6 +171,29 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
           <div>
             <label className="form-label">
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <KeyRound size={12} /> Segredo do webhook
+              </span>
+            </label>
+            <input
+              type="password"
+              className="form-input"
+              placeholder="Use um segredo forte e exclusivo deste repositório"
+              value={webhookSecret}
+              onChange={(e) => {
+                setWebhookSecret(e.target.value)
+                setError(null)
+              }}
+              minLength={16}
+              required
+            />
+            <span className="form-help">
+              Configure o mesmo valor no webhook do GitHub. Ele será cifrado no servidor e não será devolvido pela API.
+            </span>
+          </div>
+
+          <div>
+            <label className="form-label">
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <KeyRound size={12} /> Personal Access Token (PAT) — Opcional
               </span>
             </label>
@@ -190,7 +220,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
             </button>
             <button
               type="submit"
-              disabled={loading || isInvalidUrl || !url.trim()}
+              disabled={loading || isInvalidUrl || !url.trim() || webhookSecret.trim().length < 16}
               className="btn-nexus btn-nexus-primary"
             >
               {loading ? 'Conectando & Sincronizando...' : 'Conectar Repositório'}

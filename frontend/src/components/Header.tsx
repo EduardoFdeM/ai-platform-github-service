@@ -40,6 +40,11 @@ export const Header: React.FC<HeaderProps> = ({
   connectivity,
   onSwitchToLegacy,
 }) => {
+  // Analytics avançado, IA e DevOps vieram da ideação/Figma. Permanecem
+  // implementados para demonstração, mas ficam fora da navegação padrão até
+  // que as respectivas USs e contratos de backend sejam aceitos.
+  const showIdeationTabs = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
+
   // Breadcrumb e Título baseados na tela ativa
   const getHeaderMeta = () => {
     switch (activeTab) {
@@ -151,20 +156,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{connectivity?.status === 'up' ? 'GitHub conectado' : 'GitHub desconectado'}</span>
           </div>
 
-          {/* Badge Webhook Ativo */}
-          <div className="status-pill status-pill-info">
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                backgroundColor: '#38BDF8',
-                boxShadow: '0 0 6px #38BDF8',
-              }}
-            />
-            <span>Webhook ativo</span>
-          </div>
-
           {/* Botão Conectar Repositório (abre modal via Link GitHub) */}
           <button
             onClick={onOpenConnectModal}
@@ -247,32 +238,36 @@ export const Header: React.FC<HeaderProps> = ({
           <span>Indexação & Contribuintes</span>
         </button>
 
-        <button
-          className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-          onClick={() => onSelectTab('analytics')}
-          title="Prévia: métricas básicas aparecem na visão geral e na sincronização"
-        >
-          <BarChart3 size={13} />
-          <span>Analytics · prévia</span>
-        </button>
+        {showIdeationTabs && (
+          <>
+            <button
+              className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+              onClick={() => onSelectTab('analytics')}
+              title="Ideação: métricas avançadas ainda não têm contrato próprio"
+            >
+              <BarChart3 size={13} />
+              <span>Analytics · ideação</span>
+            </button>
 
-        <button
-          className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
-          onClick={() => onSelectTab('ai')}
-          title="Prévia de interface: backend de IA ainda não está disponível neste módulo"
-        >
-          <Bot size={13} />
-          <span>Assistente IA · prévia</span>
-        </button>
+            <button
+              className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
+              onClick={() => onSelectTab('ai')}
+              title="Ideação: backend de IA ainda não está disponível neste módulo"
+            >
+              <Bot size={13} />
+              <span>Assistente IA · ideação</span>
+            </button>
 
-        <button
-          className={`tab-btn ${activeTab === 'devops' ? 'active' : ''}`}
-          onClick={() => onSelectTab('devops')}
-          title="Prévia de interface: não há consulta de release/deploy neste módulo"
-        >
-          <Rocket size={13} />
-          <span>DevOps & Release · prévia</span>
-        </button>
+            <button
+              className={`tab-btn ${activeTab === 'devops' ? 'active' : ''}`}
+              onClick={() => onSelectTab('devops')}
+              title="Ideação: não há consulta de release/deploy neste módulo"
+            >
+              <Rocket size={13} />
+              <span>DevOps & Release · ideação</span>
+            </button>
+          </>
+        )}
       </nav>
     </header>
   )

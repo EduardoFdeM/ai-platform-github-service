@@ -15,7 +15,7 @@ import {
   Check,
   Clock,
 } from 'lucide-react'
-import { api, type Delivery, type Repository } from '../../api'
+import { api, apiOrigin, type Delivery, type Repository } from '../../api'
 
 interface WebhooksTabProps {
   repository: Repository | null
@@ -70,9 +70,11 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
   const [simBranch, setSimBranch] = useState('main')
   const [simMessage, setSimMessage] = useState('feat(ui): sincronizar eventos em tempo real no dashboard')
   const [simFile, setSimFile] = useState('frontend/src/App.tsx')
+  const [simSecret, setSimSecret] = useState('')
   const [simStatus, setSimStatus] = useState<string | null>(null)
   const [simulating, setSimulating] = useState(false)
   const hasLiveDeliveries = deliveries.length > 0
+  const showOperationalIdeation = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
 
   // Eventos do Figma
   const defaultEvents: WebhookEventItem[] = [
@@ -175,7 +177,8 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
       item.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.event.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesEvent = selectedEventType === 'all' || item.event === selectedEventType
-    return matchesSearch && matchesEvent
+    const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus
+    return matchesSearch && matchesEvent && matchesStatus
   })
 
   const openDrawer = (item: WebhookEventItem) => {
@@ -186,7 +189,10 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
   // Disparo simulado com cálculo HMAC-SHA256 no browser
   const handleSimulateWebhook = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!repository) return
+    if (!repository || simSecret.trim().length < 16) {
+      setSimStatus('Informe o segredo configurado para este repositório (mínimo de 16 caracteres).')
+      return
+    }
     setSimulating(true)
     setSimStatus('Calculando digest HMAC-SHA256 e enviando payload...')
 
@@ -224,8 +230,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
       }
 
       const bodyStr = JSON.stringify(payload)
-      const secret = 'mackenzie-secret-2026'
-      const signatureHex = await computeHmacSha256(secret, bodyStr)
+      const signatureHex = await computeHmacSha256(simSecret.trim(), bodyStr)
 
       const { status, data } = await api.sendWebhook(bodyStr, {
         'X-Hub-Signature-256': `sha256=${signatureHex}`,
@@ -271,7 +276,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
             className="btn-nexus btn-nexus-secondary btn-nexus-sm"
           >
             {streamActive ? <Pause size={12} /> : <Play size={12} />}
-            <span>{streamActive ? 'Pausar stream' : 'Retomar stream'}</span>
+            <span>{streamActive ? 'Pausar visualização' : 'Retomar visualização'}</span>
           </button>
 
           <button
@@ -329,7 +334,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
                 marginTop: 2,
               }}
             >
-              https://api.plataforma.com/webhooks/github
+              {apiOrigin}/webhooks/github
             </div>
           </div>
         </div>
@@ -338,12 +343,12 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
           <div>
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>ASSINATURA</span>
             <strong style={{ color: '#34D399', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Check size={12} /> X-Hub-Signature-256 Validada
+              <Check size={12} /> HMAC validado por entrega
             </strong>
           </div>
           <div>
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>IDEMPOTÊNCIA</span>
-            <strong style={{ color: '#FFFFFF' }}>Chave ativa • TTL 24h</strong>
+            <strong style={{ color: '#FFFFFF' }}>Delivery ID persistido</strong>
           </div>
         </div>
       </div>
@@ -405,6 +410,20 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
               />
             </div>
 
+            <div>
+              <label className="form-label">Segredo do webhook deste repositório</label>
+              <input
+                type="password"
+                className="form-input"
+                placeholder="O mesmo segredo configurado no cadastro e no GitHub"
+                value={simSecret}
+                onChange={(e) => setSimSecret(e.target.value)}
+                minLength={16}
+                required
+              />
+              <span className="form-help">Usado somente no navegador para assinar este payload de teste; não é armazenado pela SPA.</span>
+            </div>
+
             {simStatus && (
               <div
                 style={{
@@ -424,7 +443,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <button
                 type="submit"
-                disabled={simulating || !repository}
+                disabled={simulating || !repository || simSecret.trim().length < 16}
                 className="btn-nexus btn-nexus-primary"
               >
                 <Send size={12} />
@@ -436,13 +455,13 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
       )}
 
       {/* Fila Assíncrona: 4 Cards KPI */}
-      <div className="nexus-card">
+      {showOperationalIdeation && <div className="nexus-card">
         <div className="nexus-card-header">
           <div>
             <div className="nexus-card-title">
-              Fila assíncrona
-              <span className="badge badge-success" style={{ marginLeft: 6 }}>
-                ● Consumidores saudáveis
+              Fila assíncrona — ideação
+              <span className="badge badge-warning" style={{ marginLeft: 6 }}>
+                Dados de demonstração
               </span>
             </div>
             <div className="nexus-card-subtitle">
@@ -488,7 +507,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
             <div className="kpi-sub">0 novas nos últimos 30 min</div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Tabela: Eventos Recentes */}
       <div className="nexus-card">
@@ -547,7 +566,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
             </select>
 
             <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 8 }}>
-              2.848 eventos nas últimas 24 horas
+              {filteredEvents.length} evento(s) exibido(s)
             </span>
           </div>
         </div>

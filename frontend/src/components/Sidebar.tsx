@@ -19,6 +19,11 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = () => {
+  // O shell completo da plataforma pertence à integração entre os grupos.
+  // Mantemos a estrutura pronta, mas escondida por padrão enquanto os demais
+  // módulos não publicarem rotas/contratos navegáveis.
+  const showPlatformShell = import.meta.env.VITE_SHOW_PLATFORM_SHELL === 'true'
+
   return (
     <aside className="nexus-sidebar">
       <div className="sidebar-top">
@@ -32,14 +37,14 @@ export const Sidebar: React.FC<SidebarProps> = () => {
         </div>
 
         {/* Seletor de Contexto / Workspace */}
-        <div className="workspace-selector" title="Alternar Organização ou Curso">
-          <span className="workspace-badge">UF</span>
-          <span className="workspace-name">UFTech + Arquitetura</span>
-          <ChevronDown size={14} style={{ color: 'var(--text-tertiary)' }} />
+        <div className="workspace-selector" title="Contexto acadêmico do módulo">
+          <span className="workspace-badge">M2</span>
+          <span className="workspace-name">Plataforma acadêmica</span>
+          {showPlatformShell && <ChevronDown size={14} style={{ color: 'var(--text-tertiary)' }} />}
         </div>
 
         {/* Seção VISÃO GERAL */}
-        <div className="nav-group">
+        {showPlatformShell && <div className="nav-group">
           <span className="nav-group-title">VISÃO GERAL</span>
           <div className="nav-item">
             <LayoutDashboard size={15} />
@@ -54,15 +59,15 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             <Layers size={15} />
             <span>Catálogo de serviços</span>
           </div>
-        </div>
+        </div>}
 
         {/* Seção MÓDULOS */}
         <div className="nav-group">
           <span className="nav-group-title">MÓDULOS</span>
-          <div className="nav-item">
+          {showPlatformShell && <div className="nav-item">
             <Compass size={15} />
-            <span>1. Descoberta</span>
-          </div>
+            <span>1. Autenticação & Backlog</span>
+          </div>}
 
           {/* ITEM ATIVO: MÓDULO 2 GITHUB */}
           <div className="nav-item active">
@@ -70,22 +75,24 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             <span>2. Integração GitHub</span>
           </div>
 
-          <div className="nav-item">
-            <ShieldCheck size={15} />
-            <span>3. Qualidade</span>
-          </div>
-          <div className="nav-item">
-            <Activity size={15} />
-            <span>4. Observabilidade</span>
-          </div>
-          <div className="nav-item">
-            <Brain size={15} />
-            <span>5. Insights acadêmicos</span>
-          </div>
+          {showPlatformShell && <>
+            <div className="nav-item">
+              <ShieldCheck size={15} />
+              <span>3. Artefatos</span>
+            </div>
+            <div className="nav-item">
+              <Activity size={15} />
+              <span>4. Code Review</span>
+            </div>
+            <div className="nav-item">
+              <Brain size={15} />
+              <span>5–8. Serviços da plataforma</span>
+            </div>
+          </>}
         </div>
 
         {/* Seção ADMINISTRAÇÃO */}
-        <div className="nav-group">
+        {showPlatformShell && <div className="nav-group">
           <span className="nav-group-title">ADMINISTRAÇÃO</span>
           <div className="nav-item">
             <Users size={15} />
@@ -99,14 +106,14 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             <FileText size={15} />
             <span>Auditoria</span>
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* Rodapé da Sidebar */}
       <div className="sidebar-footer">
         <div className="system-status-indicator">
           <span className="status-dot-green" />
-          <span>Todos os sistemas operacionais</span>
+          <span>Interface do módulo disponível</span>
         </div>
 
         <div className="user-profile-strip">
