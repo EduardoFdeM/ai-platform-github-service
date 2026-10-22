@@ -456,7 +456,8 @@ def repository_content(request, pk):
             status.HTTP_400_BAD_REQUEST,
         )
     try:
-        decoded = base64.b64decode(payload.get("content", ""), validate=True).decode("utf-8")
+        encoded_content = "".join(str(payload.get("content", "")).split())
+        decoded = base64.b64decode(encoded_content, validate=True).decode("utf-8")
     except (ValueError, UnicodeDecodeError):
         return _error_response(
             "unsupported_content",

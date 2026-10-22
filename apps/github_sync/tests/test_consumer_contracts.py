@@ -44,6 +44,28 @@ def test_content_endpoint_returns_utf8_with_provenance_and_does_not_echo_token(c
     get_content.assert_called_once_with("team", "service", "src/app.py", ref="main")
 
 
+def test_content_endpoint_accepts_github_base64_line_breaks(client, repository):
+    encoded = base64.b64encode(b"print('ok')\n").decode()
+    payload = {
+        "type": "file",
+        "path": "src/app.py",
+        "sha": "a" * 40,
+        "size": 12,
+        "encoding": "base64",
+        "content": f"{encoded[:8]}\n{encoded[8:]}\n",
+        "html_url": "https://github.com/team/service/blob/main/src/app.py",
+    }
+    with patch("apps.github_sync.views.GitHubClient.get_content", return_value=payload):
+        response = client.post(
+            reverse("repository-content", kwargs={"pk": repository.pk}),
+            {"path": "src/app.py"},
+            content_type="application/json",
+        )
+
+    assert response.status_code == 200
+    assert response.json()["content"] == "print('ok')\n"
+
+
 def test_content_endpoint_rejects_path_traversal_and_large_files(client, repository, settings):
     traversal = client.post(
         reverse("repository-content", kwargs={"pk": repository.pk}),
