@@ -126,9 +126,12 @@ export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWor
     }
   }
 
+  /* oxlint-disable react-hooks/exhaustive-deps -- carga única ao montar a versão legada. */
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- busca os dados iniciais do dashboard legado.
     refreshData()
   }, [])
+  /* oxlint-enable react-hooks/exhaustive-deps */
 
   // Testar Handshake PAT (M2-83)
   const handleTestHandshake = async (e: React.FormEvent) => {

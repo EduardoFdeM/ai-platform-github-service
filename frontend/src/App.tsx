@@ -139,7 +139,7 @@ export default function App() {
   }, [loadRepoCommitsAndDeliveries])
 
   useEffect(() => {
-    // oxlint-disable-next-line react(set-state-in-effect) -- carrega a API ao montar o workspace.
+    // oxlint-disable-next-line react/set-state-in-effect -- carrega a API ao montar o workspace.
     void loadInitialData()
   }, [loadInitialData])
 

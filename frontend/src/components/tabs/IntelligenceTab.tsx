@@ -31,7 +31,7 @@ export const IntelligenceTab = ({ repository, variant }: IntelligenceTabProps) =
   }, [repository, period])
 
   useEffect(() => {
-    // oxlint-disable-next-line react(set-state-in-effect) -- recalcula ao trocar repositorio ou periodo.
+    // oxlint-disable-next-line react/set-state-in-effect -- recalcula ao trocar repositorio ou periodo.
     void load()
   }, [load])
 
