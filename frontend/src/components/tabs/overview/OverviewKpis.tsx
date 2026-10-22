@@ -26,9 +26,9 @@ export const OverviewKpis: React.FC<OverviewKpisProps> = ({
         </div>
         <div className="kpi-value-row">
           <span className="kpi-number">{totalCommits}</span>
-          <span className="kpi-trend trend-up">● Tempo real</span>
+          <span className="kpi-trend trend-up">● Indexados</span>
         </div>
-        <span className="kpi-footnote">Commits sincronizados no PostgreSQL</span>
+        <span className="kpi-footnote">Commits persistidos no banco configurado</span>
       </div>
 
       {/* KPI 2: Taxa de Sucesso */}

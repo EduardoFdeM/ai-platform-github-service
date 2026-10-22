@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { X, AlertCircle, CheckCircle2, KeyRound } from 'lucide-react'
 import { api, type Repository } from '../api'
 
 interface ConnectRepoModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: (repo: Repository) => void
+  onSuccess: (repo: Repository, token?: string) => void
 }
 
 export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onClose, onSuccess }) => {
@@ -14,6 +14,43 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
   const [webhookSecret, setWebhookSecret] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  const resetAndClose = useCallback(() => {
+    setUrl('')
+    setToken('')
+    setWebhookSecret('')
+    setError(null)
+    setLoading(false)
+    onClose()
+  }, [onClose])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const previousFocus = document.activeElement as HTMLElement | null
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !loading) resetAndClose()
+      if (event.key !== 'Tab' || !dialogRef.current) return
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      previousFocus?.focus()
+    }
+  }, [isOpen, loading, resetAndClose])
 
   if (!isOpen) return null
 
@@ -62,8 +99,8 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
       })
 
       if (status === 201) {
-        onSuccess(data)
-        onClose()
+        onSuccess(data, token.trim() || undefined)
+        resetAndClose()
       } else {
         const detail = (data as any)?.detail || (data as any)?.url || 'Falha ao conectar o repositório.'
         setError(Array.isArray(detail) ? detail.join(' ') : String(detail))
@@ -76,8 +113,15 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" onClick={resetAndClose}>
+      <div
+        ref={dialogRef}
+        className="modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="connect-repository-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
@@ -99,14 +143,15 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
               </svg>
             </div>
             <div>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF' }}>Conectar Repositório GitHub</h3>
+              <h3 id="connect-repository-title" style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF' }}>Conectar Repositório GitHub</h3>
               <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>
                 Cole o link direto do repositório no GitHub para ingestão e rastreabilidade.
               </p>
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={resetAndClose}
+            aria-label="Fechar conexão de repositório"
             style={{
               background: 'transparent',
               border: 'none',
@@ -212,7 +257,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
             <button
               type="button"
-              onClick={onClose}
+              onClick={resetAndClose}
               disabled={loading}
               className="btn-nexus btn-nexus-secondary"
             >

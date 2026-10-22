@@ -56,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
       case 'webhooks':
         return {
           breadcrumb: 'Integrações',
-          title: 'Monitor de Webhooks e Eventos Git em Tempo Real',
+          title: 'Monitor de Webhooks e Entregas Persistidas',
         }
       case 'sync':
         return {
@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
       case 'ai':
         return {
           breadcrumb: 'Inteligência assistiva',
-          title: 'Central de Inteligência Artificial e Assistente Git',
+          title: 'Inteligência sobre Frequência e Padrões de Commits',
         }
       case 'devops':
         return {
@@ -174,9 +174,9 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Botão Sincronizar Agora */}
           <button
             onClick={onSyncNow}
-            disabled={syncing || !selectedRepo}
+            disabled={syncing}
             className="btn-nexus btn-nexus-primary"
-            title="Sincronizar commits diretamente da API do GitHub"
+            title={selectedRepo ? 'Sincronizar dados diretamente da API do GitHub' : 'Conecte um repositório para sincronizar'}
           >
             <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
             <span>{syncing ? 'Sincronizando...' : 'Sincronizar agora'}</span>
@@ -199,7 +199,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Navegação pelas áreas previstas nas POCs. IA e DevOps permanecem como prévias até haver contrato de backend. */}
+      {/* Navegação pelas áreas previstas nas POCs. DevOps permanece como prévia até haver fonte remota verificável. */}
       <nav className="nexus-tabs-bar" aria-label="Navegação do Módulo 2">
         <button
           className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
@@ -236,19 +236,19 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
           onClick={() => onSelectTab('analytics')}
-          title="Em desenvolvimento: somente dados reais serão exibidos"
+          title="Indicadores calculados a partir dos commits indexados"
         >
           <BarChart3 size={13} />
-          <span>Analytics · em desenvolvimento</span>
+          <span>Analytics</span>
         </button>
 
         <button
           className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
           onClick={() => onSelectTab('ai')}
-          title="Em breve: backend de IA ainda não implementado"
+          title="Análise de frequência, gargalos e clareza de commits"
         >
           <Bot size={13} />
-          <span>Assistente IA · em breve</span>
+          <span>Inteligência Git</span>
         </button>
 
         <button

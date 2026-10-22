@@ -18,6 +18,10 @@ export interface HandshakeResult {
   name?: string | null
   avatar_url?: string
   scopes?: string[]
+  required_scopes?: string[]
+  missing_scopes?: string[]
+  excess_scopes?: string[]
+  least_privilege?: boolean
   detail?: string
 }
 
@@ -30,6 +34,9 @@ export interface Repository {
   default_branch: string
   initial_sync_status?: 'completed' | 'failed'
   initial_sync_detail?: string
+  webhook_secret_version?: number
+  webhook_secret_rotated_at?: string | null
+  webhook_secret_expires_at?: string | null
 }
 
 export interface CommitFile {
@@ -102,6 +109,38 @@ export interface WebhookResponse {
   detail?: string
 }
 
+export interface RepositoryIntelligence {
+  repository: { id: number; name: string }
+  period_days: number
+  generated_at: string
+  analysis_mode: string
+  total_commits: number
+  average_clarity_score: number | null
+  clarity_distribution: Record<string, number>
+  frequency: {
+    by_weekday: Record<string, number>
+    by_hour: Record<string, number>
+    by_author: Record<string, number>
+  }
+  indicators: {
+    top_author: string | null
+    author_concentration_percent: number
+    off_hours_percent: number
+    burst_days: string[]
+  }
+  bottlenecks: { code: string; severity: 'info' | 'warning' | 'critical'; evidence: string }[]
+  recommendations: string[]
+  recent_commit_quality: {
+    sha: string
+    message: string
+    author: string | null
+    authored_at: string
+    score: number
+    label: 'clara' | 'adequada' | 'vaga'
+    suggestions: string[]
+  }[]
+}
+
 export class ApiError extends Error {
   readonly status: number
   readonly body: unknown
@@ -166,6 +205,9 @@ export const api = {
     getJson<Paginated<PullRequest>>(`/api/v1/pull-requests?repository_id=${repositoryId}`),
 
   flow: (repositoryId: number) => getJson<FlowMetrics>(`/api/v1/metrics/flow?repository_id=${repositoryId}`),
+
+  insights: (repositoryId: number, days = 30) =>
+    getJson<RepositoryIntelligence>(`/api/v1/repositories/${repositoryId}/insights?days=${days}`),
 
   deliveries: (repositoryId: number) =>
     getJson<Delivery[]>(`/api/v1/webhooks/deliveries?repository_id=${repositoryId}`),

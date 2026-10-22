@@ -126,7 +126,16 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
               {filteredExecutions.map((item) => (
                 <tr
                   key={item.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Inspecionar commit ${item.commit}`}
                   onClick={() => onSelectExecution(item)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      onSelectExecution(item)
+                    }
+                  }}
                   style={{ cursor: 'pointer' }}
                   title="Clique para abrir o JSON e um resumo local do registro"
                 >

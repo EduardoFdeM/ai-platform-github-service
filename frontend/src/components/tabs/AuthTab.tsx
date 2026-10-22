@@ -17,12 +17,13 @@ import { api, type HandshakeResult } from '../../api'
 
 interface AuthTabProps {
   onHandshakeSuccess?: (res: HandshakeResult) => void
+  onTokenValidated?: (token: string) => void
 }
 
-export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
+export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenValidated }) => {
   // Campos de GitHub App, cofre, rotação e auditoria vieram da POC, mas não
   // possuem contrato de backend aceito. Só aparecem quando a ideação é ativada.
-  const showCredentialIdeation = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
+  const showCredentialIdeation = false
   const [tokenType, setTokenType] = useState<'pat' | 'app'>('pat')
   const [token, setToken] = useState('')
   const [showToken, setShowToken] = useState(false)
@@ -41,6 +42,8 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
       if (status === 200 && data.valid) {
         setHandshakeResult(data)
         if (onHandshakeSuccess) onHandshakeSuccess(data)
+        if (onTokenValidated) onTokenValidated(token.trim())
+        setToken('')
       } else {
         setError(data.detail || `Falha na autenticação (HTTP ${status})`)
       }
@@ -58,7 +61,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
         <div>
           <h2 className="section-intro-title">Conectividade e autenticação</h2>
           <p className="section-intro-desc">
-            Gerencie credenciais, valide permissões mínimas e acompanhe a trilha de acesso ao repositório ativo.
+            Valide um PAT sem persistência e confira os escopos efetivos devolvidos pelo GitHub.
           </p>
         </div>
         <div className={`badge ${handshakeResult?.valid ? 'badge-success' : 'badge-info'}`} style={{ fontSize: 11, padding: '4px 10px' }}>
@@ -131,7 +134,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
           <div className="nexus-card-header">
             <div className="nexus-card-title">
               <KeyRound size={15} style={{ color: '#60A5FA' }} />
-              <span>Gestão de Credenciais e PAT</span>
+              <span>Validação de credencial PAT</span>
             </div>
             {showCredentialIdeation && <span className="badge badge-warning" style={{ fontSize: 10 }}>
               <Lock size={10} style={{ marginRight: 3 }} />
@@ -203,6 +206,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess }) => {
               <button
                 type="button"
                 onClick={() => setShowToken(!showToken)}
+                aria-label={showToken ? 'Ocultar token' : 'Mostrar token'}
                 style={{
                   position: 'absolute',
                   right: 10,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { Header, type TabId } from './components/Header'
 import { ConnectRepoModal } from './components/ConnectRepoModal'
@@ -6,12 +6,12 @@ import { OverviewTab } from './components/tabs/OverviewTab'
 import { AuthTab } from './components/tabs/AuthTab'
 import { WebhooksTab } from './components/tabs/WebhooksTab'
 import { SyncTab } from './components/tabs/SyncTab'
-import { AnalyticsTab } from './components/tabs/AnalyticsTab'
-import { AiTab } from './components/tabs/AiTab'
+import { IntelligenceTab } from './components/tabs/IntelligenceTab'
 import { DevOpsTab } from './components/tabs/DevOpsTab'
 import { DevelopmentTab } from './components/tabs/DevelopmentTab'
 import LegacyDashboard from './components/legacy/LegacyDashboard'
 import { LandingPage } from './components/LandingPage'
+import { buildWorkspaceUrl, parseWorkspaceState } from './workspaceState'
 import {
   api,
   type Branch,
@@ -24,7 +24,9 @@ import {
 } from './api'
 
 export default function App() {
-  const showIdeationPreviews = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
+  // As telas de ideação permanecem no histórico do código, mas o /app nunca as
+  // ativa: somente dados reais ou estados explícitos de desenvolvimento aparecem.
+  const showIdeationPreviews = false
   // A landing é a porta de entrada institucional. O workspace ativo fica em
   // /app; a versão entregue anteriormente continua disponível em /legacy.
   const [viewMode, setViewMode] = useState<'landing' | 'workspace' | 'legacy'>(() => {
@@ -38,7 +40,10 @@ export default function App() {
     return 'legacy'
   })
 
-  const [activeTab, setActiveTab] = useState<TabId>('overview')
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    if (typeof window === 'undefined') return 'overview'
+    return parseWorkspaceState(window.location.search).tab
+  })
   const [connectModalOpen, setConnectModalOpen] = useState(false)
 
   // Estados Globais de Repositórios e Backend
@@ -52,6 +57,7 @@ export default function App() {
   const [connectivity, setConnectivity] = useState<ConnectivityStatus | null>(null)
   const [repoDataLoading, setRepoDataLoading] = useState(false)
   const [repoDataError, setRepoDataError] = useState<string | null>(null)
+  const [repositoryTokens, setRepositoryTokens] = useState<Record<number, string>>({})
 
   // Status de Sincronização
   const [syncing, setSyncing] = useState(false)
@@ -86,27 +92,7 @@ export default function App() {
   }
 
   // Carregar dados iniciais da API Django
-  const loadInitialData = async () => {
-    try {
-      const [cRes, repos] = await Promise.all([
-        api.connectivity().catch(() => ({ status: 500, data: null as any })),
-        api.repositories().catch(() => []),
-      ])
-
-      if (cRes.status === 200) setConnectivity(cRes.data)
-      setRepositories(repos)
-
-      const active = repos[0] || null
-      if (active) {
-        setSelectedRepo(active)
-        await loadRepoCommitsAndDeliveries(active.id)
-      }
-    } catch (err) {
-      console.error('Erro ao carregar dados iniciais:', err)
-    }
-  }
-
-  const loadRepoCommitsAndDeliveries = async (repoId: number) => {
+  const loadRepoCommitsAndDeliveries = useCallback(async (repoId: number) => {
     setRepoDataLoading(true)
     setRepoDataError(null)
     try {
@@ -133,19 +119,54 @@ export default function App() {
     } finally {
       setRepoDataLoading(false)
     }
-  }
+  }, [])
+
+  const loadInitialData = useCallback(async () => {
+    try {
+      const [cRes, repos] = await Promise.all([
+        api.connectivity().catch(() => ({ status: 500, data: null as any })),
+        api.repositories().catch(() => []),
+      ])
+
+      if (cRes.status === 200) setConnectivity(cRes.data)
+      setRepositories(repos)
+
+      const requestedRepoId = parseWorkspaceState(window.location.search).repositoryId
+      const active = repos.find((repository) => repository.id === requestedRepoId) || repos[0] || null
+      if (active) {
+        setSelectedRepo(active)
+        await loadRepoCommitsAndDeliveries(active.id)
+      }
+    } catch (err) {
+      console.error('Erro ao carregar dados iniciais:', err)
+    }
+  }, [loadRepoCommitsAndDeliveries])
 
   useEffect(() => {
-    loadInitialData()
-  }, [])
+    // oxlint-disable-next-line react(set-state-in-effect) -- carrega a API ao montar o workspace.
+    void loadInitialData()
+  }, [loadInitialData])
+
+  const handleRefreshRepositoryData = useCallback(() => {
+    if (selectedRepo) void loadRepoCommitsAndDeliveries(selectedRepo.id)
+  }, [loadRepoCommitsAndDeliveries, selectedRepo])
+
+  useEffect(() => {
+    if (viewMode !== 'workspace') return
+    window.history.replaceState(null, '', buildWorkspaceUrl(activeTab, selectedRepo?.id))
+  }, [activeTab, selectedRepo, viewMode])
 
   // Disparo manual de sincronização real via GitHub API
   const handleSyncNow = async () => {
-    if (!selectedRepo) return
+    if (!selectedRepo) {
+      setSyncFeedback('Conecte ou selecione um repositório antes de sincronizar.')
+      setConnectModalOpen(true)
+      return
+    }
     setSyncing(true)
     setSyncFeedback('Sincronizando com a API do GitHub...')
     try {
-      const { status, data } = await api.syncRepository(selectedRepo.id)
+      const { status, data } = await api.syncRepository(selectedRepo.id, repositoryTokens[selectedRepo.id])
       if (status === 200) {
         setSyncFeedback(`Sincronização concluída: ${data.commits_synced} commits processados; branches e PRs reconciliados.`)
         await loadRepoCommitsAndDeliveries(selectedRepo.id)
@@ -161,12 +182,13 @@ export default function App() {
   }
 
   // Novo repositório conectado via modal
-  const handleRepoConnected = async (newRepo: Repository) => {
+  const handleRepoConnected = async (newRepo: Repository, token?: string) => {
     setRepositories((prev) => {
       const existing = prev.filter((r) => r.id !== newRepo.id)
       return [newRepo, ...existing]
     })
     setSelectedRepo(newRepo)
+    if (token) setRepositoryTokens((current) => ({ ...current, [newRepo.id]: token }))
     await loadRepoCommitsAndDeliveries(newRepo.id)
     if (newRepo.initial_sync_status === 'failed') {
       setSyncFeedback(newRepo.initial_sync_detail || 'Repositório conectado, mas a sincronização inicial falhou.')
@@ -241,15 +263,19 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'auth' && <AuthTab />}
+        {activeTab === 'auth' && (
+          <AuthTab
+            onTokenValidated={(token) => {
+              if (selectedRepo) setRepositoryTokens((current) => ({ ...current, [selectedRepo.id]: token }))
+            }}
+          />
+        )}
 
         {activeTab === 'webhooks' && (
           <WebhooksTab
             repository={selectedRepo}
             deliveries={deliveries}
-            onRefreshData={() => {
-              if (selectedRepo) loadRepoCommitsAndDeliveries(selectedRepo.id)
-            }}
+            onRefreshData={handleRefreshRepositoryData}
           />
         )}
 
@@ -267,46 +293,9 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'analytics' && showIdeationPreviews && (
-          <AnalyticsTab
-            repository={selectedRepo}
-            commits={commits}
-            flow={flow}
-          />
-        )}
+        {activeTab === 'analytics' && <IntelligenceTab repository={selectedRepo} variant="analytics" />}
 
-        {activeTab === 'analytics' && !showIdeationPreviews && (
-          <DevelopmentTab
-            title="Analytics de engenharia"
-            status="Em desenvolvimento"
-            description="A tab permanece visível, mas só será promovida quando usar dados reais e critérios aceitos do Módulo 2."
-            available={[
-              'Contagem de commits e distribuição por autor em /api/v1/metrics/flow',
-              'Consultas de commits, branches e pull requests por repositório',
-            ]}
-            pending={[
-              'Definir métricas do escopo do Módulo 2 sem inventar produtividade ou risco',
-              'Substituir gráficos da POC por respostas reais e testadas',
-            ]}
-          />
-        )}
-
-        {activeTab === 'ai' && showIdeationPreviews && <AiTab />}
-
-        {activeTab === 'ai' && !showIdeationPreviews && (
-          <DevelopmentTab
-            title="Assistente IA"
-            status="Em breve"
-            description="A POC antecipou esta experiência, mas ainda não existe um serviço de IA conectado ao Módulo 2."
-            available={[
-              'Commits, mensagens, autores e arquivos indexados como futura fonte de análise',
-            ]}
-            pending={[
-              'Implementar a US M2-131 e definir modelo, prompts, limites e tratamento de erro',
-              'Criar endpoint e testes antes de oferecer geração ou recomendação na interface',
-            ]}
-          />
-        )}
+        {activeTab === 'ai' && <IntelligenceTab repository={selectedRepo} variant="ai" />}
 
         {activeTab === 'devops' && showIdeationPreviews && <DevOpsTab />}
 

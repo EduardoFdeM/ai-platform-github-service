@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Radio,
   CheckCircle2,
@@ -103,7 +103,13 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
   const [simStatus, setSimStatus] = useState<string | null>(null)
   const [simulating, setSimulating] = useState(false)
   const hasLiveDeliveries = deliveries.length > 0
-  const showOperationalIdeation = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
+  const showOperationalIdeation = false
+
+  useEffect(() => {
+    if (!streamActive || !repository || !onRefreshData) return
+    const polling = window.setInterval(onRefreshData, 5000)
+    return () => window.clearInterval(polling)
+  }, [streamActive, repository, onRefreshData])
 
   // Eventos do Figma
   const defaultEvents: WebhookEventItem[] = [
@@ -287,6 +293,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
       setSimStatus(`Erro no envio: ${err.message}`)
     } finally {
       setSimulating(false)
+      setSimSecret('')
     }
   }
 
@@ -295,7 +302,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
       {/* Sub-header da Tela 09 */}
       <div className="section-intro-bar">
         <div>
-          <h2 className="section-intro-title">Eventos em tempo real</h2>
+          <h2 className="section-intro-title">Entregas de webhook</h2>
           <p className="section-intro-desc">
             Recepção segura, enfileiramento assíncrono e rastreabilidade dos eventos enviados pelo GitHub.
           </p>
@@ -304,8 +311,8 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className={`status-pill ${hasLiveDeliveries ? 'status-pill-success' : 'status-pill-info'}`}>
             <Radio size={12} className={hasLiveDeliveries && streamActive ? 'animate-pulse' : ''} />
-            <span>{hasLiveDeliveries ? 'EVENTOS RECEBIDOS NESTA SESSÃO' : 'PRÉVIA DE MONITORAMENTO'}</span>
-            <strong>{hasLiveDeliveries ? '● Dados disponíveis' : 'Sem eventos persistidos'}</strong>
+            <span>{streamActive ? 'ATUALIZAÇÃO AUTOMÁTICA A CADA 5S' : 'ATUALIZAÇÃO AUTOMÁTICA PAUSADA'}</span>
+            <strong>{hasLiveDeliveries ? '● Entregas persistidas disponíveis' : 'Sem entregas persistidas'}</strong>
           </div>
 
           <button
@@ -313,7 +320,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
             className="btn-nexus btn-nexus-secondary btn-nexus-sm"
           >
             {streamActive ? <Pause size={12} /> : <Play size={12} />}
-            <span>{streamActive ? 'Pausar visualização' : 'Retomar visualização'}</span>
+            <span>{streamActive ? 'Pausar atualização' : 'Retomar atualização'}</span>
           </button>
 
           <button
@@ -400,6 +407,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
             </div>
             <button
               onClick={() => setShowSimulator(false)}
+              aria-label="Fechar simulador de webhook"
               style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer' }}
             >
               <X size={15} />
@@ -633,7 +641,19 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
             </thead>
             <tbody>
               {filteredEvents.map((item) => (
-                <tr key={item.id} onClick={() => openDrawer(item)}>
+                <tr
+                  key={item.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Inspecionar entrega ${item.deliveryId}`}
+                  onClick={() => openDrawer(item)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      openDrawer(item)
+                    }
+                  }}
+                >
                   <td>
                     <span className="badge badge-info">{item.event}</span>
                   </td>
@@ -693,6 +713,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
             </div>
             <button
               onClick={() => setDrawerOpen(false)}
+              aria-label="Fechar detalhes da entrega"
               style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer' }}
             >
               <X size={18} />

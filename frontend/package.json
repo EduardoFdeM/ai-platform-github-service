@@ -8,6 +8,7 @@
     "dev:legacy": "vite --port 5174",
     "build": "tsc -b && vite build",
     "lint": "oxlint src",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
