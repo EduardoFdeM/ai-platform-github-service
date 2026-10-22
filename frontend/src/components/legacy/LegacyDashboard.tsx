@@ -81,11 +81,6 @@ export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWor
   const [addRepoError, setAddRepoError] = useState<string | null>(null)
   const [simSecret, setSimSecret] = useState('')
 
-  // Alternar tema
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [theme])
-
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
   }
@@ -280,7 +275,7 @@ export default function LegacyDashboard({ onSwitchToWorkspace }: { onSwitchToWor
   }
 
   return (
-    <div className="app-shell">
+    <div className="legacy-root app-shell" data-theme={theme}>
       {/* TOPBAR HEADER */}
       <header className="header-topbar">
         <div className="header-inner">
