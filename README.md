@@ -1,6 +1,6 @@
 # AI Platform — GitHub Service (Módulo 2)
 
-Microsserviço responsável pela integração da **AI Platform** com o GitHub: recebimento de webhooks, autenticação e validação HMAC-SHA256, indexação relacional de commits e pull requests, métricas de fluxo e base para recomendações de IA.
+Microsserviço responsável pela integração da **AI Platform** com o GitHub: webhooks, sincronização e indexação de repositórios, conteúdo/diffs com proveniência, métricas e inteligência auditável sobre o fluxo Git.
 
 Desenvolvido para a disciplina de **Engenharia de Software (2026.2)** — Universidade Presbiteriana Mackenzie.
 
@@ -19,7 +19,9 @@ Desenvolvido para a disciplina de **Engenharia de Software (2026.2)** — Univer
 - Idempotência rigorosa via cabeçalho `X-GitHub-Delivery` e enfileiramento assíncrono via **Celery / Redis**.
 - Ingestão em segundo plano de eventos de `push` e `pull_request`.
 - Modelo relacional normalizado: Repositories, Branches, Contributors, Emails, Commits, CommitFiles, PullRequests e WebhookDeliveries.
-- Endpoints REST de consulta: `GET /api/v1/commits` (paginado com filtros), `GET /api/v1/metrics/flow` e verificações de integridade (`GET /api/v1/health` e `GET /api/v1/health/github-connectivity`).
+- Contratos REST para consumidores: commits, branches, PRs, conteúdo textual, diffs limitados, métricas e insights de frequência/clareza/gargalos.
+- Operação confiável: logs JSON correlacionados, retry seletivo, replay autenticado, liveness e readiness de banco/Redis/worker/crypto.
+- Política de credenciais: PAT efêmero, escopos mínimos configuráveis e segredo de webhook com versão, expiração, rotação e auditoria.
 - Dashboard operacional integrado em `/dashboard/`.
 - Infraestrutura completa com **Docker Compose**, testes automatizados (**pytest**), SAST (**bandit**), linter (**ruff**) e pipeline de CI no **GitHub Actions**.
 
@@ -40,6 +42,7 @@ Acesse:
 - **Frontend SPA (Vite):** `http://localhost:5173/` (após subir `npm run dev` na pasta `frontend`)
 - **Swagger UI:** `http://localhost:8000/docs/`
 - **Health Check:** `http://localhost:8000/api/v1/health`
+- **Readiness:** `http://localhost:8000/api/v1/health/readiness`
 - **Latência GitHub:** `http://localhost:8000/api/v1/health/github-connectivity`
 - **Django Admin:** `http://localhost:8000/admin/`
 
@@ -61,6 +64,7 @@ python manage.py runserver
 ```bash
 cd frontend
 npm install
+npm run test
 npm run dev
 ```
 Acesse a aplicação completa do MVP em: `http://localhost:5173/`.
@@ -89,11 +93,17 @@ Configure o webhook no GitHub apontando para a rota pública `/webhooks/github` 
 ruff check .
 bandit -q -r apps -x apps/github_sync/tests
 coverage run -m pytest
-coverage report
+coverage report --fail-under=80
 python manage.py makemigrations --check --dry-run
+python manage.py spectacular --validate --fail-on-warn
+npm run lint --prefix frontend
+npm run test --prefix frontend
+npm run build --prefix frontend
 ```
 
 Meta de cobertura de testes: **80%**.
+
+O código pode ser validado localmente sem provar publicação. Produção exige CI remoto verde, migrações, `MODULE_ENFORCE_WRITE_AUTH=true`, readiness verde e um sync/webhook real no ambiente publicado.
 
 ---
 

@@ -1,113 +1,88 @@
 # Guia de integração — Módulo 2 (GitHub Sync)
 
-Este documento é a referência de integração do **Módulo 2 — Integração e Sincronização com GitHub** da AI Platform. Ele descreve o comportamento que está no código deste repositório em 21 de outubro de 2026. Não confirma que exista um ambiente remoto, credenciais GitHub, Redis, PostgreSQL ou webhook público ativos.
+Referência dos contratos disponíveis no código em **22 de outubro de 2026**. O módulo recebe e sincroniza fatos do GitHub, expõe conteúdo/diffs sob demanda e produz indicadores auditáveis. Esta documentação não confirma que um ambiente remoto ou credenciais reais estejam ativos.
 
-## Escopo e nível de prontidão
+## Prontidão
 
-| Item | Situação | O que um módulo consumidor pode assumir |
+| Capacidade | Estado no código | Dependência de ambiente |
 | --- | --- | --- |
-| API REST em Django | Implementado e coberto por testes locais | Pode consultar commits, repositórios, entregas e métricas de fluxo quando houver uma instância configurada. |
-| Cadastro e sincronização via GitHub REST | Implementado | Depende de uma chamada válida à API GitHub e, para repositórios privados, de um token enviado na própria requisição. |
-| Webhooks push e pull_request | Implementado | Exige repositório previamente cadastrado, segredo correspondente e worker Celery/Redis em execução para processamento assíncrono. |
-| OpenAPI e Swagger UI | Implementado, mas parcial | Útil para descoberta; este guia e o código são a fonte de verdade para contratos sem serializer/schema explícito. |
-| Dados de demonstração | Disponível localmente | seed_demo_data serve somente para demonstração/desenvolvimento; não representa dados institucionais. |
-| Autenticação inter-módulos (JWT/OAuth da plataforma) | Não implementada | Não há Bearer/JWT compartilhado, emissão de token ou autorização por papel como contrato público. |
-| CORS entre frontends | Não configurado | Um frontend em outra origem não deve presumir que poderá chamar a API diretamente pelo navegador. |
-| GraphQL, análise semântica/IA e contratos Pact | Planejado | Não são endpoints nem integrações disponíveis nesta versão. |
+| REST + OpenAPI/Swagger | concluída e validada | base URL publicada |
+| Repositórios, commits, branches e PRs | concluída | GitHub acessível; PAT efêmero para recursos privados |
+| Webhooks | concluída | HTTPS público, Redis e worker Celery |
+| Conteúdo textual e diff | concluída | permissão GitHub para o recurso solicitado |
+| Analytics e inteligência Git | concluída | dados previamente indexados; IA externa é opcional |
+| Logs, retry, replay e readiness | concluída | serviços e secrets corretamente configurados |
+| Login/JWT/RBAC institucional | fora do Módulo 2 | contrato do Módulo 1 |
+| Gateway, CORS e Data Bus compartilhados | integração pendente | acordo entre os grupos |
 
-O módulo armazena fatos derivados do GitHub (repositórios, commits, branches, PRs e entregas) e métricas simples. Ele **não** é o provedor de identidade, gestão de projetos, chatbot ou recomendações de IA da plataforma.
+Dados criados por `seed_demo_data` são somente demonstração local e nunca devem ser apresentados como dados institucionais.
 
-## Onde acessar
+## Endereços e descoberta
 
-Use o endereço da instância que o grupo responsável disponibilizar. Para um ambiente local padrão, a base é http://localhost:8000.
+Base local padrão: `http://localhost:8000`.
 
 | Recurso | Rota |
 | --- | --- |
-| Esquema OpenAPI 3.0.3 | GET /api/schema/ |
-| Esquema em JSON | GET /api/schema/?format=json |
-| Swagger UI | GET /docs/ |
-| API versionada | /api/v1/… |
-| Webhook público, sem versão | POST /webhooks/github |
+| OpenAPI 3.0.3 | `GET /api/schema/` |
+| OpenAPI JSON | `GET /api/schema/?format=json` |
+| Swagger UI | `GET /docs/` |
+| API | `/api/v1/...` |
+| Webhook preferencial | `POST /webhooks/github` |
 
-Não há prefixo /api/v1 automático para a rota externa de webhook: as duas rotas POST /webhooks/github e POST /api/v1/webhooks/github chamam o mesmo handler. Para configurar o GitHub, prefira a rota sem versão, desde que a URL seja pública e HTTPS no ambiente escolhido.
+`POST /api/v1/webhooks/github` aponta para o mesmo receptor. Configure no GitHub a rota pública sem versão, com HTTPS e `Content-Type: application/json`.
 
-## Onboarding de outro módulo
+## Segurança para consumidores
 
-1. Obtenha do grupo Módulo 2 a **base URL do ambiente**, não apenas o endereço local, e confirme GET /api/v1/health.
-2. Consulte GET /api/schema/?format=json e compare os endpoints desejados com este guia. O schema atual não descreve integralmente cinco respostas, como detalhado em [Limitações do OpenAPI](#limitações-do-openapi-atual).
-3. Para leitura de dados já ingeridos, comece por GET /api/v1/repositories e use o id retornado como repository_id nas demais consultas.
-4. Para um fluxo local reproduzível, configure as variáveis de ambiente, execute migrações e, se necessário, python manage.py seed_demo_data. Para processar webhooks reais, suba também Redis e o worker Celery, por exemplo com docker compose up --build.
-5. Se o consumidor for outro backend, mantenha chamadas no servidor. Se for um frontend em outra origem, alinhe uma solução de gateway/BFF ou CORS antes de implementar: o projeto não configura cabeçalhos CORS.
-6. Nunca registre, exponha em URL ou repasse tokens GitHub e segredos de webhook para outro módulo. Os exemplos abaixo usam marcadores deliberados.
+- O PAT é aceito apenas no corpo de handshake, cadastro, sincronização, conteúdo ou diff. Ele não é persistido, devolvido nem usado como login da plataforma.
+- O segredo do webhook é criptografado em repouso com AES-256-GCM, possui versão, rotação, expiração opcional e auditoria sem texto claro.
+- Em produção, use `MODULE_ENFORCE_WRITE_AUTH=true` e `MODULE_API_KEY` para proteger rotas mutáveis até o JWT do Módulo 1 existir. Envie `X-Module-API-Key` entre backends.
+- Sessão Django autenticada também satisfaz o gate de escrita. O replay operacional sempre exige usuário autenticado.
+- Leituras permanecem abertas no contrato atual, exceto o dashboard autenticado. Exponha a API apenas atrás de uma rede/gateway controlado.
+- `X-Request-ID` é aceito/gerado e devolvido na resposta; preserve-o ao correlacionar logs.
 
-## Autenticação e segurança
+Não existe endpoint JSON de cadastro, login ou recuperação de usuário neste serviço. Essas jornadas pertencem ao Módulo 1.
 
-### Estado atual
+## Catálogo de endpoints
 
-As configurações padrão do Django REST Framework deixam SessionAuthentication e BasicAuthentication disponíveis. A maioria dos endpoints não declara uma permissão própria e, portanto, está acessível sem login pela política padrão AllowAny. A exceção é GET /api/v1/metrics/dashboard, que exige usuário autenticado (IsAuthenticated).
-
-| Mecanismo | Uso atual | Observação para integradores |
+| Método e rota | Proteção | Finalidade |
 | --- | --- | --- |
-| Sessão Django (sessionid) | Dashboard e interface/admin locais | Uma sessão requer fluxo de login Django; não existe endpoint de login JSON público neste serviço. Em requisições mutáveis autenticadas por sessão, o CSRF do Django se aplica. |
-| Basic Auth | Aceito pelas configurações padrão do DRF | Não há um fluxo documentado de provisionamento de usuários para integração. Não use sobre HTTP. |
-| PAT GitHub | Somente no corpo de handshake, cadastro ou sincronização | É usado para chamar o GitHub; o handshake não o persiste, registra ou devolve. Não é autenticação da AI Platform. |
-| Segredo de webhook | Apenas na assinatura HMAC recebida do GitHub | É criptografado em repouso com AES-256-GCM; nunca é retornado pela API. |
-| JWT/Bearer institucional | Planejado | Ausente. Não enviar Authorization: Bearer esperando autenticação. |
+| `GET /api/v1/health` | pública | liveness do processo e banco |
+| `GET /api/v1/health/readiness` | pública | banco, Redis, worker e criptografia |
+| `GET /api/v1/health/github-connectivity` | pública | conectividade e latência até o GitHub |
+| `POST /api/v1/github/handshake` | PAT efêmero | valida identidade e política de escopos |
+| `GET /api/v1/repositories` | leitura | lista repositórios ativos |
+| `POST /api/v1/repositories` | gate de escrita | cadastra, cifra segredo e tenta carga inicial |
+| `POST /api/v1/repositories/{id}/sync` | gate de escrita | sincronização incremental |
+| `GET /api/v1/repositories/{id}/insights?days=30` | leitura | clareza, frequência, padrões, gargalos e recomendações |
+| `POST /api/v1/repositories/{id}/contents` | gate de escrita | conteúdo UTF-8 com SHA e URL de origem |
+| `POST /api/v1/repositories/{id}/commits/{sha}/diff` | gate de escrita | patches limitados por arquivo e proveniência |
+| `GET /api/v1/branches` | leitura | branches, inclusive removidas sob opção |
+| `GET /api/v1/commits` | leitura | commits paginados e filtráveis |
+| `GET /api/v1/pull-requests` | leitura | PRs paginadas e filtráveis |
+| `GET /api/v1/metrics/flow` | leitura | contagem de commits por autor |
+| `GET /api/v1/metrics/dashboard` | usuário autenticado | KPIs operacionais de 7 ou 30 dias |
+| `GET /api/v1/webhooks/deliveries` | leitura | 15 entregas mais recentes |
+| `POST /api/v1/webhooks/deliveries/{uuid}/replay` | usuário autenticado | reagenda somente entrega falha |
+| `POST /webhooks/github` | HMAC GitHub | recebe evento assinado |
 
-CREDENTIAL_MASTER_KEY é obrigatório para criptografar/descriptografar o segredo de webhook. Deve ser uma chave base64 URL-safe que decodifica para 32 bytes e ser entregue pelo gerenciador de segredos do ambiente. Sua ausência pode fazer operações de cadastro/validação falharem no servidor.
+Todas as rotas JSON usam `Content-Type: application/json`. Erros controlados seguem `{"code":"...","detail":"..."}`; automações devem decidir pelo status HTTP e pelo `code`.
 
-`webhook_secret` é obrigatório no cadastro, deve ter pelo menos 16 caracteres e precisa ser exclusivo por repositório. O serviço rejeita a criação quando o campo está ausente ou curto. Isso não substitui uma política institucional de geração, rotação e entrega de segredos.
+## Fluxo de onboarding
 
-## Endpoints REST disponíveis
+1. Obtenha base URL, chave inter-módulos e responsável operacional do ambiente.
+2. Exija `GET /api/v1/health/readiness` com HTTP 200; liveness sozinho não prova worker/Redis/crypto.
+3. Consulte `/api/schema/?format=json` e gere o cliente a partir do contrato versionado.
+4. Liste repositórios e guarde o `id` local; ele referencia as demais rotas.
+5. Para repositório privado, envie o PAT somente do backend consumidor e somente na requisição necessária.
+6. Preserve `repository`, `sha`, `ref` e `source_url` nas respostas de conteúdo/diff como proveniência.
+7. Use webhook ou sincronização como origem dos fatos; `insights` analisa apenas o que já está indexado.
 
-As rotas abaixo não terminam com barra. Envios JSON devem usar Content-Type: application/json.
-
-| Método e rota | Autorização exigida | Finalidade e resposta principal |
-| --- | --- | --- |
-| GET /api/v1/health | Não | Confirma apenas acesso ao banco configurado. Retorna 200 ou 503. |
-| GET /api/v1/health/github-connectivity | Não | Consulta /meta do GitHub e informa latência. Retorna 200 ou 503. |
-| POST /api/v1/github/handshake | Não (PAT no corpo) | Valida um PAT contra /user do GitHub sem persistir o token. |
-| GET /api/v1/repositories | Não | Lista repositórios ativos já cadastrados. Sem paginação. |
-| POST /api/v1/repositories | Não (PAT opcional no corpo) | Valida um repositório no GitHub, persiste metadados/segredo e tenta carga inicial de branches, commits, arquivos e PRs. |
-| POST /api/v1/repositories/{id}/sync | Não (PAT opcional no corpo) | Reconsulta GitHub e reconcilia branches, até 200 commits e até 200 PRs; preserva o histórico local de commits. |
-| GET /api/v1/branches | Não | Lista branches paginadas; aceita repository_id e include_deleted=true. |
-| GET /api/v1/commits | Não | Lista commits paginados, com filtros descritos abaixo. |
-| GET /api/v1/pull-requests | Não | Lista PRs paginadas; aceita repository_id, state e author. |
-| GET /api/v1/metrics/flow | Não | Retorna total de commits e agrupamento por autor. |
-| GET /api/v1/metrics/dashboard | Sessão Django ou Basic Auth | Retorna KPIs de dashboard para 7 ou 30 dias. |
-| GET /api/v1/webhooks/deliveries | Não | Lista, no máximo, as 15 entregas de webhook mais recentes. |
-| POST /api/v1/webhooks/github | Assinatura HMAC válida | Rota versionada do receptor de webhook. |
-| POST /webhooks/github | Assinatura HMAC válida | Rota pública equivalente para configuração no GitHub. |
-
-### Saúde e conectividade
-
-```http
-GET /api/v1/health
-```
-
-```json
-{"status":"healthy","database":"up"}
-```
-
-Em falha do banco, a resposta é 503 com {"status":"unhealthy","database":"down"}. Isso não verifica Redis, worker, segredo criptográfico nem credenciais GitHub.
-
-```http
-GET /api/v1/health/github-connectivity
-```
-
-```json
-{"status":"up","latency_ms":82.41,"github_status":200}
-```
-
-Em falha de rede/timeout contra GitHub, retorna 503 e inclui status: "down", latency_ms e detail. É um diagnóstico ao vivo contra o GitHub configurado, não uma garantia de que a sincronização esteja saudável.
-
-### Handshake de PAT GitHub
+## Handshake e escopos
 
 ```http
 POST /api/v1/github/handshake
-Content-Type: application/json
 
-{"token":"<PAT_GITHUB_ENVIADO_APENAS_NESTA_REQUISICAO>"}
+{"token":"<PAT_EFEMERO>"}
 ```
 
 Resposta 200:
@@ -116,219 +91,115 @@ Resposta 200:
 {
   "valid": true,
   "login": "aluno-exemplo",
-  "name": "Aluno Exemplo",
-  "avatar_url": "https://avatars.githubusercontent.com/u/123",
-  "scopes": ["read:org", "repo"]
+  "scopes": ["repo"],
+  "required_scopes": ["repo"],
+  "missing_scopes": [],
+  "excess_scopes": [],
+  "least_privilege": true
 }
 ```
 
-Erros previstos: 400 se não houver token, 401 para token recusado pelo GitHub, 502 para outra resposta HTTP do GitHub e 503 para indisponibilidade de rede. Os escopos são apenas os informados pelo header do GitHub; o serviço não faz uma política própria de escopos mínimos.
+`GITHUB_REQUIRED_SCOPES` e `GITHUB_ALLOWED_SCOPES` definem a política do ambiente. Escopo obrigatório ausente resulta em 403. O serviço também informa privilégios excedentes para orientar menor privilégio.
 
-### Repositórios e sincronização
-
-GET /api/v1/repositories retorna uma lista sem paginação:
-
-```json
-[
-  {
-    "id": 7,
-    "github_id": 123456789,
-    "owner": "organizacao-exemplo",
-    "name": "projeto-exemplo",
-    "full_name": "organizacao-exemplo/projeto-exemplo",
-    "default_branch": "main"
-  }
-]
-```
-
-Para cadastrar, forneça uma URL oficial de github.com, ou owner e name. repository_url é aceito como sinônimo de url.
+## Cadastro e sincronização
 
 ```http
 POST /api/v1/repositories
-Content-Type: application/json
+X-Module-API-Key: <CHAVE_DO_AMBIENTE>
 
 {
-  "url": "https://github.com/organizacao-exemplo/projeto-exemplo",
-  "token": "<PAT_SOMENTE_SE_NECESSARIO_PARA_ACESSO_GITHUB>",
-  "webhook_secret": "<SEGREDO_UNICO_DO_WEBHOOK>"
+  "url": "https://github.com/organizacao/projeto",
+  "token": "<PAT_OPCIONAL>",
+  "webhook_secret": "<SEGREDO_UNICO_COM_16_OU_MAIS_CARACTERES>",
+  "webhook_secret_expires_at": "2027-01-31T23:59:59Z"
 }
 ```
 
-Com sucesso, retorna 201 e o contrato de repositório acima, acrescido de `initial_sync_status` (`completed` ou `failed`) e, em caso de falha, `initial_sync_detail`. O cadastro chama o GitHub para descobrir github_id, owner, nome e branch padrão e tenta uma sincronização inicial. Um 201 confirma o cadastro; consulte `initial_sync_status` e `/commits` antes de afirmar que a importação terminou.
-
-Erros previstos no cadastro: 400 para URL/owner/nome inválidos; código HTTP repassado pelo GitHub (por exemplo, 404) se o repositório não for encontrado; e 502 para erro de conexão tratado. Não envie segredos em logs, capturas de tela ou comentários de issues.
+O 201 contém o repositório, metadados de versão/rotação/expiração e `initial_sync_status`. Um cadastro bem-sucedido não implica carga inicial completa se `initial_sync_status` for `failed`.
 
 ```http
 POST /api/v1/repositories/7/sync
-Content-Type: application/json
+X-Module-API-Key: <CHAVE_DO_AMBIENTE>
 
-{"token":"<PAT_OPCIONAL_PARA_REPOSITORIO_PRIVADO>"}
+{"token":"<PAT_OPCIONAL>"}
 ```
 
-```json
-{"status":"synced","repository":"organizacao-exemplo/projeto-exemplo","commits_synced":42}
-```
+Resposta: `{"status":"synced","repository":"organizacao/projeto","commits_synced":42}`. Cada execução lê até 200 commits, 200 branches e 200 PRs e detalha até `GITHUB_COMMIT_DETAILS_LIMIT` commits. O histórico local é preservado; branches ausentes só são marcadas como removidas quando a listagem foi comprovadamente exaustiva.
 
-Esta implementação lê páginas REST de até 100 itens e limita cada execução a 200 commits, 200 branches e 200 PRs. Quando já existe histórico local, envia `since` com a data do commit mais recente e faz atualização incremental, sem remover commits antigos que não vieram na janela atual. Busca detalhes e arquivos para, no máximo, `GITHUB_COMMIT_DETAILS_LIMIT` commits por execução (padrão 50). Branches ausentes só são marcadas como removidas quando a listagem foi comprovadamente exaustiva, isto é, trouxe menos de 200 itens. O limite ainda impede afirmar que uma carga inicial maior esteja completa. Erros conhecidos: 404 para ID local inativo/inexistente, código HTTP retornado pelo GitHub e 500 para exceções de sincronização não tratadas.
+## Contratos para M3, M4, M5 e M7
 
-### Commits, filtros e paginação
+### Conteúdo textual
 
 ```http
-GET /api/v1/commits?repository_id=7&author=aluno-exemplo&since=2026-10-01T00:00:00Z&until=2026-10-31T23:59:59Z&page=1
-```
+POST /api/v1/repositories/7/contents
+X-Module-API-Key: <CHAVE_DO_AMBIENTE>
 
-Filtros implementados: repository_id, author (login), since, until e page. Os três primeiros filtros de data/autor não possuem validação/formato OpenAPI específico nesta versão; use timestamps ISO 8601/RFC 3339 e trate a resposta como uma consulta de leitura. A página padrão tem 50 itens.
+{"path":"src/app.py","ref":"main","token":"<PAT_OPCIONAL>"}
+```
 
 ```json
 {
-  "count": 1,
-  "next": null,
-  "previous": null,
-  "results": [
-    {
-      "sha": "0123456789abcdef0123456789abcdef01234567",
-      "repository": "organizacao-exemplo/projeto-exemplo",
-      "branch": "main",
-      "author": "aluno-exemplo",
-      "message": "Implementa integração",
-      "authored_at": "2026-10-21T14:00:00Z",
-      "url": "https://github.com/organizacao-exemplo/projeto-exemplo/commit/0123456",
-      "forced_push": false,
-      "files": [{"path":"apps/core.py","change_type":"modified"}]
-    }
-  ]
+  "repository": "organizacao/projeto",
+  "path": "src/app.py",
+  "ref": "main",
+  "sha": "012345...",
+  "size": 321,
+  "encoding": "utf-8",
+  "content": "...",
+  "source_url": "https://github.com/organizacao/projeto/blob/main/src/app.py"
 }
 ```
 
-change_type pode ser added, modified ou removed. forced_push vem do payload de um webhook push; ele não é calculado pela sincronização REST.
+Há rejeição de travessia de diretório, arquivo não textual e conteúdo acima de `GITHUB_CONTENT_MAX_BYTES` (padrão 512 KiB).
 
-### Branches e pull requests
+### Diff por commit
 
-`GET /api/v1/branches?repository_id=7` retorna branches ativas em resposta paginada. Para auditoria, `include_deleted=true` inclui registros com `deleted_at` preenchido.
+```http
+POST /api/v1/repositories/7/commits/0123456789abcdef/diff
+X-Module-API-Key: <CHAVE_DO_AMBIENTE>
 
-`GET /api/v1/pull-requests?repository_id=7&state=open&author=aluno-exemplo` retorna PRs indexadas em resposta paginada, com número, título, estado, autor e datas de abertura, atualização, fechamento e merge. Este contrato não inclui diff, corpo, comentários ou conteúdo dos arquivos; esses campos continuam como lacuna para Code Review e RAG.
-
-### Métricas
-
-GET /api/v1/metrics/flow?repository_id=7 retorna contagem global ou filtrada:
-
-```json
-{
-  "total_commits": 12,
-  "commits_by_author": [
-    {"author__login":"aluno-exemplo","commits":8},
-    {"author__login":"outro-aluno","commits":4}
-  ]
-}
+{"token":"<PAT_OPCIONAL>"}
 ```
 
-O nome author__login é o contrato atual, embora seja um detalhe do ORM; não foi normalizado para um DTO público ainda.
+Cada arquivo retorna `path`, `status`, `additions`, `deletions`, `changes`, `patch` e `truncated`. O patch é limitado por `GITHUB_DIFF_PATCH_MAX_CHARS` (padrão 20.000 caracteres); consumidores devem respeitar `truncated` e a `source_url`.
 
-GET /api/v1/metrics/dashboard?repository_id=7&days=7 exige sessão Django ou Basic Auth. days aceita somente 7 ou 30; repository_id é opcional e, se ausente, escolhe o repositório configurado ou o primeiro ativo. Retorna 400 para parâmetros inválidos e 404 quando não há repositório ativo.
+## Analytics e inteligência Git
 
-A resposta inclui repository, period_days, since, until, totais de commits/push/PR, indicadores de SLA, falhas e uma lista recent. Campos derivados como sla_percent, median_merge_hours e processing_within_2m_percent podem ser null quando não há coorte suficiente. Este endpoint é adequado ao dashboard atual, não um contrato estável de analytics para todos os módulos.
+`GET /api/v1/repositories/7/insights?days=30` retorna total, nota média de clareza, distribuição de mensagens, frequência por dia/hora/autor, concentração, atividade fora de horário, dias de pico, gargalos, recomendações e avaliação dos commits recentes.
 
-### Entregas de webhook
+O modo padrão é determinístico e auditável. Quando `AI_INSIGHTS_ENABLED=true`, um provedor compatível com chat completions pode enriquecer recomendações; somente agregados são enviados, nunca conteúdo, diff, PAT ou segredo. `analysis_mode` informa o modo realmente utilizado.
 
-GET /api/v1/webhooks/deliveries?repository_id=7 retorna as 15 mais recentes (sem paginação), na ordem decrescente de recebimento:
+`GET /api/v1/commits` aceita `repository_id`, `author`, `since`, `until` e `page`. `GET /api/v1/branches` aceita `repository_id` e `include_deleted=true`. `GET /api/v1/pull-requests` aceita `repository_id`, `state` e `author`.
 
-```json
-[
-  {
-    "delivery_id":"d6f52720-c872-4e99-8c1f-5b78e5f3e701",
-    "event":"push",
-    "status":"processed",
-    "attempts":1,
-    "error":"",
-    "received_at":"2026-10-21T14:01:02Z",
-    "processed_at":"2026-10-21T14:01:03Z",
-    "ref":"main",
-    "commits_count":2
-  }
-]
-```
+## Webhooks, retry e replay
 
-status pode ser pending, processing, processed ou failed. O campo error pode conter informação operacional; não o exiba indiscriminadamente a usuários finais. A ausência de autenticação nesta consulta é uma limitação de segurança a ser resolvida antes de expor a instância fora do contexto controlado.
+Cabeçalhos obrigatórios: `X-Hub-Signature-256`, `X-GitHub-Event` e `X-GitHub-Delivery`. O receptor identifica `payload.repository.id`, verifica HMAC-SHA256 com o segredo daquele repositório e persiste antes de enfileirar.
 
-## Integração de webhook GitHub
-
-### Pré-requisitos
-
-- O repositório precisa estar ativo e cadastrado pelo github_id do GitHub.
-- O segredo configurado no webhook do GitHub deve ser o mesmo webhook_secret usado no cadastro e deve ser exclusivo do repositório.
-- A URL precisa alcançar uma instância HTTPS pública. Túnel/local é aceitável somente para desenvolvimento.
-- Redis e Celery precisam estar ativos para o processamento assíncrono real.
-
-### Cabeçalhos exigidos
-
-| Cabeçalho | Regra |
+| Resposta | Significado |
 | --- | --- |
-| X-Hub-Signature-256 | Obrigatório. Formato sha256=<hex>, HMAC-SHA256 calculado sobre os bytes brutos do corpo. |
-| X-GitHub-Event | Obrigatório para selecionar push ou pull_request; outros eventos são aceitos/persistidos e concluídos sem extratores específicos. |
-| X-GitHub-Delivery | Obrigatório. UUID; é a chave de idempotência. |
-| Content-Type | Use application/json. |
+| 202 `accepted` | autenticado e persistido; processamento ainda não terminou |
+| 200 `ignored` | `X-GitHub-Delivery` duplicado |
+| 400 | UUID, JSON ou repositório inválido/desconhecido |
+| 401 | assinatura inválida ou segredo expirado |
 
-O receptor localiza payload.repository.id, valida a assinatura usando o segredo daquele repositório e persiste a entrega antes de enfileirar o worker. Respostas imediatas:
+O worker repete somente falhas transitórias de banco/rede, com backoff exponencial e jitter. Falhas permanentes ficam registradas como `failed`; o erro é sanitizado. O replay autenticado aceita somente esse estado, volta para `pending` e reaproveita a mesma entrega idempotente.
 
-| Status | Corpo | Significado |
-| --- | --- | --- |
-| 202 | {"status":"accepted","delivery_id":"<uuid>"} | Entrega autenticada e aceita; ainda pode falhar no worker. |
-| 200 | {"status":"ignored","reason":"duplicate delivery"} | Mesmo X-GitHub-Delivery já havia sido persistido. |
-| 400 | {"detail":"Invalid delivery, payload, or unknown repository"} | UUID, JSON, repository.id ou cadastro local inválido/desconhecido. |
-| 401 | {"detail":"Invalid signature"} | HMAC ausente, formato incorreto ou assinatura não confere. |
+O cliente GitHub nunca dorme até o reset completo do rate limit. Ele respeita o teto `GITHUB_MAX_RETRY_AFTER` e propaga uma falha transitória para retry controlado.
 
-O worker possui até três tentativas com backoff para exceções. Para push, ele ignora branches que correspondem a IGNORE_BRANCHES (padrão tmp/*), indexa commits e arquivos alterados e marca forced_push conforme o payload. Para pull_request, atualiza os dados básicos da PR. Consulte a entrega em /api/v1/webhooks/deliveries para distinguir aceitação (202) de processamento concluído (processed).
+## Operação e limites
 
-Exemplo de construção de assinatura **apenas para teste local** (não coloque o segredo em código de cliente):
+- `GET /health` verifica processo/banco; `GET /health/readiness` verifica banco, Redis, worker e chave criptográfica. Em eager local, Redis/worker não bloqueiam readiness.
+- Logs são JSON, incluem request/correlação e removem padrões de token/segredo.
+- Webhooks são assíncronos; consulte `deliveries` até `processed` ou `failed`.
+- Listas de commits, branches e PRs são paginadas em 50 itens; repositórios e as 15 entregas recentes não são paginados.
+- Não há CORS configurado. Frontends de outra origem precisam de gateway/BFF definido pela plataforma.
+- GraphQL foi retirado do MVP porque REST atende a jornada atual sem evidência de ganho que compense a complexidade.
 
-```python
-import hashlib
-import hmac
+## Dependências externas restantes
 
-body = b'{"repository":{"id":123}}'
-signature = "sha256=" + hmac.new(
-    b"<SEGREDO_LOCAL_DE_TESTE>", body, hashlib.sha256
-).hexdigest()
-```
+1. Módulo 1: JWT, papéis, `project_id`, `team_id` e autorização por repositório.
+2. Plataforma: gateway/BFF, CORS e envelope de eventos/Data Bus.
+3. Operação: URL HTTPS, secrets, PostgreSQL, Redis, worker e evidência de smoke/E2E remoto.
+4. Consumidores: testes de contrato M1→M2 e M2→M3/M4/M5/M6/M7/M8.
 
-## Erros, limites e comportamento operacional
-
-| Tema | Comportamento atual | Implicação para outro módulo |
-| --- | --- | --- |
-| Formato de erro | Erros REST usam `{"code":"...","detail":"..."}`; handshake também retorna `valid: false` | Trate o status HTTP primeiro e use `code` para automação; `detail` é mensagem humana. |
-| Paginação | GET /commits, /branches e /pull-requests usam a paginação padrão; repositórios e entregas não | Siga next/previous nas listas paginadas. |
-| Rate limit GitHub | O cliente aguarda até o reset se X-RateLimit-Remaining for zero | Uma chamada pode ficar bloqueada; defina timeout no consumidor. |
-| Timeout para GitHub | Configurável, padrão de 10 segundos por chamada | Falhas podem retornar 502, 503 ou o status do GitHub, conforme endpoint. |
-| Sincronização REST | Limita leitura a 200 commits/branches/PRs e detalhes de arquivos ao limite configurado; commits antigos são preservados | Não use como feed de eventos nem presuma carga histórica completa acima desses limites. |
-| Entregas assíncronas | Aceitas antes de processar | Polling de deliveries é a única observabilidade exposta; não há callback/event bus interno publicado. |
-| Branches ignoradas | IGNORE_BRANCHES=tmp/* por padrão | Commits dessas branches não entram pelo fluxo push. |
-| Disponibilidade | Apenas implementação e testes locais foram verificados neste repositório | Não trate /health ou Swagger local como prova de produção. |
-
-## Contrato OpenAPI atual
-
-O Swagger UI em /docs/ e o schema em /api/schema/ são gerados por drf-spectacular. Health, conectividade, métricas, dashboard, cadastro e sincronização possuem serializers explícitos de entrada/saída. O CI executa `python manage.py spectacular --validate --fail-on-warn`; erro ou aviso na geração bloqueia a entrega.
-
-## Próximos contratos a acordar com a turma
-
-Antes de integrar módulos em ambiente compartilhado, é necessário acordar e registrar, em conjunto, pelo menos:
-
-1. Base URL e dono operacional de cada ambiente (desenvolvimento, homologação e demonstração), inclusive TLS e rotação de segredos.
-2. Autenticação institucional compartilhada (por exemplo, JWT validado por todos) e autorização por papel/repositório. A arquitetura registra isso como decisão futura; nada foi implementado aqui.
-3. Política CORS/gateway para os frontends e uma forma segura de não expor PATs no navegador.
-4. Versionamento compartilhado dos DTOs e paginação de repositórios/deliveries; erros já usam `code`/`detail` e o OpenAPI local é validado, mas a versão entre módulos ainda precisa ser acordada.
-5. Estratégia de eventos para consumidores: polling, broker/event bus ou callbacks, com retenção e política de reprocessamento.
-6. Limites da carga inicial/incremental e semântica de remoção de commits antes de qualquer dashboard tratar o histórico como definitivo.
-
-Consulte também o [mapa de integração entre módulos](platform-integration-map.md), a [cobertura das POCs](poc-coverage.md) e a [revisão do YouTrack](youtrack-status-review.md).
-
-## Referências no repositório
-
-- [Arquitetura e fronteiras](architecture.md)
-- [ADR 0003 — REST primeiro, GraphQL seletivo](adr/0003-rest-first-graphql-selective.md)
-- [README — execução local e qualidade](../README.md)
-- [Guia de deployment](../DEPLOYMENT.md)
-- [Contexto e backlog do módulo](../CONTEXTO.md)
-
-### Evidência de validação deste guia
-
-Os endpoints e contratos foram confrontados com config/urls.py, apps/github_sync/urls.py, views, serializers, tasks e testes do repositório. Em 21/10/2026, `python manage.py spectacular --validate --fail-on-warn` gerou e validou o schema OpenAPI 3.0.3 sem erros nem avisos.
+Consulte também [platform-integration-map.md](platform-integration-map.md), [poc-coverage.md](poc-coverage.md), [youtrack-status-review.md](youtrack-status-review.md) e [DEPLOYMENT.md](../DEPLOYMENT.md).

@@ -1,59 +1,36 @@
-# Backlog restante exclusivo do Módulo 2
+# Fechamento interno do Módulo 2
 
-Este recorte contém apenas trabalho que o nosso grupo consegue concluir sem esperar código, contrato ou entrega dos demais módulos. A ordem considera risco funcional antes de expansão visual.
+Revisão de 22 de outubro de 2026. Este documento separa código concluído, prova local e dependências externas.
 
-## P0 — fechar antes de chamar o módulo de pronto
+## Concluído no repositório
 
-Os bloqueios funcionais P0 identificados nesta revisão foram fechados e estão listados em **Fechado nesta revisão**. O módulo ainda precisa dos itens de robustez e prova operacional abaixo antes de ser tratado como pronto para produção.
-
-## P1 — robustez e operação do nosso serviço
-
-| Entrega | Situação atual | Definition of Done |
-| --- | --- | --- |
-| Logging estruturado (M2-147) | existe logging pontual, sem configuração JSON/correlação | JSON com nível, timestamp, evento, `repository_id`, `delivery_id`/correlation id; teste sem token/segredo |
-| Retry, timeout e recuperação (M2-150) | Celery tenta três vezes com backoff; o cliente GitHub pode bloquear esperando rate-limit | política por tipo de erro, jitter, limites, estado final coerente, reprocessamento manual e testes |
-| DLQ/replay de webhooks | entrega pode terminar em `failed`, sem fila morta ou endpoint/comando de replay | mecanismo operacional de replay idempotente, auditoria e documentação |
-| Health completo | `/health` verifica banco e outra rota verifica GitHub | checks distintos para banco, Redis, worker, GitHub e configuração criptográfica, com readiness/liveness |
-| Política de escopos GitHub (M2-88) | handshake apenas devolve `X-OAuth-Scopes` | escopos mínimos por operação, mensagem de recusa e testes |
-| Auditoria e ciclo de credenciais (M2-84, M2-91, M2-92) | segredo é cifrado; não há metadados de rotação/expiração/auditoria | decisão PAT vs GitHub App, expiração/rotação, trilha de alteração e operação segura |
-| Deploy reproduzível | Docker/CI/deployment existem no repositório, mas não há prova atual de ambiente funcionando | ambiente do grupo publicado, migrações, Redis/worker, secrets e smoke E2E registrados |
-
-## P2 — completar as experiências da POC com dados reais
-
-| Área | Trabalho exclusivamente nosso |
+| Área | Evidência implementada |
 | --- | --- |
-| Analytics | definir métricas que pertencem ao GitHub Sync e montar gráficos somente sobre endpoints reais |
-| Assistente IA (M2-131) | decidir se permanece no recorte; se sim, implementar endpoint, modelo/prompts, limites, segurança e testes antes de trocar “Em breve” |
-| DevOps | expor status verificável de CI, cobertura e versão; não mostrar release/deploy sem fonte |
-| GraphQL | medir necessidade conforme ADR 0003 e implementar apenas se trouxer ganho na carga inicial; caso contrário registrar retirada do MVP |
-| UX | testar responsividade, acessibilidade, estados de erro e jornada completa sem usar dados seed como prova |
+| Integração GitHub | handshake PAT, escopos mínimos configuráveis, cadastro, carga inicial e sincronização incremental de commits, branches, PRs e arquivos |
+| Webhooks | HMAC por repositório, idempotência, processamento assíncrono, retry seletivo com jitter, estado final coerente e replay autenticado |
+| Observabilidade | logs JSON, `X-Request-ID`, correlação pelo `delivery_id`, sanitização de segredos, liveness e readiness de banco/Redis/worker/crypto |
+| Credenciais | AES-256-GCM, segredo exclusivo por repositório, versão, expiração, rotação e trilha de auditoria sem persistência de PAT |
+| Inteligência | análise de frequência, concentração, picos, atividade fora da janela e clareza de mensagens; provedor externo é opt-in e recebe somente agregados |
+| Consumidores | OpenAPI, conteúdo textual sob demanda, diff limitado e proveniência para M3/M4/M5/M7 |
+| Frontend | sete tabs navegáveis, jornada real, PAT efêmero em memória, polling pausável, Analytics/Inteligência reais e estados explícitos para o que não possui fonte |
+| Qualidade | pytest/coverage, Ruff, Bandit, OpenAPI, lint/build/test do frontend e smoke de health após deploy |
 
-## Pode começar agora
+## Não bloqueia o fechamento interno
 
-Sequência recomendada para as próximas sessões do nosso grupo:
+Estes itens exigem infraestrutura, credenciais ou contrato de outro grupo. Permanecem como integração, não como código ausente do Módulo 2:
 
-1. Uniformizar contratos de erro.
-2. Fechar logging, retry, replay e health operacional.
-3. Definir as métricas reais antes de evoluir Analytics.
-4. Decidir formalmente GraphQL e IA no recorte final.
-5. Publicar e registrar um E2E do nosso módulo isolado.
+- publicar a versão atual e registrar evidência do CI e do smoke no Azure;
+- configurar PostgreSQL, Redis, worker, secrets e `MODULE_ENFORCE_WRITE_AUTH=true` no ambiente remoto;
+- substituir o gate temporário de sessão/API key pelo JWT/RBAC e `project_id` definidos pelo Módulo 1;
+- acordar gateway, CORS e Data Bus com a turma;
+- executar E2E compartilhado com os módulos consumidores.
 
-## Fechado nesta revisão
+## Decisões de escopo
 
-- Reconciliação de commits tornou-se incremental e não destrutiva: usa o commit local mais recente como `since`, preserva histórico anterior e possui testes para primeira carga e atualização incremental.
-- O cadastro deixou de esconder falhas da sincronização inicial e devolve `initial_sync_status`/`initial_sync_detail`.
-- A suíte alcançou **32 testes e 85% de cobertura**; o CI agora exige no mínimo 80%, executa lint/build do frontend e análise Bandit do backend.
-- O contrato OpenAPI passou a ter serializers explícitos para health, conectividade, métricas, dashboard, cadastro e sincronização; a geração sem erros ou avisos agora é validada no CI.
-- A sincronização REST agora reconcilia branches e PRs, preserva commits históricos e busca arquivos de commits com limite configurável. O caminho de webhook também reconcilia arquivos de commits já existentes.
-- A aba de sincronização passou a consumir branches e pull requests reais, com estados de carregamento, vazio e erro, sem preencher lacunas com dados da POC.
-- Erros REST próprios e exceções do DRF passaram a usar o envelope estável `code`/`detail`; falhas internas de sincronização não devolvem texto cru da exceção nem segredos ao cliente.
+- GraphQL foi retirado do MVP: REST atende a carga atual e não houve medição que justificasse a complexidade adicional. O ADR 0003 registra a decisão.
+- A análise inteligente possui baseline determinístico auditável. Um provedor compatível com chat completions pode enriquecer somente recomendações agregadas quando `AI_INSIGHTS_ENABLED=true`.
+- Login e cadastro de usuário permanecem no Módulo 1. PAT GitHub não é identidade da plataforma.
 
-## Não entra neste recorte
+## Critério para declarar produção
 
-Estes itens precisam dos demais módulos ou de uma decisão compartilhada e, portanto, não bloqueiam o fechamento interno acima:
-
-- login institucional, JWT, RBAC, usuário, turma e projeto do Módulo 1;
-- IDs compartilhados de projeto/equipe e autorização entre serviços;
-- API Gateway, CORS global e Data Bus da plataforma;
-- formato final dos eventos consumidos por M3–M8;
-- integração visual/navegação definitiva do portal único.
+O código está concluído e validado localmente. “Produção” só pode ser marcado após push, CI remoto verde, migração remota, readiness verde e um webhook/sync real no ambiente publicado.
