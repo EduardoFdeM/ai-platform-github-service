@@ -1,6 +1,8 @@
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call
 
-from apps.github_sync.services.github import GitHubClient
+import pytest
+
+from apps.github_sync.services.github import GitHubClient, GitHubRateLimitError
 
 
 def test_handshake_returns_user_and_oauth_scopes(settings):
@@ -89,17 +91,30 @@ def test_get_commits_paginates_with_since_and_stops_at_200():
     ]
 
 
-def test_get_waits_until_rate_limit_reset(settings):
+def test_get_does_not_block_when_success_exhausts_rate_limit(settings):
     settings.GITHUB_API_URL = "https://api.github.test"
     response = Mock()
+    response.status_code = 200
     response.headers = {"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "110"}
     client = GitHubClient()
     client.session.get = Mock(return_value=response)
-    clock = Mock()
-    clock.time.return_value = 100
 
-    with patch("apps.github_sync.services.github.time", clock):
+    assert client.get("/meta") is response
+
+    response.raise_for_status.assert_called_once()
+
+
+def test_get_raises_capped_rate_limit_error_without_sleep(settings):
+    settings.GITHUB_API_URL = "https://api.github.test"
+    settings.GITHUB_MAX_RETRY_AFTER = 60
+    response = Mock()
+    response.status_code = 429
+    response.headers = {"X-RateLimit-Remaining": "0", "Retry-After": "300"}
+    client = GitHubClient()
+    client.session.get = Mock(return_value=response)
+
+    with pytest.raises(GitHubRateLimitError) as captured:
         client.get("/meta")
 
-    clock.sleep.assert_called_once_with(10)
-    response.raise_for_status.assert_called_once()
+    assert captured.value.retry_after == 60
+    response.raise_for_status.assert_not_called()

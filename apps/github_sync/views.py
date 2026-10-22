@@ -176,6 +176,33 @@ def github_webhook(request):
     return Response({"status": "accepted", "delivery_id": str(delivery_id)}, status=status.HTTP_202_ACCEPTED)
 
 
+@extend_schema(
+    request=None,
+    responses={202: WebhookDeliverySerializer, 404: ErrorSerializer, 409: ErrorSerializer},
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def replay_webhook(request, delivery_id):
+    """Reagenda uma entrega falha sem duplicar efeitos ja processados."""
+    try:
+        with transaction.atomic():
+            delivery = WebhookDelivery.objects.select_for_update().get(delivery_id=delivery_id)
+            if delivery.status != WebhookDelivery.Status.FAILED:
+                return _error_response(
+                    "delivery_not_replayable",
+                    "Somente entregas com falha podem ser reprocessadas.",
+                    status.HTTP_409_CONFLICT,
+                )
+            delivery.status = WebhookDelivery.Status.PENDING
+            delivery.error = ""
+            delivery.processed_at = None
+            delivery.save(update_fields=("status", "error", "processed_at"))
+            transaction.on_commit(lambda: process_webhook.delay(delivery.pk))
+    except WebhookDelivery.DoesNotExist:
+        return _error_response("delivery_not_found", "Entrega não encontrada.", status.HTTP_404_NOT_FOUND)
+    return Response(WebhookDeliverySerializer(delivery).data, status=status.HTTP_202_ACCEPTED)
+
+
 class CommitListView(ListAPIView):
     serializer_class = CommitSerializer
 

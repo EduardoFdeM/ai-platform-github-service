@@ -21,6 +21,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "apps.github_sync.observability.CorrelationIdMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -101,3 +102,12 @@ GITHUB_COMMIT_DETAILS_LIMIT = int(os.getenv("GITHUB_COMMIT_DETAILS_LIMIT", "50")
 IGNORE_BRANCHES = [value.strip() for value in os.getenv("IGNORE_BRANCHES", "tmp/*").split(",") if value.strip()]
 DELIVERY_SLA_HOURS = int(os.getenv("DELIVERY_SLA_HOURS", "72"))
 DASHBOARD_DEFAULT_REPOSITORY = os.getenv("DASHBOARD_DEFAULT_REPOSITORY", "HenriqueRSouza/mod2-github-sync")
+GITHUB_MAX_RETRY_AFTER = int(os.getenv("GITHUB_MAX_RETRY_AFTER", "60"))
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"json": {"()": "apps.github_sync.observability.JsonFormatter"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "json"}},
+    "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
+}

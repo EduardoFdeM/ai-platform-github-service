@@ -4,12 +4,18 @@ import hmac
 import json
 import os
 import uuid
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 import pytest
+from celery.exceptions import Retry
+from django.contrib.auth import get_user_model
+from django.db import OperationalError
 from django.urls import reverse
 
 from apps.github_sync.models import Commit, CommitFile, Repository, WebhookDelivery
 from apps.github_sync.services.crypto import encrypt_secret
+from apps.github_sync.tasks import _process_webhook_delivery
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -110,3 +116,82 @@ def test_processes_push_and_ignores_duplicate(client, repository, settings):
     assert list(commit.files.values_list("path", "change_type")) == [
         ("apps/example.py", CommitFile.ChangeType.MODIFIED)
     ]
+
+
+def _delivery(repository):
+    return WebhookDelivery.objects.create(
+        delivery_id=uuid.uuid4(),
+        repository=repository,
+        event="push",
+        payload={"ref": "refs/heads/main", "commits": []},
+    )
+
+
+def test_permanent_webhook_failure_is_persisted_outside_rolled_back_transaction(repository):
+    delivery = _delivery(repository)
+    task = SimpleNamespace(request=SimpleNamespace(retries=0), max_retries=3, retry=Mock())
+
+    with patch("apps.github_sync.tasks._process_push", side_effect=ValueError("invalid token=secret-value")):
+        with pytest.raises(ValueError):
+            _process_webhook_delivery(task, delivery.pk)
+
+    delivery.refresh_from_db()
+    assert delivery.status == WebhookDelivery.Status.FAILED
+    assert delivery.attempts == 1
+    assert "secret-value" not in delivery.error
+    task.retry.assert_not_called()
+
+
+def test_transient_webhook_failure_schedules_bounded_retry(repository):
+    delivery = _delivery(repository)
+    retry_signal = Retry("scheduled")
+    task = SimpleNamespace(
+        request=SimpleNamespace(retries=1),
+        max_retries=3,
+        retry=Mock(side_effect=retry_signal),
+    )
+
+    with patch("apps.github_sync.tasks._process_push", side_effect=OperationalError("db unavailable")), patch(
+        "apps.github_sync.tasks.random.uniform", return_value=0.25
+    ):
+        with pytest.raises(Retry):
+            _process_webhook_delivery(task, delivery.pk)
+
+    delivery.refresh_from_db()
+    assert delivery.status == WebhookDelivery.Status.FAILED
+    assert delivery.attempts == 1
+    task.retry.assert_called_once()
+    assert task.retry.call_args.kwargs["countdown"] == 2.25
+
+
+def test_authenticated_operator_can_replay_failed_delivery(client, repository):
+    delivery = _delivery(repository)
+    delivery.status = WebhookDelivery.Status.FAILED
+    delivery.error = "temporary"
+    delivery.save(update_fields=("status", "error"))
+    user = get_user_model().objects.create_user(username="operator", password="secret")
+    client.force_login(user)
+
+    with patch("apps.github_sync.views.process_webhook.delay") as delay:
+        response = client.post(reverse("webhook-delivery-replay", kwargs={"delivery_id": delivery.delivery_id}))
+
+    assert response.status_code == 202
+    delivery.refresh_from_db()
+    assert delivery.status == WebhookDelivery.Status.PENDING
+    assert delivery.error == ""
+    delay.assert_called_once_with(delivery.pk)
+
+
+def test_replay_rejects_anonymous_and_processed_delivery(client, repository):
+    delivery = _delivery(repository)
+
+    anonymous = client.post(reverse("webhook-delivery-replay", kwargs={"delivery_id": delivery.delivery_id}))
+    assert anonymous.status_code in (401, 403)
+
+    user = get_user_model().objects.create_user(username="operator-two", password="secret")
+    client.force_login(user)
+    delivery.status = WebhookDelivery.Status.PROCESSED
+    delivery.save(update_fields=("status",))
+    response = client.post(reverse("webhook-delivery-replay", kwargs={"delivery_id": delivery.delivery_id}))
+    assert response.status_code == 409
+    assert response.json()["code"] == "delivery_not_replayable"

@@ -1,7 +1,11 @@
-import time
-
 import requests
 from django.conf import settings
+
+
+class GitHubRateLimitError(requests.HTTPError):
+    def __init__(self, response, retry_after: int):
+        super().__init__(f"GitHub rate limit exceeded; retry after {retry_after}s", response=response)
+        self.retry_after = retry_after
 
 
 class GitHubClient:
@@ -19,9 +23,10 @@ class GitHubClient:
             verify=settings.GITHUB_CA_BUNDLE,
         )
         remaining = int(response.headers.get("X-RateLimit-Remaining", "1"))
-        if remaining == 0:
-            reset_at = int(response.headers.get("X-RateLimit-Reset", "0"))
-            time.sleep(max(0, reset_at - int(time.time())))
+        if response.status_code in (403, 429) and remaining == 0:
+            retry_after = int(response.headers.get("Retry-After", "0") or 0)
+            retry_after = max(0, min(retry_after, settings.GITHUB_MAX_RETRY_AFTER))
+            raise GitHubRateLimitError(response, retry_after)
         response.raise_for_status()
         return response
 
