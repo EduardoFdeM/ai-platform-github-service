@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 import requests
 from django.conf import settings
 
@@ -71,3 +73,8 @@ class GitHubClient:
 
     def get_commit(self, owner: str, name: str, sha: str) -> dict:
         return self.get(f"/repos/{owner}/{name}/commits/{sha}").json()
+
+    def get_content(self, owner: str, name: str, path: str, ref: str | None = None) -> dict:
+        encoded_path = quote(path.strip("/"), safe="/")
+        params = {"ref": ref} if ref else None
+        return self.get(f"/repos/{owner}/{name}/contents/{encoded_path}", params=params).json()

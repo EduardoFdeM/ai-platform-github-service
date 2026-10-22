@@ -43,6 +43,21 @@ def test_get_repository_returns_github_payload():
     client.get.assert_called_once_with("/repos/team/service")
 
 
+def test_get_content_encodes_path_and_forwards_ref():
+    client = GitHubClient()
+    response = Mock()
+    response.json.return_value = {"type": "file"}
+    client.get = Mock(return_value=response)
+
+    result = client.get_content("team", "service", "docs/guia de uso.md", ref="feature/docs")
+
+    assert result == {"type": "file"}
+    client.get.assert_called_once_with(
+        "/repos/team/service/contents/docs/guia%20de%20uso.md",
+        params={"ref": "feature/docs"},
+    )
+
+
 def test_repository_resource_wrappers_use_expected_github_routes():
     client = GitHubClient()
     client.get_paginated = Mock(side_effect=[[{"name": "main"}], [{"number": 7}]])

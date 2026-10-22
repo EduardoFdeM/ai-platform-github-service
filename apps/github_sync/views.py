@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import time
@@ -20,6 +21,8 @@ from .models import Branch, Commit, PullRequest, Repository, WebhookDelivery
 from .permissions import ModuleWritePermission
 from .serializers import (
     BranchSerializer,
+    CommitDiffRequestSerializer,
+    CommitDiffResponseSerializer,
     CommitSerializer,
     DashboardMetricsSerializer,
     ErrorSerializer,
@@ -30,6 +33,8 @@ from .serializers import (
     HealthSerializer,
     PullRequestSerializer,
     ReadinessSerializer,
+    RepositoryContentRequestSerializer,
+    RepositoryContentResponseSerializer,
     RepositoryCreateRequestSerializer,
     RepositoryCreateResponseSerializer,
     RepositoryIntelligenceSerializer,
@@ -395,6 +400,126 @@ def repository_insights(request, pk):
     except Repository.DoesNotExist:
         return _error_response("repository_not_found", "Repositório não encontrado.", status.HTTP_404_NOT_FOUND)
     return Response(repository_intelligence(repository, days=days))
+
+
+def _active_repository(pk):
+    try:
+        return Repository.objects.get(pk=pk, active=True), None
+    except Repository.DoesNotExist:
+        return None, _error_response("repository_not_found", "Repositório não encontrado.", status.HTTP_404_NOT_FOUND)
+
+
+@extend_schema(
+    request=RepositoryContentRequestSerializer,
+    responses={
+        200: RepositoryContentResponseSerializer,
+        400: ErrorSerializer,
+        404: ErrorSerializer,
+        502: ErrorSerializer,
+    },
+)
+@api_view(["POST"])
+@permission_classes([ModuleWritePermission])
+def repository_content(request, pk):
+    serializer = RepositoryContentRequestSerializer(data=request.data)
+    if not serializer.is_valid():
+        return _error_response("invalid_content_request", str(serializer.errors), status.HTTP_400_BAD_REQUEST)
+    repository, error = _active_repository(pk)
+    if error:
+        return error
+    path = serializer.validated_data["path"].strip("/")
+    if not path or ".." in path.split("/"):
+        return _error_response(
+            "invalid_content_path",
+            "Informe um caminho de arquivo seguro.",
+            status.HTTP_400_BAD_REQUEST,
+        )
+    token = serializer.validated_data.get("token") or None
+    ref = serializer.validated_data.get("ref") or repository.default_branch
+    try:
+        payload = GitHubClient(token=token).get_content(repository.owner, repository.name, path, ref=ref)
+    except requests.HTTPError as exc:
+        code = exc.response.status_code if exc.response is not None else 502
+        response_status = code if code in (401, 403, 404) else status.HTTP_502_BAD_GATEWAY
+        return _error_response("github_content_error", f"GitHub respondeu com HTTP {code}.", response_status)
+    if payload.get("type") != "file" or payload.get("encoding") != "base64":
+        return _error_response(
+            "unsupported_content",
+            "O caminho não representa um arquivo Base64.",
+            status.HTTP_400_BAD_REQUEST,
+        )
+    size = int(payload.get("size") or 0)
+    if size > settings.GITHUB_CONTENT_MAX_BYTES:
+        return _error_response(
+            "content_too_large",
+            "O arquivo excede o limite configurado.",
+            status.HTTP_400_BAD_REQUEST,
+        )
+    try:
+        decoded = base64.b64decode(payload.get("content", ""), validate=True).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return _error_response(
+            "unsupported_content",
+            "O arquivo não contém texto UTF-8 válido.",
+            status.HTTP_400_BAD_REQUEST,
+        )
+    return Response(
+        {
+            "repository": str(repository),
+            "path": payload.get("path") or path,
+            "ref": ref,
+            "sha": payload.get("sha", ""),
+            "size": size,
+            "encoding": "utf-8",
+            "content": decoded,
+            "source_url": payload.get("html_url"),
+        }
+    )
+
+
+@extend_schema(
+    request=CommitDiffRequestSerializer,
+    responses={200: CommitDiffResponseSerializer, 404: ErrorSerializer, 502: ErrorSerializer},
+)
+@api_view(["POST"])
+@permission_classes([ModuleWritePermission])
+def repository_commit_diff(request, pk, sha):
+    serializer = CommitDiffRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    repository, error = _active_repository(pk)
+    if error:
+        return error
+    try:
+        payload = GitHubClient(token=serializer.validated_data.get("token") or None).get_commit(
+            repository.owner, repository.name, sha
+        )
+    except requests.HTTPError as exc:
+        code = exc.response.status_code if exc.response is not None else 502
+        response_status = code if code in (401, 403, 404) else status.HTTP_502_BAD_GATEWAY
+        return _error_response("github_commit_error", f"GitHub respondeu com HTTP {code}.", response_status)
+    files = []
+    for item in payload.get("files") or []:
+        patch = item.get("patch") or ""
+        limit = settings.GITHUB_DIFF_PATCH_MAX_CHARS
+        files.append(
+            {
+                "path": item.get("filename", ""),
+                "status": item.get("status", "modified"),
+                "additions": item.get("additions", 0),
+                "deletions": item.get("deletions", 0),
+                "changes": item.get("changes", 0),
+                "patch": patch[:limit],
+                "truncated": len(patch) > limit,
+            }
+        )
+    return Response(
+        {
+            "repository": str(repository),
+            "sha": payload.get("sha") or sha,
+            "source_url": payload.get("html_url"),
+            "files": files,
+        }
+    )
 
 
 class RepositoryListView(ListCreateAPIView):

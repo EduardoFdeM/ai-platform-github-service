@@ -56,6 +56,44 @@ class RepositorySyncRequestSerializer(serializers.Serializer):
     token = serializers.CharField(required=False, allow_blank=True, write_only=True)
 
 
+class RepositoryContentRequestSerializer(serializers.Serializer):
+    path = serializers.CharField(max_length=2000)
+    ref = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    token = serializers.CharField(required=False, allow_blank=True, write_only=True)
+
+
+class RepositoryContentResponseSerializer(serializers.Serializer):
+    repository = serializers.CharField()
+    path = serializers.CharField()
+    ref = serializers.CharField()
+    sha = serializers.CharField()
+    size = serializers.IntegerField(min_value=0)
+    encoding = serializers.CharField()
+    content = serializers.CharField()
+    source_url = serializers.URLField(allow_null=True)
+
+
+class CommitDiffRequestSerializer(serializers.Serializer):
+    token = serializers.CharField(required=False, allow_blank=True, write_only=True)
+
+
+class CommitDiffFileSerializer(serializers.Serializer):
+    path = serializers.CharField()
+    status = serializers.CharField()
+    additions = serializers.IntegerField(min_value=0)
+    deletions = serializers.IntegerField(min_value=0)
+    changes = serializers.IntegerField(min_value=0)
+    patch = serializers.CharField(allow_blank=True)
+    truncated = serializers.BooleanField()
+
+
+class CommitDiffResponseSerializer(serializers.Serializer):
+    repository = serializers.CharField()
+    sha = serializers.CharField()
+    source_url = serializers.URLField(allow_null=True)
+    files = CommitDiffFileSerializer(many=True)
+
+
 class RepositorySyncResponseSerializer(serializers.Serializer):
     status = serializers.CharField(help_text="synced")
     repository = serializers.CharField()
