@@ -82,7 +82,8 @@ def _is_transient(exc: Exception) -> bool:
 
 
 def _retry_countdown(retries: int) -> float:
-    return min(60.0, (2**retries) + random.uniform(0, 1))
+    # Jitter não participa de nenhuma decisão criptográfica; apenas dispersa retries.
+    return min(60.0, (2**retries) + random.uniform(0, 1))  # nosec B311
 
 
 @shared_task(bind=True, max_retries=3)

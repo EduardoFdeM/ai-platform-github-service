@@ -47,6 +47,7 @@ jobs:
         run: |
           npm ci --prefix frontend
           npm run lint --prefix frontend
+          npm run test --prefix frontend
           npm run build --prefix frontend
 
       - name: 2. Testes Automaticos (Pytest com Coverage)
