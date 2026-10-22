@@ -103,6 +103,16 @@ IGNORE_BRANCHES = [value.strip() for value in os.getenv("IGNORE_BRANCHES", "tmp/
 DELIVERY_SLA_HOURS = int(os.getenv("DELIVERY_SLA_HOURS", "72"))
 DASHBOARD_DEFAULT_REPOSITORY = os.getenv("DASHBOARD_DEFAULT_REPOSITORY", "HenriqueRSouza/mod2-github-sync")
 GITHUB_MAX_RETRY_AFTER = int(os.getenv("GITHUB_MAX_RETRY_AFTER", "60"))
+GITHUB_REQUIRED_SCOPES = {
+    value.strip() for value in os.getenv("GITHUB_REQUIRED_SCOPES", "").split(",") if value.strip()
+}
+GITHUB_ALLOWED_SCOPES = {
+    value.strip()
+    for value in os.getenv("GITHUB_ALLOWED_SCOPES", "repo,repo:status,read:org").split(",")
+    if value.strip()
+}
+MODULE_ENFORCE_WRITE_AUTH = os.getenv("MODULE_ENFORCE_WRITE_AUTH", "false").lower() == "true"
+MODULE_API_KEY = os.getenv("MODULE_API_KEY", "")
 
 LOGGING = {
     "version": 1,

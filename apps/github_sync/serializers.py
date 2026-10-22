@@ -17,6 +17,11 @@ class HealthSerializer(serializers.Serializer):
     database = serializers.CharField(help_text="up ou down")
 
 
+class ReadinessSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=("ready", "not_ready"))
+    checks = serializers.DictField(child=serializers.DictField())
+
+
 class GitHubConnectivitySerializer(serializers.Serializer):
     status = serializers.CharField(help_text="up ou down")
     latency_ms = serializers.FloatField()
@@ -30,6 +35,10 @@ class HandshakeResponseSerializer(serializers.Serializer):
     name = serializers.CharField(required=False, allow_null=True)
     avatar_url = serializers.URLField(required=False, allow_null=True)
     scopes = serializers.ListField(child=serializers.CharField(), required=False)
+    required_scopes = serializers.ListField(child=serializers.CharField(), required=False)
+    missing_scopes = serializers.ListField(child=serializers.CharField(), required=False)
+    excess_scopes = serializers.ListField(child=serializers.CharField(), required=False)
+    least_privilege = serializers.BooleanField(required=False)
     detail = serializers.CharField(required=False)
 
 
@@ -40,6 +49,7 @@ class RepositoryCreateRequestSerializer(serializers.Serializer):
     name = serializers.CharField(required=False, allow_blank=True)
     token = serializers.CharField(required=False, allow_blank=True, write_only=True)
     webhook_secret = serializers.CharField(min_length=16, write_only=True)
+    webhook_secret_expires_at = serializers.DateTimeField(required=False, allow_null=True, write_only=True)
 
 
 class RepositorySyncRequestSerializer(serializers.Serializer):
@@ -101,7 +111,17 @@ class RepositorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Repository
-        fields = ("id", "github_id", "owner", "name", "full_name", "default_branch")
+        fields = (
+            "id",
+            "github_id",
+            "owner",
+            "name",
+            "full_name",
+            "default_branch",
+            "webhook_secret_version",
+            "webhook_secret_rotated_at",
+            "webhook_secret_expires_at",
+        )
 
 
 class RepositoryCreateResponseSerializer(RepositorySerializer):

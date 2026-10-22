@@ -7,6 +7,9 @@ class Repository(models.Model):
     name = models.CharField(max_length=255)
     default_branch = models.CharField(max_length=255, default="main")
     webhook_secret = models.BinaryField(help_text="Segredo criptografado com AES-256-GCM")
+    webhook_secret_version = models.PositiveIntegerField(default=1)
+    webhook_secret_rotated_at = models.DateTimeField(null=True, blank=True)
+    webhook_secret_expires_at = models.DateTimeField(null=True, blank=True)
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -105,3 +108,20 @@ class WebhookDelivery(models.Model):
     error = models.TextField(blank=True)
     received_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
+
+
+class CredentialAuditEvent(models.Model):
+    class Action(models.TextChoices):
+        CREATED = "created", "Created"
+        ROTATED = "rotated", "Rotated"
+        EXPIRED = "expired", "Expired"
+
+    repository = models.ForeignKey(Repository, related_name="credential_audit_events", on_delete=models.CASCADE)
+    action = models.CharField(max_length=20, choices=Action.choices)
+    version = models.PositiveIntegerField()
+    actor = models.CharField(max_length=255, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    occurred_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-occurred_at",)

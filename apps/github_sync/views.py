@@ -4,8 +4,10 @@ import time
 import uuid
 
 import requests
+from django.conf import settings
 from django.db import IntegrityError, connection, transaction
 from django.db.models import Count
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -15,6 +17,7 @@ from rest_framework.response import Response
 
 from .dashboard import dashboard_repository, dashboard_summary
 from .models import Branch, Commit, PullRequest, Repository, WebhookDelivery
+from .permissions import ModuleWritePermission
 from .serializers import (
     BranchSerializer,
     CommitSerializer,
@@ -26,6 +29,7 @@ from .serializers import (
     HandshakeResponseSerializer,
     HealthSerializer,
     PullRequestSerializer,
+    ReadinessSerializer,
     RepositoryCreateRequestSerializer,
     RepositoryCreateResponseSerializer,
     RepositorySerializer,
@@ -33,8 +37,10 @@ from .serializers import (
     RepositorySyncResponseSerializer,
     WebhookDeliverySerializer,
 )
-from .services.crypto import decrypt_secret, encrypt_secret
+from .services.credentials import store_repository_credential
+from .services.crypto import decrypt_secret
 from .services.github import GitHubClient
+from .services.health import readiness_report
 from .services.signatures import is_valid_github_signature
 from .services.sync import sync_repository_from_github
 from .tasks import process_webhook
@@ -61,6 +67,14 @@ def health(request):
     except Exception:
         return Response({"status": "unhealthy", "database": "down"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     return Response({"status": "healthy", "database": "up"})
+
+
+@extend_schema(responses={200: ReadinessSerializer, 503: ReadinessSerializer})
+@api_view(["GET"])
+def readiness(request):
+    report = readiness_report()
+    response_status = status.HTTP_200_OK if report["status"] == "ready" else status.HTTP_503_SERVICE_UNAVAILABLE
+    return Response(report, status=response_status)
 
 
 @extend_schema(
@@ -124,15 +138,23 @@ def github_handshake(request):
             {"valid": False, "detail": "Nao foi possivel contatar o GitHub."},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
-    return Response(
-        {
-            "valid": True,
-            "login": user.get("login"),
-            "name": user.get("name"),
-            "avatar_url": user.get("avatar_url"),
-            "scopes": sorted(scopes),
-        }
-    )
+    missing_scopes = settings.GITHUB_REQUIRED_SCOPES - scopes
+    excess_scopes = scopes - settings.GITHUB_ALLOWED_SCOPES if settings.GITHUB_ALLOWED_SCOPES else set()
+    response_data = {
+        "valid": not missing_scopes,
+        "login": user.get("login"),
+        "name": user.get("name"),
+        "avatar_url": user.get("avatar_url"),
+        "scopes": sorted(scopes),
+        "required_scopes": sorted(settings.GITHUB_REQUIRED_SCOPES),
+        "missing_scopes": sorted(missing_scopes),
+        "excess_scopes": sorted(excess_scopes),
+        "least_privilege": not excess_scopes,
+    }
+    if missing_scopes:
+        response_data["detail"] = "O token não possui todos os escopos exigidos para este ambiente."
+        return Response(response_data, status=status.HTTP_403_FORBIDDEN)
+    return Response(response_data)
 
 
 @extend_schema(
@@ -157,6 +179,13 @@ def github_webhook(request):
             "invalid_webhook_payload",
             "Invalid delivery, payload, or unknown repository",
             status.HTTP_400_BAD_REQUEST,
+        )
+
+    if repository.webhook_secret_expires_at and repository.webhook_secret_expires_at <= timezone.now():
+        return _error_response(
+            "webhook_credential_expired",
+            "A credencial deste webhook expirou e precisa ser rotacionada.",
+            status.HTTP_401_UNAUTHORIZED,
         )
 
     if not is_valid_github_signature(request.body, signature, decrypt_secret(repository.webhook_secret)):
@@ -309,6 +338,7 @@ def dashboard_metrics(request):
     },
 )
 @api_view(["POST"])
+@permission_classes([ModuleWritePermission])
 def repository_sync(request, pk):
     """Sincroniza commits e dados reais de um repositorio via GitHub API (M2-111 / M2-114)."""
     try:
@@ -341,6 +371,7 @@ def repository_sync(request, pk):
 class RepositoryListView(ListCreateAPIView):
     serializer_class = RepositorySerializer
     pagination_class = None
+    permission_classes = (ModuleWritePermission,)
 
     def get_queryset(self):
         return Repository.objects.filter(active=True).order_by("owner", "name")
@@ -355,18 +386,20 @@ class RepositoryListView(ListCreateAPIView):
         },
     )
     def create(self, request, *args, **kwargs):
-        url_input = request.data.get("url") or request.data.get("repository_url") or ""
-        owner = request.data.get("owner", "").strip()
-        name = request.data.get("name", "").strip()
-        token = request.data.get("token")
-        raw_secret = request.data.get("webhook_secret", "").strip()
-
-        if len(raw_secret) < 16:
+        request_serializer = RepositoryCreateRequestSerializer(data=request.data)
+        if not request_serializer.is_valid():
             return _error_response(
-                "invalid_webhook_secret",
-                "Informe webhook_secret com pelo menos 16 caracteres e use um valor exclusivo por repositório.",
+                "invalid_repository_request",
+                f"Dados inválidos: {request_serializer.errors}",
                 status.HTTP_400_BAD_REQUEST,
             )
+        request_data = request_serializer.validated_data
+        url_input = request_data.get("url") or request_data.get("repository_url") or ""
+        owner = request_data.get("owner", "").strip()
+        name = request_data.get("name", "").strip()
+        token = request_data.get("token")
+        raw_secret = request_data["webhook_secret"].strip()
+        expires_at = request_data.get("webhook_secret_expires_at")
 
         if url_input:
             from urllib.parse import urlparse
@@ -413,15 +446,12 @@ class RepositoryListView(ListCreateAPIView):
                 status.HTTP_502_BAD_GATEWAY,
             )
 
-        repository, created = Repository.objects.update_or_create(
-            github_id=repo_data["id"],
-            defaults={
-                "owner": repo_data["owner"]["login"],
-                "name": repo_data["name"],
-                "default_branch": repo_data.get("default_branch", "main"),
-                "webhook_secret": encrypt_secret(raw_secret),
-                "active": True,
-            },
+        actor = request.user.get_username() if request.user and request.user.is_authenticated else "module-api"
+        repository, _created = store_repository_credential(
+            repo_data,
+            raw_secret,
+            expires_at,
+            actor,
         )
         sync_status = "completed"
         sync_detail = None

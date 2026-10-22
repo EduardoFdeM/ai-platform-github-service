@@ -105,3 +105,9 @@ jobs:
         with:
           app-name: 'ai-platform-github-service-eduardo'
           slot-name: 'Production'
+
+      - name: Smoke test do health publicado
+        run: |
+          curl --fail --show-error --silent \
+            --retry 12 --retry-delay 10 --retry-all-errors \
+            https://ai-platform-github-service-eduardo.azurewebsites.net/api/v1/health

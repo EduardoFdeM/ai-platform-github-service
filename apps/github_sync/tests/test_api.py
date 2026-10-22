@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.github_sync.models import Branch, Contributor, PullRequest, Repository
+from apps.github_sync.models import Branch, Contributor, CredentialAuditEvent, PullRequest, Repository
 
 pytestmark = pytest.mark.django_db
 
@@ -14,6 +14,23 @@ def test_health_check(client):
 
     assert response.status_code == 200
     assert response.json() == {"status": "healthy", "database": "up"}
+
+
+def test_readiness_reports_independent_dependencies(client):
+    report = {
+        "status": "not_ready",
+        "checks": {
+            "database": {"status": "up"},
+            "redis": {"status": "down", "detail": "redis ping failed"},
+            "worker": {"status": "down", "detail": "no Celery worker replied"},
+            "crypto": {"status": "up"},
+        },
+    }
+    with patch("apps.github_sync.views.readiness_report", return_value=report):
+        response = client.get(reverse("readiness"))
+
+    assert response.status_code == 503
+    assert response.json() == report
 
 
 def test_commit_list_is_paginated(client):
@@ -100,6 +117,8 @@ def test_create_repository_via_github_url(client, monkeypatch):
         assert response.json()["owner"] == "foo"
         assert response.json()["name"] == "bar"
         assert response.json()["initial_sync_status"] == "completed"
+        assert response.json()["webhook_secret_version"] == 1
+        assert CredentialAuditEvent.objects.get(repository__github_id=12345).action == "created"
 
 
 def test_create_repository_reports_initial_sync_failure(client, monkeypatch):
@@ -134,3 +153,42 @@ def test_repository_requires_unique_webhook_secret(client):
 
     assert response.status_code == 400
     assert "webhook_secret" in response.json()["detail"]
+
+
+def test_reconnecting_repository_rotates_secret_and_audits(client, monkeypatch):
+    import base64
+
+    monkeypatch.setenv("CREDENTIAL_MASTER_KEY", base64.urlsafe_b64encode(b"0" * 32).decode())
+    fake_data = {"id": 76543, "name": "bar", "owner": {"login": "foo"}, "default_branch": "main"}
+    with patch("apps.github_sync.services.github.GitHubClient.get_repository", return_value=fake_data), patch(
+        "apps.github_sync.views.sync_repository_from_github", return_value=0
+    ):
+        first = client.post(
+            reverse("repository-list"),
+            {"url": "https://github.com/foo/bar", "webhook_secret": "first-webhook-secret"},
+        )
+        second = client.post(
+            reverse("repository-list"),
+            {
+                "url": "https://github.com/foo/bar",
+                "webhook_secret": "second-webhook-secret",
+                "webhook_secret_expires_at": "2027-01-01T00:00:00Z",
+            },
+        )
+
+    assert first.status_code == second.status_code == 201
+    repository = Repository.objects.get(github_id=76543)
+    assert repository.webhook_secret_version == 2
+    assert repository.webhook_secret_expires_at is not None
+    assert list(repository.credential_audit_events.values_list("action", flat=True)) == ["rotated", "created"]
+
+
+def test_write_auth_can_be_enforced_with_module_api_key(client, settings):
+    settings.MODULE_ENFORCE_WRITE_AUTH = True
+    settings.MODULE_API_KEY = "internal-key"
+
+    denied = client.post(reverse("repository-list"), {})
+    accepted = client.post(reverse("repository-list"), {}, HTTP_X_MODULE_API_KEY="internal-key")
+
+    assert denied.status_code == 403
+    assert accepted.status_code == 400

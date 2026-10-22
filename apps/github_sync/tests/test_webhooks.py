@@ -12,6 +12,7 @@ from celery.exceptions import Retry
 from django.contrib.auth import get_user_model
 from django.db import OperationalError
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.github_sync.models import Commit, CommitFile, Repository, WebhookDelivery
 from apps.github_sync.services.crypto import encrypt_secret
@@ -195,3 +196,16 @@ def test_replay_rejects_anonymous_and_processed_delivery(client, repository):
     response = client.post(reverse("webhook-delivery-replay", kwargs={"delivery_id": delivery.delivery_id}))
     assert response.status_code == 409
     assert response.json()["code"] == "delivery_not_replayable"
+
+
+def test_webhook_rejects_expired_repository_credential(client, repository):
+    repository.webhook_secret_expires_at = timezone.now()
+    repository.save(update_fields=("webhook_secret_expires_at",))
+    body = json.dumps({"repository": {"id": 123}}).encode()
+
+    response = client.post(
+        reverse("github-webhook"), data=body, content_type="application/json", **signed_headers(body)
+    )
+
+    assert response.status_code == 401
+    assert response.json()["code"] == "webhook_credential_expired"

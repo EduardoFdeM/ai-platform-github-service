@@ -12,12 +12,14 @@ from .views import (
     github_handshake,
     github_webhook,
     health,
+    readiness,
     replay_webhook,
     repository_sync,
 )
 
 urlpatterns = [
     path("health", health, name="health"),
+    path("health/readiness", readiness, name="readiness"),
     path("health/github-connectivity", github_connectivity, name="github-connectivity"),
     path("github/handshake", github_handshake, name="github-handshake"),
     path("repositories", RepositoryListView.as_view(), name="repository-list"),
