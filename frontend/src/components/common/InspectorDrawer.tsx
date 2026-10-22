@@ -232,7 +232,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Dados disponibilizados para este item:</span>
                 <button
                   onClick={() => handleCopy(JSON.stringify(jsonPayload, null, 2))}
-                  className="btn-nexus btn-nexus-secondary btn-nexus-sm"
+                  className="btn-module btn-module-secondary btn-module-sm"
                 >
                   {copied ? <Check size={12} color="#10B981" /> : <Copy size={12} />}
                   <span>{copied ? 'Copiado!' : 'Copiar JSON'}</span>
@@ -336,7 +336,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
               href={item.url}
               target="_blank"
               rel="noreferrer"
-              className="btn-nexus btn-nexus-secondary btn-nexus-sm"
+              className="btn-module btn-module-secondary btn-module-sm"
               style={{ textDecoration: 'none' }}
             >
               <span>Ver no GitHub</span>

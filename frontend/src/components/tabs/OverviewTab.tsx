@@ -24,7 +24,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   syncing,
 }) => {
   const [inspectedItem, setInspectedItem] = useState<InspectorItem | null>(null)
-  const showIdeation = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
+  const showIdeation = false
 
   const totalCommits = flow?.total_commits ?? commits.length
 
@@ -39,16 +39,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       />
 
       {/* Bloco: Atividade e saúde da integração (2 Colunas) */}
-      {showIdeation && <div className="nexus-card">
-        <div className="nexus-card-header">
+      {showIdeation && <div className="module-card">
+        <div className="module-card-header">
           <div>
-            <div className="nexus-card-title">
+            <div className="module-card-title">
               Atividade e saúde da integração
               <span className="badge badge-success" style={{ marginLeft: 6 }}>
                 ● Operacional
               </span>
             </div>
-            <div className="nexus-card-subtitle">
+            <div className="module-card-subtitle">
               Pipeline de execução mais recente e verificações dos serviços dependentes.
             </div>
           </div>

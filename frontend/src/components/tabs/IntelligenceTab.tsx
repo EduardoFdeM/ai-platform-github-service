@@ -38,9 +38,9 @@ export const IntelligenceTab = ({ repository, variant }: IntelligenceTabProps) =
   if (!repository) {
     return (
       <div className="view-container">
-        <div className="nexus-card" role="status">
-          <div className="nexus-card-title">Conecte um repositório para iniciar a análise</div>
-          <p className="nexus-card-subtitle">Esta área calcula indicadores somente sobre commits realmente indexados.</p>
+        <div className="module-card" role="status">
+          <div className="module-card-title">Conecte um repositório para iniciar a análise</div>
+          <p className="module-card-subtitle">Esta área calcula indicadores somente sobre commits realmente indexados.</p>
         </div>
       </div>
     )
@@ -72,7 +72,7 @@ export const IntelligenceTab = ({ repository, variant }: IntelligenceTabProps) =
               <option value={90}>90 dias</option>
             </select>
           </label>
-          <button type="button" onClick={() => void load()} disabled={loading} className="btn-nexus btn-nexus-primary btn-nexus-sm">
+          <button type="button" onClick={() => void load()} disabled={loading} className="btn-module btn-module-primary btn-module-sm">
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
             {loading ? 'Calculando...' : 'Atualizar análise'}
           </button>
@@ -83,7 +83,7 @@ export const IntelligenceTab = ({ repository, variant }: IntelligenceTabProps) =
 
       {data && (
         <>
-          <div className="nexus-kpi-grid">
+          <div className="module-kpi-grid">
             <div className="kpi-box">
               <span className="kpi-title">COMMITS NO PERÍODO</span>
               <div className="kpi-number">{data.total_commits}</div>
@@ -107,10 +107,10 @@ export const IntelligenceTab = ({ repository, variant }: IntelligenceTabProps) =
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18 }}>
-            <div className="nexus-card">
-              <div className="nexus-card-title"><AlertTriangle size={15} /> Gargalos observados</div>
+            <div className="module-card">
+              <div className="module-card-title"><AlertTriangle size={15} /> Gargalos observados</div>
               {data.bottlenecks.length === 0 ? (
-                <p className="nexus-card-subtitle">Nenhum gargalo foi sinalizado pelos critérios atuais.</p>
+                <p className="module-card-subtitle">Nenhum gargalo foi sinalizado pelos critérios atuais.</p>
               ) : data.bottlenecks.map((item) => (
                 <div key={item.code} className="code-box-dark" style={{ marginTop: 10 }}>
                   <span className={`badge ${item.severity === 'warning' ? 'badge-warning' : 'badge-info'}`}>{item.code}</span>
@@ -118,25 +118,25 @@ export const IntelligenceTab = ({ repository, variant }: IntelligenceTabProps) =
                 </div>
               ))}
             </div>
-            <div className="nexus-card">
-              <div className="nexus-card-title"><Bot size={15} /> Recomendações revisáveis</div>
+            <div className="module-card">
+              <div className="module-card-title"><Bot size={15} /> Recomendações revisáveis</div>
               {data.recommendations.length === 0 ? (
-                <p className="nexus-card-subtitle">Sem recomendações para os dados atuais.</p>
+                <p className="module-card-subtitle">Sem recomendações para os dados atuais.</p>
               ) : (
                 <ol style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 10 }}>
                   {data.recommendations.map((item) => <li key={item}>{item}</li>)}
                 </ol>
               )}
-              <p className="nexus-card-subtitle" style={{ marginTop: 12 }}>
+              <p className="module-card-subtitle" style={{ marginTop: 12 }}>
                 Modo: {data.analysis_mode}. Recomendações apoiam a revisão humana e não medem desempenho individual.
               </p>
             </div>
           </div>
 
-          <div className="nexus-card">
-            <div className="nexus-card-title"><Icon size={15} /> Clareza recente das mensagens</div>
+          <div className="module-card">
+            <div className="module-card-title"><Icon size={15} /> Clareza recente das mensagens</div>
             <div className="table-responsive">
-              <table className="nexus-table">
+              <table className="module-table">
                 <thead><tr><th>COMMIT</th><th>MENSAGEM</th><th>AUTOR</th><th>NOTA</th><th>LEITURA</th></tr></thead>
                 <tbody>
                   {data.recent_commit_quality.map((item) => (

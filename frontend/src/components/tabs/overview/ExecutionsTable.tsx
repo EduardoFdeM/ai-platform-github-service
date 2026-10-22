@@ -78,16 +78,16 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
   })
 
   return (
-    <div className="nexus-card">
-      <div className="nexus-card-header">
+    <div className="module-card">
+      <div className="module-card-header">
         <div>
-          <div className="nexus-card-title">
+          <div className="module-card-title">
             Commits indexados
             <span className="badge badge-success" style={{ marginLeft: 6 }}>
               ● {commits.length} commits sincronizados
             </span>
           </div>
-          <div className="nexus-card-subtitle">
+          <div className="module-card-subtitle">
             Registros devolvidos por GET /api/v1/commits para o repositório selecionado.
           </div>
         </div>
@@ -110,7 +110,7 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
 
       {filteredExecutions.length > 0 ? (
         <div className="table-wrapper">
-          <table className="nexus-table">
+          <table className="module-table">
             <thead>
               <tr>
                 <th style={{ width: 110 }}>STATUS</th>
@@ -239,7 +239,7 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
             <button
               onClick={onSyncNow}
               disabled={syncing}
-              className="btn-nexus btn-nexus-primary btn-nexus-sm"
+              className="btn-module btn-module-primary btn-module-sm"
               style={{ marginTop: 8 }}
             >
               <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />

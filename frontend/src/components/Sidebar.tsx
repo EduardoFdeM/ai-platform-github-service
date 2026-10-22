@@ -25,14 +25,14 @@ export const Sidebar: React.FC<SidebarProps> = () => {
   const showPlatformShell = import.meta.env.VITE_SHOW_PLATFORM_SHELL === 'true'
 
   return (
-    <aside className="nexus-sidebar">
+    <aside className="module-sidebar">
       <div className="sidebar-top">
         {/* Identificação do módulo. */}
-        <div className="nexus-brand">
-          <div className="nexus-logo-icon">M2</div>
-          <div className="nexus-logo-text">
-            <span className="nexus-brand-name">GitHub Sync</span>
-            <span className="nexus-brand-sub">MÓDULO 2</span>
+        <div className="module-brand">
+          <div className="module-logo-icon">M2</div>
+          <div className="module-logo-text">
+            <span className="module-brand-name">GitHub Sync</span>
+            <span className="module-brand-sub">MÓDULO 2</span>
           </div>
         </div>
 

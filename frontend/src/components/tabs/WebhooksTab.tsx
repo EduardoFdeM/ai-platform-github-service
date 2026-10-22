@@ -317,7 +317,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
 
           <button
             onClick={() => setStreamActive(!streamActive)}
-            className="btn-nexus btn-nexus-secondary btn-nexus-sm"
+            className="btn-module btn-module-secondary btn-module-sm"
           >
             {streamActive ? <Pause size={12} /> : <Play size={12} />}
             <span>{streamActive ? 'Pausar atualização' : 'Retomar atualização'}</span>
@@ -325,7 +325,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
 
           <button
             onClick={() => setShowSimulator(!showSimulator)}
-            className="btn-nexus btn-nexus-primary btn-nexus-sm"
+            className="btn-module btn-module-primary btn-module-sm"
           >
             <Send size={12} />
             <span>Simulador de Webhook</span>
@@ -399,9 +399,9 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
 
       {/* Modal / Painel Inline do Simulador de Webhook */}
       {showSimulator && (
-        <div className="nexus-card" style={{ borderColor: '#3B82F6' }}>
-          <div className="nexus-card-header">
-            <div className="nexus-card-title">
+        <div className="module-card" style={{ borderColor: '#3B82F6' }}>
+          <div className="module-card-header">
+            <div className="module-card-title">
               <Send size={14} style={{ color: '#60A5FA' }} />
               <span>Simulador E2E de Evento Git (HMAC-SHA256)</span>
             </div>
@@ -489,7 +489,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
               <button
                 type="submit"
                 disabled={simulating || !repository || simSecret.trim().length < 16}
-                className="btn-nexus btn-nexus-primary"
+                className="btn-module btn-module-primary"
               >
                 <Send size={12} />
                 <span>{simulating ? 'Enviando e validando HMAC...' : 'Disparar Push Assinado'}</span>
@@ -500,16 +500,16 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
       )}
 
       {/* Fila Assíncrona: 4 Cards KPI */}
-      {showOperationalIdeation && <div className="nexus-card">
-        <div className="nexus-card-header">
+      {showOperationalIdeation && <div className="module-card">
+        <div className="module-card-header">
           <div>
-            <div className="nexus-card-title">
+            <div className="module-card-title">
               Fila assíncrona — ideação
               <span className="badge badge-warning" style={{ marginLeft: 6 }}>
                 Dados de demonstração
               </span>
             </div>
-            <div className="nexus-card-subtitle">
+            <div className="module-card-subtitle">
               Throughput e saúde operacional do processamento em segundo plano via Celery & Redis.
             </div>
           </div>
@@ -555,10 +555,10 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
       </div>}
 
       {/* Tabela: Eventos Recentes */}
-      <div className="nexus-card">
-        <div className="nexus-card-header">
+      <div className="module-card">
+        <div className="module-card-header">
           <div>
-            <div className="nexus-card-title">
+            <div className="module-card-title">
               Eventos recentes
               {!hasLiveDeliveries && showOperationalIdeation && (
                 <span className="badge badge-warning">Ideação demonstrativa</span>
@@ -567,7 +567,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
                 <span className="badge badge-info">Sem eventos persistidos</span>
               )}
             </div>
-            <div className="nexus-card-subtitle">
+            <div className="module-card-subtitle">
               {hasLiveDeliveries
                 ? 'Últimas entregas recebidas. Selecione uma linha para consultar os metadados persistidos.'
                 : showOperationalIdeation
@@ -576,7 +576,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
             </div>
           </div>
           <button
-            className="btn-nexus btn-nexus-secondary btn-nexus-sm"
+            className="btn-module btn-module-secondary btn-module-sm"
             disabled
             title="A exportação de eventos ainda não possui endpoint próprio."
           >
@@ -628,7 +628,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
         </div>
 
         <div className="table-responsive">
-          <table className="nexus-table">
+          <table className="module-table">
             <thead>
               <tr>
                 <th>EVENTO</th>
@@ -765,8 +765,8 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
               </div>
             </div>
 
-            <div className="nexus-card" style={{ margin: 0 }}>
-              <div className="nexus-card-title">Dados persistidos da entrega</div>
+            <div className="module-card" style={{ margin: 0 }}>
+              <div className="module-card-title">Dados persistidos da entrega</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginTop: 12, fontSize: 11 }}>
                 <div><span style={{ color: 'var(--text-tertiary)', display: 'block' }}>TENTATIVAS</span>{selectedEvent.attempts ?? 'Não informado'}</div>
                 <div><span style={{ color: 'var(--text-tertiary)', display: 'block' }}>COMMITS</span>{selectedEvent.commitsCount ?? 'Não informado'}</div>
@@ -859,7 +859,7 @@ Os demais headers originais não são persistidos pelo contrato atual.`}</pre>
             {/* Ações do Drawer */}
             <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
               <button
-                className="btn-nexus btn-nexus-primary"
+                className="btn-module btn-module-primary"
                 style={{ flex: 1 }}
                 disabled
                 title="O trace distribuído ainda não é fornecido por este módulo."
@@ -868,7 +868,7 @@ Os demais headers originais não são persistidos pelo contrato atual.`}</pre>
                 <span>Trace em desenvolvimento</span>
               </button>
               <button
-                className="btn-nexus btn-nexus-secondary"
+                className="btn-module btn-module-secondary"
                 style={{ flex: 1 }}
                 disabled
                 title="A consulta de logs centralizados ainda não é fornecida por este módulo."

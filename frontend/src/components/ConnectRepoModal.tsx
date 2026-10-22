@@ -259,14 +259,14 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
               type="button"
               onClick={resetAndClose}
               disabled={loading}
-              className="btn-nexus btn-nexus-secondary"
+              className="btn-module btn-module-secondary"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading || isInvalidUrl || !url.trim() || webhookSecret.trim().length < 16}
-              className="btn-nexus btn-nexus-primary"
+              className="btn-module btn-module-primary"
             >
               {loading ? 'Conectando & Sincronizando...' : 'Conectar Repositório'}
             </button>

@@ -251,7 +251,7 @@ html, body {
 }
 
 /* Layout Shell com Sidebar Fixa e Área Principal */
-.nexus-layout {
+.module-layout {
   display: flex;
   min-height: 100vh;
   background-color: var(--bg-app);
@@ -261,7 +261,7 @@ html, body {
 /* ==========================================================================
    SIDEBAR LATERAL (245px)
    ========================================================================== */
-.nexus-sidebar {
+.module-sidebar {
   width: 250px;
   min-width: 250px;
   background-color: var(--bg-sidebar);
@@ -288,13 +288,13 @@ html, body {
 }
 
 /* Logo Brand */
-.nexus-brand {
+.module-brand {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.nexus-logo-icon {
+.module-logo-icon {
   width: 32px;
   height: 32px;
   background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
@@ -308,12 +308,12 @@ html, body {
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
 }
 
-.nexus-logo-text {
+.module-logo-text {
   display: flex;
   flex-direction: column;
 }
 
-.nexus-brand-name {
+.module-brand-name {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.3px;
@@ -321,7 +321,7 @@ html, body {
   line-height: 1.1;
 }
 
-.nexus-brand-sub {
+.module-brand-sub {
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 1.2px;
@@ -499,7 +499,7 @@ html, body {
 /* ==========================================================================
    CONTEÚDO PRINCIPAL (MAIN VIEWPORT)
    ========================================================================== */
-.nexus-main {
+.module-main {
   margin-left: 250px;
   flex: 1;
   display: flex;
@@ -510,7 +510,7 @@ html, body {
 }
 
 /* Header Topbar Superior */
-.nexus-header {
+.module-header {
   background-color: var(--bg-sidebar);
   border-bottom: 1px solid var(--border-subtle);
   padding: 14px 28px;
@@ -624,7 +624,7 @@ html, body {
 }
 
 /* Botões do sistema. */
-.btn-nexus {
+.btn-module {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -640,48 +640,48 @@ html, body {
   font-family: var(--font-sans);
 }
 
-.btn-nexus-primary {
+.btn-module-primary {
   background: linear-gradient(180deg, #2563EB 0%, #1D4ED8 100%);
   color: #FFFFFF;
   box-shadow: 0 1px 4px rgba(37, 99, 235, 0.4);
 }
-.btn-nexus-primary:hover:not(:disabled) {
+.btn-module-primary:hover:not(:disabled) {
   background: linear-gradient(180deg, #3B82F6 0%, #2563EB 100%);
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.6);
 }
 
-.btn-nexus-secondary {
+.btn-module-secondary {
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
   color: var(--text-main);
 }
-.btn-nexus-secondary:hover:not(:disabled) {
+.btn-module-secondary:hover:not(:disabled) {
   background-color: var(--bg-card-hover);
   border-color: var(--border-highlight);
 }
 
-.btn-nexus-danger {
+.btn-module-danger {
   background-color: var(--danger-subtle);
   border: 1px solid var(--danger-border);
   color: #F87171;
 }
-.btn-nexus-danger:hover:not(:disabled) {
+.btn-module-danger:hover:not(:disabled) {
   background-color: rgba(239, 68, 68, 0.25);
   border-color: #EF4444;
 }
 
-.btn-nexus-sm {
+.btn-module-sm {
   padding: 4px 9px;
   font-size: 11.5px;
 }
 
-.btn-nexus:disabled {
+.btn-module:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 /* Abas de Navegação das 7 Telas do Figma */
-.nexus-tabs-bar {
+.module-tabs-bar {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -824,7 +824,7 @@ html, body {
 /* ==========================================================================
    CARDS E PAINEIS GERAIS
    ========================================================================== */
-.nexus-card {
+.module-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -835,7 +835,7 @@ html, body {
   position: relative;
 }
 
-.nexus-card-header {
+.module-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -843,7 +843,7 @@ html, body {
   flex-wrap: wrap;
 }
 
-.nexus-card-title {
+.module-card-title {
   font-size: 14px;
   font-weight: 600;
   color: #FFFFFF;
@@ -852,7 +852,7 @@ html, body {
   gap: 8px;
 }
 
-.nexus-card-subtitle {
+.module-card-subtitle {
   font-size: 11.5px;
   color: var(--text-tertiary);
   margin-top: 2px;
@@ -1018,14 +1018,14 @@ html, body {
   background-color: var(--bg-card);
 }
 
-.nexus-table {
+.module-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
   font-size: 12px;
 }
 
-.nexus-table th {
+.module-table th {
   background-color: #0A0F1D;
   color: var(--text-tertiary);
   font-weight: 600;
@@ -1037,7 +1037,7 @@ html, body {
   white-space: nowrap;
 }
 
-.nexus-table td {
+.module-table td {
   padding: 11px 14px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-muted);
@@ -1045,16 +1045,16 @@ html, body {
   white-space: nowrap;
 }
 
-.nexus-table tbody tr {
+.module-table tbody tr {
   transition: background-color 0.1s ease;
   cursor: pointer;
 }
 
-.nexus-table tbody tr:hover {
+.module-table tbody tr:hover {
   background-color: var(--bg-card-hover);
 }
 
-.nexus-table tbody tr:last-child td {
+.module-table tbody tr:last-child td {
   border-bottom: none;
 }
 

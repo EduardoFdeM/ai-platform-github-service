@@ -130,9 +130,9 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
       {/* Grid Principal (2 Colunas) */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 18 }}>
         {/* Coluna Esquerda: Gestão de Credenciais e PAT */}
-        <div className="nexus-card">
-          <div className="nexus-card-header">
-            <div className="nexus-card-title">
+        <div className="module-card">
+          <div className="module-card-header">
+            <div className="module-card-title">
               <KeyRound size={15} style={{ color: '#60A5FA' }} />
               <span>Validação de credencial PAT</span>
             </div>
@@ -142,7 +142,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
             </span>}
           </div>
 
-          <p className="nexus-card-subtitle" style={{ marginTop: -8 }}>
+          <p className="module-card-subtitle" style={{ marginTop: -8 }}>
             Valide uma credencial diretamente no GitHub. O token não é persistido por esta interface.
           </p>
 
@@ -314,7 +314,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
             <button
               onClick={handleTestHandshake}
               disabled={loading || !token.trim()}
-              className="btn-nexus btn-nexus-primary"
+              className="btn-module btn-module-primary"
             >
               <RotateCw size={12} className={loading ? 'animate-spin' : ''} />
               <span>{loading ? 'Validando...' : 'Testar handshake'}</span>
@@ -329,9 +329,9 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
         </div>
 
         {/* Coluna Direita: Inspeção de Permissões */}
-        <div className="nexus-card">
-          <div className="nexus-card-header">
-            <div className="nexus-card-title">
+        <div className="module-card">
+          <div className="module-card-header">
+            <div className="module-card-title">
               <ShieldCheck size={15} style={{ color: '#34D399' }} />
               <span>Inspeção de Permissões</span>
             </div>
@@ -340,7 +340,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
             </span>
           </div>
 
-          <p className="nexus-card-subtitle" style={{ marginTop: -8 }}>
+          <p className="module-card-subtitle" style={{ marginTop: -8 }}>
             Escopos efetivos devolvidos pelo GitHub na última validação autenticada.
           </p>
 
@@ -433,7 +433,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
                 pat_8f3s••••c92e
               </span>
             </div>
-            <button onClick={handleTestHandshake} className="btn-nexus btn-nexus-secondary btn-nexus-sm">
+            <button onClick={handleTestHandshake} className="btn-module btn-module-secondary btn-module-sm">
               <RotateCw size={11} />
               <span>Reinspecionar</span>
             </button>
@@ -442,22 +442,22 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
       </div>
 
       {/* Auditoria de Acesso (Tabela Inferior) */}
-      {showCredentialIdeation && <div className="nexus-card">
-        <div className="nexus-card-header">
+      {showCredentialIdeation && <div className="module-card">
+        <div className="module-card-header">
           <div>
-            <div className="nexus-card-title">Auditoria de Acesso</div>
-            <div className="nexus-card-subtitle">
+            <div className="module-card-title">Auditoria de Acesso</div>
+            <div className="module-card-subtitle">
               Histórico imutável de rotação de credenciais e validações de conectividade.
             </div>
           </div>
-          <button className="btn-nexus btn-nexus-secondary btn-nexus-sm">
+          <button className="btn-module btn-module-secondary btn-module-sm">
             <Download size={12} />
             <span>Exportar CSV</span>
           </button>
         </div>
 
         <div className="table-responsive">
-          <table className="nexus-table">
+          <table className="module-table">
             <thead>
               <tr>
                 <th>DATA/HORA</th>

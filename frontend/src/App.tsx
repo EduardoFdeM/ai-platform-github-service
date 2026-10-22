@@ -7,7 +7,6 @@ import { AuthTab } from './components/tabs/AuthTab'
 import { WebhooksTab } from './components/tabs/WebhooksTab'
 import { SyncTab } from './components/tabs/SyncTab'
 import { IntelligenceTab } from './components/tabs/IntelligenceTab'
-import { DevOpsTab } from './components/tabs/DevOpsTab'
 import { DevelopmentTab } from './components/tabs/DevelopmentTab'
 import LegacyDashboard from './components/legacy/LegacyDashboard'
 import { LandingPage } from './components/LandingPage'
@@ -24,9 +23,6 @@ import {
 } from './api'
 
 export default function App() {
-  // As telas de ideação permanecem no histórico do código, mas o /app nunca as
-  // ativa: somente dados reais ou estados explícitos de desenvolvimento aparecem.
-  const showIdeationPreviews = false
   // A landing é a porta de entrada institucional. O workspace ativo fica em
   // /app; a versão entregue anteriormente continua disponível em /legacy.
   const [viewMode, setViewMode] = useState<'landing' | 'workspace' | 'legacy'>(() => {
@@ -206,12 +202,12 @@ export default function App() {
   }
 
   return (
-    <div className="nexus-layout">
+    <div className="module-layout">
       {/* Sidebar lateral do Módulo 2 (fixa e acompanha a viewport). */}
       <Sidebar />
 
       {/* Área de Conteúdo Principal */}
-      <main className="nexus-main">
+      <main className="module-main">
         {/* Topbar com navegação por abas, seletores e alternância de versão */}
         <Header
           activeTab={activeTab}
@@ -297,9 +293,7 @@ export default function App() {
 
         {activeTab === 'ai' && <IntelligenceTab repository={selectedRepo} variant="ai" />}
 
-        {activeTab === 'devops' && showIdeationPreviews && <DevOpsTab />}
-
-        {activeTab === 'devops' && !showIdeationPreviews && (
+        {activeTab === 'devops' && (
           <DevelopmentTab
             title="DevOps e documentação"
             status="Em desenvolvimento"

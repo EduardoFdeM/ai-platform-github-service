@@ -35,7 +35,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('all')
-  const showIdeation = import.meta.env.VITE_SHOW_IDEATION_TABS === 'true'
+  const showIdeation = false
 
   const totalCommits = flow?.total_commits ?? commits.length
 
@@ -87,7 +87,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
         <button
           onClick={onSyncNow}
           disabled={syncing}
-          className="btn-nexus btn-nexus-primary"
+          className="btn-module btn-module-primary"
         >
           <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
           <span>Reconciliar Repositório (Compara commits locais + GitHub)</span>
@@ -122,7 +122,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
             <span className="badge badge-success">No banco</span>
           </div>
           <div className="kpi-value">{totalCommits}</div>
-          <div className="kpi-sub">persistidos no PostgreSQL</div>
+          <div className="kpi-sub">persistidos no banco configurado</div>
         </div>
 
         <div className="kpi-card">
@@ -162,11 +162,11 @@ export const SyncTab: React.FC<SyncTabProps> = ({
         </div>}
       </div>
 
-      <div className="nexus-card">
-        <div className="nexus-card-header">
+      <div className="module-card">
+        <div className="module-card-header">
           <div>
-            <div className="nexus-card-title">Estrutura indexada</div>
-            <div className="nexus-card-subtitle">
+            <div className="module-card-title">Estrutura indexada</div>
+            <div className="module-card-subtitle">
               Dados reais dos endpoints de branches e pull requests do repositório selecionado.
             </div>
           </div>
@@ -221,11 +221,11 @@ export const SyncTab: React.FC<SyncTabProps> = ({
       </div>
 
       {/* Carga Inicial & Delta Sync Incremental */}
-      {showIdeation && <div className="nexus-card">
-        <div className="nexus-card-header">
+      {showIdeation && <div className="module-card">
+        <div className="module-card-header">
           <div>
-            <div className="nexus-card-title">Carga inicial e estratégia incremental</div>
-            <div className="nexus-card-subtitle">
+            <div className="module-card-title">Carga inicial e estratégia incremental</div>
+            <div className="module-card-subtitle">
               Processamento retroativo com paginação resiliente e consultas delta após a conclusão.
             </div>
           </div>
@@ -366,18 +366,18 @@ export const SyncTab: React.FC<SyncTabProps> = ({
       </div>}
 
       {/* Tabela: Vínculo de Contribuintes */}
-      <div className="nexus-card">
-        <div className="nexus-card-header">
+      <div className="module-card">
+        <div className="module-card-header">
           <div>
-            <div className="nexus-card-title">Vínculo de Contribuintes</div>
-            <div className="nexus-card-subtitle">
+            <div className="module-card-title">Vínculo de Contribuintes</div>
+            <div className="module-card-subtitle">
               Consolide múltiplos e-mails Git em um único perfil de estudante para manter as métricas acadêmicas corretas.
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className="badge badge-success">● {students.length} identidades Git</span>
-            <button onClick={exportContributors} className="btn-nexus btn-nexus-secondary btn-nexus-sm">
+            <button onClick={exportContributors} className="btn-module btn-module-secondary btn-module-sm">
               <Download size={12} />
               <span>Exportar contribuintes</span>
             </button>
@@ -412,7 +412,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
         </div>
 
         <div className="table-responsive">
-          <table className="nexus-table">
+          <table className="module-table">
             <thead>
               <tr>
                 <th>ESTUDANTE</th>
@@ -486,12 +486,12 @@ export const SyncTab: React.FC<SyncTabProps> = ({
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     {item.status === 'indexado' ? (
-                      <button className="btn-nexus btn-nexus-secondary btn-nexus-sm" disabled title="A revisão manual de vínculos ainda não possui endpoint.">
+                      <button className="btn-module btn-module-secondary btn-module-sm" disabled title="A revisão manual de vínculos ainda não possui endpoint.">
                         <Users size={11} />
                         <span>Aguardando integração M1</span>
                       </button>
                     ) : (
-                      <button className="btn-nexus btn-nexus-primary btn-nexus-sm" disabled title="A resolução de vínculos ainda não possui endpoint.">
+                      <button className="btn-module btn-module-primary btn-module-sm" disabled title="A resolução de vínculos ainda não possui endpoint.">
                         <UserCheck size={11} />
                         <span>Resolução em desenvolvimento</span>
                       </button>

@@ -84,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { breadcrumb, title } = getHeaderMeta()
 
   return (
-    <header className="nexus-header">
+    <header className="module-header">
       {/* Linha Superior com Título e Ações */}
       <div className="header-row-primary">
         <div className="header-title-box">
@@ -154,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Botão Conectar Repositório (abre modal via Link GitHub) */}
           <button
             onClick={onOpenConnectModal}
-            className="btn-nexus btn-nexus-secondary"
+            className="btn-module btn-module-secondary"
             title="Conectar novo repositório colando a URL do GitHub"
           >
             <Plus size={13} />
@@ -164,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Botão Configurar */}
           <button
             onClick={() => onSelectTab('auth')}
-            className="btn-nexus btn-nexus-secondary"
+            className="btn-module btn-module-secondary"
             title="Configurações e Credenciais"
           >
             <SlidersHorizontal size={13} />
@@ -175,7 +175,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onSyncNow}
             disabled={syncing}
-            className="btn-nexus btn-nexus-primary"
+            className="btn-module btn-module-primary"
             title={selectedRepo ? 'Sincronizar dados diretamente da API do GitHub' : 'Conecte um repositório para sincronizar'}
           >
             <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
@@ -185,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
           {onSwitchToLegacy && (
             <button
               onClick={onSwitchToLegacy}
-              className="btn-nexus btn-nexus-secondary"
+              className="btn-module btn-module-secondary"
               style={{
                 borderColor: '#3B82F6',
                 color: '#93C5FD',
@@ -199,8 +199,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Navegação pelas áreas previstas nas POCs. DevOps permanece como prévia até haver fonte remota verificável. */}
-      <nav className="nexus-tabs-bar" aria-label="Navegação do Módulo 2">
+      {/* Navegação pelas áreas previstas nas POCs. DevOps usa um estado explícito até haver fonte remota verificável. */}
+      <nav className="module-tabs-bar" aria-label="Navegação do Módulo 2">
         <button
           className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
           onClick={() => onSelectTab('overview')}

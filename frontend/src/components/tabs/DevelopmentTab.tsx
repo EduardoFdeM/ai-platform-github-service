@@ -31,11 +31,11 @@ export const DevelopmentTab: React.FC<DevelopmentTabProps> = ({
       </span>
     </div>
 
-    <div className="nexus-card">
-      <div className="nexus-card-header">
+    <div className="module-card">
+      <div className="module-card-header">
         <div>
-          <div className="nexus-card-title">Estado desta área</div>
-          <div className="nexus-card-subtitle">
+          <div className="module-card-title">Estado desta área</div>
+          <div className="module-card-subtitle">
             Esta tela permanece navegável para representar a POC, sem exibir dados fictícios ou ações sem backend.
           </div>
         </div>
@@ -63,10 +63,10 @@ export const DevelopmentTab: React.FC<DevelopmentTabProps> = ({
 
       {showDocumentation && (
         <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
-          <a className="btn-nexus btn-nexus-primary" href={apiDocumentation.swagger} target="_blank" rel="noreferrer">
+          <a className="btn-module btn-module-primary" href={apiDocumentation.swagger} target="_blank" rel="noreferrer">
             Abrir Swagger
           </a>
-          <a className="btn-nexus btn-nexus-secondary" href={apiDocumentation.schema} target="_blank" rel="noreferrer">
+          <a className="btn-module btn-module-secondary" href={apiDocumentation.schema} target="_blank" rel="noreferrer">
             Abrir OpenAPI
           </a>
         </div>

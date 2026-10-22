@@ -51,7 +51,7 @@ export const DiagnosticCard: React.FC<DiagnosticCardProps> = ({
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button
-          className="btn-nexus btn-nexus-secondary btn-nexus-sm"
+          className="btn-module btn-module-secondary btn-module-sm"
           style={{ flex: 1 }}
           onClick={onTestConnection}
           disabled={testing}

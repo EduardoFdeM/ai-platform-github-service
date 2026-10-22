@@ -15,7 +15,7 @@ export const OverviewKpis: React.FC<OverviewKpisProps> = ({
   showIdeation = false,
 }) => {
   return (
-    <div className="nexus-kpi-grid">
+    <div className="module-kpi-grid">
       {/* KPI 1: Commits Indexados (REAL DO BANCO) */}
       <div className="kpi-box">
         <div className="kpi-top">
