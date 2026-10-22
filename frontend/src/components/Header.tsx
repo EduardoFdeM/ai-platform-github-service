@@ -175,12 +175,12 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Botão Sincronizar Agora */}
           <button
             onClick={onSyncNow}
-            disabled={syncing}
+            disabled={syncing || !selectedRepo}
             className="btn-module btn-module-primary"
             title={selectedRepo ? 'Sincronizar dados diretamente da API do GitHub' : 'Conecte um repositório para sincronizar'}
           >
             <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-            <span>{syncing ? 'Sincronizando...' : 'Sincronizar agora'}</span>
+            <span>{syncing ? 'Sincronizando...' : selectedRepo ? 'Sincronizar agora' : 'Conecte um repositório'}</span>
           </button>
 
           {onSwitchToLegacy && (

@@ -347,6 +347,15 @@ html, body {
   background-color: var(--bg-card-hover);
 }
 
+.workspace-selector.is-static {
+  cursor: default;
+}
+
+.workspace-selector.is-static:hover {
+  border-color: var(--border-default);
+  background-color: var(--bg-card);
+}
+
 .workspace-badge {
   background-color: #064E3B;
   color: #34D399;
@@ -409,6 +418,7 @@ html, body {
   color: #93C5FD;
   border: 1px solid #1D4ED8;
   font-weight: 600;
+  cursor: default;
 }
 
 .nav-item.active svg {

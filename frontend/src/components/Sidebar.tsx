@@ -37,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
         </div>
 
         {/* Seletor de Contexto / Workspace */}
-        <div className="workspace-selector" title="Contexto acadêmico do módulo">
+        <div className={`workspace-selector ${showPlatformShell ? '' : 'is-static'}`} title="Contexto acadêmico do módulo">
           <span className="workspace-badge">M2</span>
           <span className="workspace-name">Plataforma acadêmica</span>
           {showPlatformShell && <ChevronDown size={14} style={{ color: 'var(--text-tertiary)' }} />}

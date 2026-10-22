@@ -86,11 +86,11 @@ export const SyncTab: React.FC<SyncTabProps> = ({
 
         <button
           onClick={onSyncNow}
-          disabled={syncing}
+          disabled={syncing || !repository}
           className="btn-module btn-module-primary"
         >
           <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-          <span>Reconciliar Repositório (Compara commits locais + GitHub)</span>
+          <span>{repository ? 'Reconciliar Repositório (Compara commits locais + GitHub)' : 'Conecte um repositório para reconciliar'}</span>
         </button>
       </div>
 

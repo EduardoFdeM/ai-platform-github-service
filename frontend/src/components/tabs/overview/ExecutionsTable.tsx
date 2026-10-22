@@ -238,12 +238,12 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
           {onSyncNow && (
             <button
               onClick={onSyncNow}
-              disabled={syncing}
+              disabled={syncing || !repoName}
               className="btn-module btn-module-primary btn-module-sm"
               style={{ marginTop: 8 }}
             >
               <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
-              <span>{syncing ? 'Sincronizando...' : 'Sincronizar commits do GitHub agora'}</span>
+              <span>{syncing ? 'Sincronizando...' : repoName ? 'Sincronizar commits do GitHub agora' : 'Conecte um repositório'}</span>
             </button>
           )}
         </div>
