@@ -14,6 +14,7 @@ from .views import (
     health,
     readiness,
     replay_webhook,
+    repository_insights,
     repository_sync,
 )
 
@@ -24,6 +25,7 @@ urlpatterns = [
     path("github/handshake", github_handshake, name="github-handshake"),
     path("repositories", RepositoryListView.as_view(), name="repository-list"),
     path("repositories/<int:pk>/sync", repository_sync, name="repository-sync"),
+    path("repositories/<int:pk>/insights", repository_insights, name="repository-insights"),
     path("webhooks/github", github_webhook, name="github-webhook"),
     path("webhooks/deliveries", WebhookDeliveryListView.as_view(), name="webhook-deliveries"),
     path("webhooks/deliveries/<uuid:delivery_id>/replay", replay_webhook, name="webhook-delivery-replay"),

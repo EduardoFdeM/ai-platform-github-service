@@ -62,6 +62,55 @@ class RepositorySyncResponseSerializer(serializers.Serializer):
     commits_synced = serializers.IntegerField(min_value=0)
 
 
+class IntelligenceRepositorySerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+
+
+class BottleneckSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    severity = serializers.ChoiceField(choices=("info", "warning", "critical"))
+    evidence = serializers.CharField()
+
+
+class CommitQualitySerializer(serializers.Serializer):
+    sha = serializers.CharField()
+    message = serializers.CharField()
+    author = serializers.CharField(allow_null=True)
+    authored_at = serializers.DateTimeField()
+    score = serializers.IntegerField(min_value=0, max_value=100)
+    label = serializers.ChoiceField(choices=("clara", "adequada", "vaga"))
+    suggestions = serializers.ListField(child=serializers.CharField())
+
+
+class FrequencySerializer(serializers.Serializer):
+    by_weekday = serializers.DictField(child=serializers.IntegerField(min_value=0))
+    by_hour = serializers.DictField(child=serializers.IntegerField(min_value=0))
+    by_author = serializers.DictField(child=serializers.IntegerField(min_value=0))
+
+
+class IntelligenceIndicatorsSerializer(serializers.Serializer):
+    top_author = serializers.CharField(allow_null=True)
+    author_concentration_percent = serializers.FloatField(min_value=0, max_value=100)
+    off_hours_percent = serializers.FloatField(min_value=0, max_value=100)
+    burst_days = serializers.ListField(child=serializers.CharField())
+
+
+class RepositoryIntelligenceSerializer(serializers.Serializer):
+    repository = IntelligenceRepositorySerializer()
+    period_days = serializers.IntegerField(min_value=1, max_value=365)
+    generated_at = serializers.DateTimeField()
+    analysis_mode = serializers.CharField()
+    total_commits = serializers.IntegerField(min_value=0)
+    average_clarity_score = serializers.FloatField(allow_null=True, min_value=0, max_value=100)
+    clarity_distribution = serializers.DictField(child=serializers.IntegerField(min_value=0))
+    frequency = FrequencySerializer()
+    indicators = IntelligenceIndicatorsSerializer()
+    bottlenecks = BottleneckSerializer(many=True)
+    recommendations = serializers.ListField(child=serializers.CharField())
+    recent_commit_quality = CommitQualitySerializer(many=True)
+
+
 class FlowMetricAuthorSerializer(serializers.Serializer):
     author__login = serializers.CharField(allow_null=True)
     commits = serializers.IntegerField(min_value=0)

@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db import IntegrityError, connection, transaction
 from django.db.models import Count
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import ListAPIView, ListCreateAPIView
@@ -32,6 +32,7 @@ from .serializers import (
     ReadinessSerializer,
     RepositoryCreateRequestSerializer,
     RepositoryCreateResponseSerializer,
+    RepositoryIntelligenceSerializer,
     RepositorySerializer,
     RepositorySyncRequestSerializer,
     RepositorySyncResponseSerializer,
@@ -41,6 +42,7 @@ from .services.credentials import store_repository_credential
 from .services.crypto import decrypt_secret
 from .services.github import GitHubClient
 from .services.health import readiness_report
+from .services.intelligence import repository_intelligence
 from .services.signatures import is_valid_github_signature
 from .services.sync import sync_repository_from_github
 from .tasks import process_webhook
@@ -366,6 +368,33 @@ def repository_sync(request, pk):
         "repository": str(repository),
         "commits_synced": commits_count,
     })
+
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            name="days",
+            type=int,
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="Janela de análise entre 1 e 365 dias (padrão: 30).",
+        )
+    ],
+    responses={200: RepositoryIntelligenceSerializer, 400: ErrorSerializer, 404: ErrorSerializer},
+)
+@api_view(["GET"])
+def repository_insights(request, pk):
+    try:
+        days = int(request.query_params.get("days", "30"))
+    except ValueError:
+        return _error_response("invalid_period", "days precisa ser um número inteiro.", status.HTTP_400_BAD_REQUEST)
+    if not 1 <= days <= 365:
+        return _error_response("invalid_period", "days precisa estar entre 1 e 365.", status.HTTP_400_BAD_REQUEST)
+    try:
+        repository = Repository.objects.get(pk=pk, active=True)
+    except Repository.DoesNotExist:
+        return _error_response("repository_not_found", "Repositório não encontrado.", status.HTTP_404_NOT_FOUND)
+    return Response(repository_intelligence(repository, days=days))
 
 
 class RepositoryListView(ListCreateAPIView):

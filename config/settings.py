@@ -113,6 +113,11 @@ GITHUB_ALLOWED_SCOPES = {
 }
 MODULE_ENFORCE_WRITE_AUTH = os.getenv("MODULE_ENFORCE_WRITE_AUTH", "false").lower() == "true"
 MODULE_API_KEY = os.getenv("MODULE_API_KEY", "")
+AI_INSIGHTS_ENABLED = os.getenv("AI_INSIGHTS_ENABLED", "false").lower() == "true"
+AI_PROVIDER_URL = os.getenv("AI_PROVIDER_URL", "")
+AI_PROVIDER_API_KEY = os.getenv("AI_PROVIDER_API_KEY", "")
+AI_PROVIDER_MODEL = os.getenv("AI_PROVIDER_MODEL", "configured-model")
+AI_PROVIDER_TIMEOUT = int(os.getenv("AI_PROVIDER_TIMEOUT", "15"))
 
 LOGGING = {
     "version": 1,
