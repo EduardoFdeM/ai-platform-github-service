@@ -60,6 +60,22 @@ def test_rejects_invalid_signature(client, repository):
     assert response.status_code == 401
 
 
+def test_returns_json_when_webhook_credential_cannot_be_decrypted(client, repository):
+    repository.webhook_secret = b"ciphertext-from-a-different-runtime"
+    repository.save(update_fields=("webhook_secret",))
+    body = json.dumps({"repository": {"id": 123}}).encode()
+
+    response = client.post(
+        reverse("github-webhook"), data=body, content_type="application/json", **signed_headers(body)
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "code": "webhook_credential_unavailable",
+        "detail": "A credencial do webhook não pôde ser lida. Rotacione o segredo antes de reenviar.",
+    }
+
+
 def test_processes_push_and_ignores_duplicate(client, repository, settings):
     settings.CELERY_TASK_ALWAYS_EAGER = True
     payload = {

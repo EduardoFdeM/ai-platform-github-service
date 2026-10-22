@@ -5,6 +5,7 @@ import time
 import uuid
 
 import requests
+from cryptography.exceptions import InvalidTag
 from django.conf import settings
 from django.db import IntegrityError, connection, transaction
 from django.db.models import Count
@@ -170,6 +171,7 @@ def github_handshake(request):
         202: OpenApiResponse(description="Evento aceito"),
         400: ErrorSerializer,
         401: ErrorSerializer,
+        503: ErrorSerializer,
     },
 )
 @api_view(["POST"])
@@ -195,7 +197,20 @@ def github_webhook(request):
             status.HTTP_401_UNAUTHORIZED,
         )
 
-    if not is_valid_github_signature(request.body, signature, decrypt_secret(repository.webhook_secret)):
+    try:
+        webhook_secret = decrypt_secret(repository.webhook_secret)
+    except (InvalidTag, RuntimeError, ValueError, UnicodeDecodeError):
+        logger.exception(
+            "webhook_credential_decryption_failed",
+            extra={"repository_id": repository.pk},
+        )
+        return _error_response(
+            "webhook_credential_unavailable",
+            "A credencial do webhook não pôde ser lida. Rotacione o segredo antes de reenviar.",
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    if not is_valid_github_signature(request.body, signature, webhook_secret):
         return _error_response("invalid_webhook_signature", "Invalid signature", status.HTTP_401_UNAUTHORIZED)
 
     try:
