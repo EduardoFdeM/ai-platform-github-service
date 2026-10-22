@@ -128,7 +128,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
       </div>
 
       {/* Grid Principal (2 Colunas) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 18 }}>
+      <div className="responsive-grid-auth">
         {/* Coluna Esquerda: Gestão de Credenciais e PAT */}
         <div className="module-card">
           <div className="module-card-header">

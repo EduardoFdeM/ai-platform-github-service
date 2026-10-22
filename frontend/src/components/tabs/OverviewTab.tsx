@@ -54,7 +54,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(280px, 1fr)', gap: 20 }}>
+        <div className="responsive-grid-overview">
           {/* Coluna Esquerda: Pipeline Horizontal Stepper */}
           <PipelineStepper
             pipelineId={commits.length > 0 ? `sync_${commits[0].sha.slice(0, 8).toUpperCase()}` : 'sync_01JBQ9A7'}

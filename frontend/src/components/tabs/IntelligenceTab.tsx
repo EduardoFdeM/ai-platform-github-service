@@ -106,7 +106,7 @@ export const IntelligenceTab = ({ repository, variant }: IntelligenceTabProps) =
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18 }}>
+          <div className="responsive-grid-two">
             <div className="module-card">
               <div className="module-card-title"><AlertTriangle size={15} /> Gargalos observados</div>
               {data.bottlenecks.length === 0 ? (

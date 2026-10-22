@@ -415,7 +415,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
           </div>
 
           <form onSubmit={handleSimulateWebhook} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            <div className="responsive-grid-three">
               <div>
                 <label className="form-label">Autor do Commit</label>
                 <input
@@ -738,7 +738,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
                 <span className="badge badge-info">{selectedEvent.event}</span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, fontSize: 11 }}>
+              <div className="responsive-grid-three" style={{ gap: 8, fontSize: 11 }}>
                 <div>
                   <span style={{ color: 'var(--text-tertiary)', display: 'block', fontSize: 10 }}>AUTOR</span>
                   <span style={{ color: '#FFFFFF', fontWeight: 500 }}>
@@ -767,7 +767,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
 
             <div className="module-card" style={{ margin: 0 }}>
               <div className="module-card-title">Dados persistidos da entrega</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginTop: 12, fontSize: 11 }}>
+              <div className="responsive-grid-two" style={{ gap: 12, marginTop: 12, fontSize: 11 }}>
                 <div><span style={{ color: 'var(--text-tertiary)', display: 'block' }}>TENTATIVAS</span>{selectedEvent.attempts ?? 'Não informado'}</div>
                 <div><span style={{ color: 'var(--text-tertiary)', display: 'block' }}>COMMITS</span>{selectedEvent.commitsCount ?? 'Não informado'}</div>
                 <div><span style={{ color: 'var(--text-tertiary)', display: 'block' }}>RECEBIDO EM</span>{selectedEvent.receivedAt ? new Date(selectedEvent.receivedAt).toLocaleString('pt-BR') : 'Não informado'}</div>

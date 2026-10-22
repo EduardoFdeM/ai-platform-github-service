@@ -172,7 +172,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.4fr)', gap: 18 }}>
+        <div className="responsive-grid-sync">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
               <GitBranch size={14} color="#60A5FA" />
@@ -232,7 +232,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           <span className="badge badge-success">● Worker indexer-07 saudável</span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 18 }}>
+        <div className="responsive-grid-auth">
           {/* Coluna Esquerda: Importação Histórica */}
           <div
             style={{
@@ -269,7 +269,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
             </div>
 
             {/* Grid de 4 Estatísticas de Carga */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, fontSize: 11 }}>
+            <div className="responsive-grid-four" style={{ fontSize: 11 }}>
               <div>
                 <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>COMMITS PROCESSADOS</span>
                 <strong style={{ color: '#FFFFFF' }}>18.642 / 21.480</strong>

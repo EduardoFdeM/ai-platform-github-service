@@ -117,12 +117,12 @@ export const Sidebar: React.FC<SidebarProps> = () => {
         </div>
 
         <div className="user-profile-strip">
-          <div className="user-avatar-circle">MC</div>
+          <div className="user-avatar-circle">M2</div>
           <div className="user-meta">
-            <span className="user-meta-name">Perfil de demonstração</span>
-            <span className="user-meta-role">Contexto acadêmico</span>
+            <span className="user-meta-name">Sessão local do módulo</span>
+            <span className="user-meta-role">Login integrado em breve</span>
           </div>
-          <span className="badge badge-info" title="Perfil de demonstração">Demo</span>
+          <span className="badge badge-info" title="Autenticação será fornecida pelo módulo responsável">Em breve</span>
         </div>
       </div>
     </aside>

@@ -100,6 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
             <FolderGit2 size={13} style={{ color: '#60A5FA' }} />
             <span>repo:</span>
             <select
+              className="header-repository-select"
               style={{
                 background: 'transparent',
                 border: 'none',
