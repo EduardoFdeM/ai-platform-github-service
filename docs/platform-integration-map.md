@@ -6,7 +6,7 @@ O Módulo 2 é a fonte de fatos do GitHub: autentica conexão, recebe webhooks, 
 
 | Origem → destino | O que já pode ser consumido do Módulo 2 | O que ainda precisa ser acordado externamente |
 | --- | --- | --- |
-| M1 → M2 | gate transitório por sessão/API key | JWT, papéis, `project_id`, `team_id` e repositórios autorizados |
+| M1 → M2 | cadastro/login/projetos via proxy, JWT RS256, ownership por `sub`, `project_id` validado e isolamento dos repositórios | equipes, papéis e `team_id` quando o M1 publicar esses conceitos |
 | M2 → M3 Artefatos | commits, branches, PRs, conteúdo UTF-8 sob demanda, SHA/ref/URL | taxonomia e persistência de artefatos no M3 |
 | M2 → M4 Code Review | commits, PRs, arquivos e patches limitados com proveniência | identidade do revisor e resultado da avaliação |
 | M2 → M5 Curadoria | caminho, conteúdo, autoria, recência e referência imutável | classificação e política de curadoria |
@@ -16,10 +16,11 @@ O Módulo 2 é a fonte de fatos do GitHub: autentica conexão, recebe webhooks, 
 
 O documento formal do curso descreve oito módulos; o material do laboratório apresenta sete e um API Gateway/Data Bus. Até confirmação do professor, trate o M8 como consumidor possível e não codifique suposições sobre sua implantação.
 
-## APIs públicas do Módulo 2
+## APIs expostas pelo Módulo 2
 
 - descoberta: `GET /api/schema/`, `GET /docs/`;
 - operação: `GET /api/v1/health`, `/health/readiness`, `/health/github-connectivity`;
+- identidade/projetos: `POST /api/v1/platform/auth/register`, `/auth/token`, `GET /auth/me`, `GET|POST /platform/projects`;
 - conexão: `POST /api/v1/github/handshake`, `GET|POST /api/v1/repositories`, `POST /repositories/{id}/sync`;
 - fatos: `GET /commits`, `/branches`, `/pull-requests`, `/webhooks/deliveries`;
 - consumidores: `POST /repositories/{id}/contents`, `POST /repositories/{id}/commits/{sha}/diff`;
@@ -36,26 +37,31 @@ O contrato detalhado, payloads, segurança e limites estão em [integration-guid
 - Webhook possui HMAC, idempotência, retry transitório, falha persistida e replay.
 - Segredo possui criptografia, versão, expiração, rotação e auditoria.
 - Frontend não inventa dados: mostra estados reais ou “em desenvolvimento”.
+- Login/cadastro e projetos usam o Módulo 1 por proxy same-origin; Bearer expira em 30 minutos e não é persistido fora da aba.
+- Todas as rotas de dados do M2 exigem Bearer e aplicam isolamento por usuário/projeto.
 
 ## Pendências que dependem da plataforma
 
-1. M1 + M2: fechar JWT, claims, RBAC e associação usuário/projeto/equipe/repositório.
-2. Turma: publicar gateway/BFF, CORS e envelope versionado do Data Bus com retry, retenção e DLQ.
-3. Operação: disponibilizar ambiente HTTPS, secrets e serviços gerenciados; registrar readiness e E2E real.
+1. M1: publicar equipes, papéis e `team_id`; o contrato atual possui somente propriedade individual.
+2. Turma: publicar gateway para outras origens e envelope versionado do Data Bus com retry, retenção e DLQ.
+3. Operação: restabelecer ambiente HTTPS, secrets e serviços gerenciados; registrar readiness e E2E real.
 4. Grupos consumidores: automatizar testes de contrato contra o OpenAPI e os exemplos deste repositório.
 
-Proposta de claims para discussão — **não implementada como contrato**:
+Claims confirmados em token real do Módulo 1 em 22/10/2026:
 
 ```json
 {
   "sub": "user-id",
-  "roles": ["developer"],
-  "project_id": "project-id",
-  "team_id": "team-id",
-  "repository_ids": [7],
-  "exp": 1792600000
+  "iss": "https://mod1-auth.whitemeadow-deba1090.brazilsouth.azurecontainerapps.io",
+  "aud": "engenharia-software-api",
+  "iat": 1792690000,
+  "exp": 1792691800,
+  "jti": "token-id"
 }
 ```
+
+O exemplo é estrutural: timestamps e IDs variam. Como `project_id` não está no token, o M2 valida a propriedade
+consultando a API de Projetos com o mesmo Bearer e persiste `owner_id == sub`.
 
 ## Ordem do E2E compartilhado
 

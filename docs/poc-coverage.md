@@ -5,7 +5,7 @@ Este inventário separa o que é uma jornada funcional do Módulo 2, o que é de
 ## Comportamento padrão
 
 - `/` é a página institucional mínima, com entrada para o módulo e links para a documentação.
-- `/app` abre a jornada principal do GitHub Sync.
+- `/app` abre o acesso da plataforma e, após login e seleção de projeto do Módulo 1, a jornada principal do GitHub Sync.
 - `/legacy` preserva a entrega anterior.
 - A navegação padrão mostra as sete áreas da POC. Analytics e Inteligência Git consomem o endpoint real de insights; DevOps abre um estado honesto de **em desenvolvimento**.
 - As prévias fictícias estão desativadas por constantes de código e não podem ser habilitadas por variável de ambiente no `/app`; os grandes rascunhos sem backend foram removidos e permanecem recuperáveis pelo histórico Git.
@@ -25,24 +25,25 @@ Este inventário separa o que é uma jornada funcional do Módulo 2, o que é de
 
 ## Jornada demonstrável de ponta a ponta
 
-1. Abrir `/app` e cadastrar um repositório GitHub com um segredo de webhook exclusivo de pelo menos 16 caracteres.
-2. Se necessário, validar um PAT na aba Autenticação. Após validação ele fica somente na memória da sessão para sincronizações do repositório selecionado.
-3. Sincronizar o repositório e consultar commits/autores indexados.
-4. Configurar no GitHub o mesmo segredo e a URL pública `POST /webhooks/github`.
-5. Receber um evento real ou usar o simulador com o segredo digitado novamente.
-6. Confirmar a entrega e o commit nas abas Webhooks e Indexação e revisar Analytics/Inteligência Git.
+1. Abrir `/app`, cadastrar ou autenticar a conta pelo proxy do Módulo 1 e selecionar/criar um projeto.
+2. Cadastrar um repositório GitHub vinculado ao `project_id`, com segredo de webhook exclusivo de pelo menos 16 caracteres.
+3. Se necessário, validar um PAT na aba Autenticação. Após validação ele fica somente na memória da sessão para sincronizações do repositório selecionado.
+4. Sincronizar o repositório e consultar commits/autores indexados.
+5. Configurar no GitHub o mesmo segredo e a URL pública `POST /webhooks/github`.
+6. Receber um evento real ou usar o simulador com o segredo digitado novamente.
+7. Confirmar a entrega e o commit nas abas Webhooks e Indexação e revisar Analytics/Inteligência Git.
 
 ## Limites honestos do frontend
 
-- Não existe login/cadastro de usuário da plataforma no Módulo 2.
+- O Módulo 2 não é a fonte de verdade de usuários: a interface oferece cadastro/login pelo proxy same-origin do Módulo 1 e mantém o Bearer somente na sessão da aba.
 - Exportações de JSON/CSV, cópia para clipboard e rascunhos das telas de ideação são ações locais do navegador.
 - Um `202 Accepted` no webhook confirma recepção, não conclusão do worker; o estado final deve ser consultado em `webhooks/deliveries`.
 - Nas áreas conectadas, a interface não completa lacunas do contrato com autores, horários, payloads, headers ou estados inventados. Campos ausentes aparecem como **Não informado**, **Não exposto** ou **Indisponível**.
 - A interface limpa o segredo do webhook ao fechar/concluir o modal; o PAT nunca é persistido em storage ou banco.
-- Vínculo entre identidade Git e aluno/projeto depende do Módulo 1.
+- O projeto é validado no Módulo 1; o vínculo entre identidade Git e aluno/equipe ainda depende dos campos de equipe/RBAC que o Módulo 1 não publicou.
 
 ## Próximas integrações de frontend
 
-1. Consumir identidade, projeto, turma e papéis do Módulo 1 e remover dados de perfil estáticos do shell.
+1. Incorporar turma, equipe e papéis quando o Módulo 1 publicar esses campos; identidade e projeto já são consumidos.
 2. Trocar polling de entregas por contrato de eventos/gateway quando a turma definir o Data Bus.
 3. Conectar a tab DevOps a uma fonte autenticada de CI/deploy antes de exibir status remotos.

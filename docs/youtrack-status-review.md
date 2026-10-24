@@ -32,4 +32,4 @@ Os 15 cartões que já estavam em Done permanecem em Done.
 
 ## Login e cadastro
 
-Este serviço não cria usuários da plataforma. Sessão Django/API key são mecanismos transitórios de operação; identidade, cadastro, recuperação, papéis e associação a projeto/equipe pertencem ao Módulo 1.
+Este serviço não é a fonte de verdade de usuários. O frontend do Módulo 2 já oferece cadastro, login, consulta do usuário e seleção/criação de projetos por um proxy same-origin para o Módulo 1. O Bearer é validado por RS256/JWKS e permanece somente na sessão da aba. Recuperação de conta, equipes, papéis e associação por função continuam pertencendo ao Módulo 1.

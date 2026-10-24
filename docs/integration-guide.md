@@ -12,8 +12,10 @@ Referência dos contratos disponíveis no código em **22 de outubro de 2026**. 
 | Conteúdo textual e diff | concluída | permissão GitHub para o recurso solicitado |
 | Analytics e inteligência Git | concluída | dados previamente indexados; IA externa é opcional |
 | Logs, retry, replay e readiness | concluída | serviços e secrets corretamente configurados |
-| Login/JWT/RBAC institucional | fora do Módulo 2 | contrato do Módulo 1 |
-| Gateway, CORS e Data Bus compartilhados | integração pendente | acordo entre os grupos |
+| Login/JWT e projetos | concluída | disponibilidade das APIs do Módulo 1 |
+| Isolamento usuário/projeto | concluída | Bearer válido e `project_id` pertencente ao `sub` |
+| CORS do Módulo 1 | contornado por proxy same-origin no M2 | frontend e backend M2 na mesma origem |
+| Gateway e Data Bus compartilhados | integração pendente | acordo entre os grupos |
 
 Dados criados por `seed_demo_data` são somente demonstração local e nunca devem ser apresentados como dados institucionais.
 
@@ -35,12 +37,17 @@ Base local padrão: `http://localhost:8000`.
 
 - O PAT é aceito apenas no corpo de handshake, cadastro, sincronização, conteúdo ou diff. Ele não é persistido, devolvido nem usado como login da plataforma.
 - O segredo do webhook é criptografado em repouso com AES-256-GCM, possui versão, rotação, expiração opcional e auditoria sem texto claro.
-- Em produção, use `MODULE_ENFORCE_WRITE_AUTH=true` e `MODULE_API_KEY` para proteger rotas mutáveis até o JWT do Módulo 1 existir. Envie `X-Module-API-Key` entre backends.
-- Sessão Django autenticada também satisfaz o gate de escrita. O replay operacional sempre exige usuário autenticado.
-- Leituras permanecem abertas no contrato atual, exceto o dashboard autenticado. Exponha a API apenas atrás de uma rede/gateway controlado.
+- Em produção, mantenha `MODULE1_AUTH_REQUIRED=true`. O padrão do código é fail-closed.
+- O JWT é aceito somente com algoritmo `RS256`, assinatura presente no JWKS, `issuer` e `audience` exatos, claims obrigatórios e prazo válido.
+- O token do Módulo 1 possui `sub`, `iss`, `aud`, `iat`, `exp` e `jti`; ele não possui `roles` nem `project_id`.
+- Ao cadastrar um repositório, o M2 consulta `GET /projects/{project_id}` no Módulo 1 com o mesmo Bearer, confirma `owner_id == sub` e persiste ambos os UUIDs.
+- `github_id` é único no MVP: o mesmo repositório GitHub não pode ser cadastrado por proprietários/projetos distintos até existir o contrato compartilhado de equipes/RBAC.
+- Todas as leituras e mutações de repositório, commit, branch, PR, métrica, insight e entrega são filtradas pelo `sub` autenticado.
+- Cadastro/login/projetos passam pelo proxy same-origin `/api/v1/platform/...`, porque as APIs do Módulo 1 não aceitam a origem local do navegador.
 - `X-Request-ID` é aceito/gerado e devolvido na resposta; preserve-o ao correlacionar logs.
 
-Não existe endpoint JSON de cadastro, login ou recuperação de usuário neste serviço. Essas jornadas pertencem ao Módulo 1.
+O M2 não cria identidades nem projetos em seu próprio banco: as rotas `/platform` apenas validam payloads e encaminham
+ao Módulo 1. O access token fica no `sessionStorage` do frontend, expira após 1.800 segundos e é removido no logout/401.
 
 ## Catálogo de endpoints
 
@@ -49,33 +56,67 @@ Não existe endpoint JSON de cadastro, login ou recuperação de usuário neste 
 | `GET /api/v1/health` | pública | liveness do processo e banco |
 | `GET /api/v1/health/readiness` | pública | banco, Redis, worker e criptografia |
 | `GET /api/v1/health/github-connectivity` | pública | conectividade e latência até o GitHub |
-| `POST /api/v1/github/handshake` | PAT efêmero | valida identidade e política de escopos |
-| `GET /api/v1/repositories` | leitura | lista repositórios ativos |
-| `POST /api/v1/repositories` | gate de escrita | cadastra, cifra segredo e tenta carga inicial |
-| `POST /api/v1/repositories/{id}/sync` | gate de escrita | sincronização incremental |
-| `GET /api/v1/repositories/{id}/insights?days=30` | leitura | clareza, frequência, padrões, gargalos e recomendações |
-| `POST /api/v1/repositories/{id}/contents` | gate de escrita | conteúdo UTF-8 com SHA e URL de origem |
-| `POST /api/v1/repositories/{id}/commits/{sha}/diff` | gate de escrita | patches limitados por arquivo e proveniência |
-| `GET /api/v1/branches` | leitura | branches, inclusive removidas sob opção |
-| `GET /api/v1/commits` | leitura | commits paginados e filtráveis |
-| `GET /api/v1/pull-requests` | leitura | PRs paginadas e filtráveis |
-| `GET /api/v1/metrics/flow` | leitura | contagem de commits por autor |
-| `GET /api/v1/metrics/dashboard` | usuário autenticado | KPIs operacionais de 7 ou 30 dias |
-| `GET /api/v1/webhooks/deliveries` | leitura | 15 entregas mais recentes |
-| `POST /api/v1/webhooks/deliveries/{uuid}/replay` | usuário autenticado | reagenda somente entrega falha |
+| `POST /api/v1/platform/auth/register` | pública | encaminha cadastro ao Módulo 1 |
+| `POST /api/v1/platform/auth/token` | pública | troca e-mail/senha por Bearer de 30 minutos |
+| `GET /api/v1/platform/auth/me` | Bearer M1 | devolve usuário validado pelo Módulo 1 |
+| `GET\|POST /api/v1/platform/projects` | Bearer M1 | lista/cria projetos do usuário no Módulo 1 |
+| `POST /api/v1/github/handshake` | Bearer M1 + PAT efêmero | valida identidade GitHub e escopos |
+| `GET /api/v1/repositories?project_id={uuid}` | Bearer M1 | lista somente repositórios do usuário/projeto |
+| `POST /api/v1/repositories` | Bearer M1 | valida projeto, cadastra, cifra segredo e tenta carga inicial |
+| `POST /api/v1/repositories/{id}/sync` | Bearer M1 | sincronização incremental |
+| `GET /api/v1/repositories/{id}/insights?days=30` | Bearer M1 | clareza, frequência, padrões, gargalos e recomendações |
+| `POST /api/v1/repositories/{id}/contents` | Bearer M1 | conteúdo UTF-8 com SHA e URL de origem |
+| `POST /api/v1/repositories/{id}/commits/{sha}/diff` | Bearer M1 | patches limitados por arquivo e proveniência |
+| `GET /api/v1/branches` | Bearer M1 | branches, inclusive removidas sob opção |
+| `GET /api/v1/commits` | Bearer M1 | commits paginados e filtráveis |
+| `GET /api/v1/pull-requests` | Bearer M1 | PRs paginadas e filtráveis |
+| `GET /api/v1/metrics/flow` | Bearer M1 | contagem de commits por autor |
+| `GET /api/v1/metrics/dashboard` | Bearer M1 | KPIs operacionais de 7 ou 30 dias |
+| `GET /api/v1/webhooks/deliveries` | Bearer M1 | 15 entregas mais recentes |
+| `POST /api/v1/webhooks/deliveries/{uuid}/replay` | Bearer M1 | reagenda somente entrega falha |
 | `POST /webhooks/github` | HMAC GitHub | recebe evento assinado |
 
 Todas as rotas JSON usam `Content-Type: application/json`. Erros controlados seguem `{"code":"...","detail":"..."}`; automações devem decidir pelo status HTTP e pelo `code`.
 
+## Autenticação e projetos
+
+O frontend oficial usa o proxy same-origin do M2:
+
+```http
+POST /api/v1/platform/auth/register
+Content-Type: application/json
+
+{"email":"aluna@exemplo.com","display_name":"Aluna","password":"senha-com-12-ou-mais"}
+```
+
+```http
+POST /api/v1/platform/auth/token
+Content-Type: application/json
+
+{"email":"aluna@exemplo.com","password":"senha-com-12-ou-mais"}
+```
+
+A resposta contém `access_token`, `token_type: bearer` e `expires_in: 1800`. Nas chamadas seguintes:
+
+```http
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+`GET /api/v1/platform/projects` lista projetos e `POST /api/v1/platform/projects` aceita `name` e `description`.
+Backends de outros módulos podem obter o token diretamente no Módulo 1 e usar o mesmo Bearer no M2; não precisam
+passar pelo proxy de interface.
+
 ## Fluxo de onboarding
 
-1. Obtenha base URL, chave inter-módulos e responsável operacional do ambiente.
+1. Crie uma conta em `/api/v1/platform/auth/register` e faça login em `/api/v1/platform/auth/token`.
 2. Exija `GET /api/v1/health/readiness` com HTTP 200; liveness sozinho não prova worker/Redis/crypto.
 3. Consulte `/api/schema/?format=json` e gere o cliente a partir do contrato versionado.
-4. Liste repositórios e guarde o `id` local; ele referencia as demais rotas.
-5. Para repositório privado, envie o PAT somente do backend consumidor e somente na requisição necessária.
-6. Preserve `repository`, `sha`, `ref` e `source_url` nas respostas de conteúdo/diff como proveniência.
-7. Use webhook ou sincronização como origem dos fatos; `insights` analisa apenas o que já está indexado.
+4. Envie `Authorization: Bearer <access_token>` nas rotas protegidas e refaça login ao expirar.
+5. Liste/crie um projeto; use o UUID retornado como `project_id` ao cadastrar e listar repositórios.
+6. Guarde o `id` local do repositório; ele referencia as demais rotas.
+7. Para repositório privado, envie o PAT apenas na requisição necessária; ele não substitui o Bearer.
+8. Preserve `repository`, `sha`, `ref` e `source_url` nas respostas de conteúdo/diff como proveniência.
+9. Use webhook ou sincronização como origem dos fatos; `insights` analisa apenas o que já está indexado.
 
 ## Handshake e escopos
 
@@ -105,9 +146,10 @@ Resposta 200:
 
 ```http
 POST /api/v1/repositories
-X-Module-API-Key: <CHAVE_DO_AMBIENTE>
+Authorization: Bearer <TOKEN_MODULO_1>
 
 {
+  "project_id": "0f2023f5-978c-4e74-a7d3-0d3925d5ad2d",
   "url": "https://github.com/organizacao/projeto",
   "token": "<PAT_OPCIONAL>",
   "webhook_secret": "<SEGREDO_UNICO_COM_16_OU_MAIS_CARACTERES>",
@@ -119,7 +161,7 @@ O 201 contém o repositório, metadados de versão/rotação/expiração e `init
 
 ```http
 POST /api/v1/repositories/7/sync
-X-Module-API-Key: <CHAVE_DO_AMBIENTE>
+Authorization: Bearer <TOKEN_MODULO_1>
 
 {"token":"<PAT_OPCIONAL>"}
 ```
@@ -132,7 +174,7 @@ Resposta: `{"status":"synced","repository":"organizacao/projeto","commits_synced
 
 ```http
 POST /api/v1/repositories/7/contents
-X-Module-API-Key: <CHAVE_DO_AMBIENTE>
+Authorization: Bearer <TOKEN_MODULO_1>
 
 {"path":"src/app.py","ref":"main","token":"<PAT_OPCIONAL>"}
 ```
@@ -156,7 +198,7 @@ Há rejeição de travessia de diretório, arquivo não textual e conteúdo acim
 
 ```http
 POST /api/v1/repositories/7/commits/0123456789abcdef/diff
-X-Module-API-Key: <CHAVE_DO_AMBIENTE>
+Authorization: Bearer <TOKEN_MODULO_1>
 
 {"token":"<PAT_OPCIONAL>"}
 ```
@@ -192,14 +234,14 @@ O cliente GitHub nunca dorme até o reset completo do rate limit. Ele respeita o
 - Logs são JSON, incluem request/correlação e removem padrões de token/segredo.
 - Webhooks são assíncronos; consulte `deliveries` até `processed` ou `failed`.
 - Listas de commits, branches e PRs são paginadas em 50 itens; repositórios e as 15 entregas recentes não são paginados.
-- Não há CORS configurado. Frontends de outra origem precisam de gateway/BFF definido pela plataforma.
+- O frontend oficial é servido na mesma origem do M2. Consumidores web em outra origem precisam de gateway/CORS acordado; backends podem usar o contrato diretamente.
 - GraphQL foi retirado do MVP porque REST atende a jornada atual sem evidência de ganho que compense a complexidade.
 
 ## Dependências externas restantes
 
-1. Módulo 1: JWT, papéis, `project_id`, `team_id` e autorização por repositório.
-2. Plataforma: gateway/BFF, CORS e envelope de eventos/Data Bus.
+1. Módulo 1: equipes/papéis ainda não existem; hoje cada usuário acessa somente os próprios projetos.
+2. Plataforma: gateway para origens diferentes e envelope de eventos/Data Bus.
 3. Operação: URL HTTPS, secrets, PostgreSQL, Redis, worker e evidência de smoke/E2E remoto.
-4. Consumidores: testes de contrato M1→M2 e M2→M3/M4/M5/M6/M7/M8.
+4. Consumidores: testes de contrato M2→M3/M4/M5/M6/M7/M8.
 
 Consulte também [platform-integration-map.md](platform-integration-map.md), [poc-coverage.md](poc-coverage.md), [youtrack-status-review.md](youtrack-status-review.md) e [DEPLOYMENT.md](../DEPLOYMENT.md).

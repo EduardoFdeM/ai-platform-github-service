@@ -12,7 +12,8 @@ Revisão de 22 de outubro de 2026. Este documento separa código concluído, pro
 | Credenciais | AES-256-GCM, segredo exclusivo por repositório, versão, expiração, rotação e trilha de auditoria sem persistência de PAT |
 | Inteligência | análise de frequência, concentração, picos, atividade fora da janela e clareza de mensagens; provedor externo é opt-in e recebe somente agregados |
 | Consumidores | OpenAPI, conteúdo textual sob demanda, diff limitado e proveniência para M3/M4/M5/M7 |
-| Frontend | sete tabs navegáveis, jornada real, PAT efêmero em memória, polling pausável, Analytics/Inteligência reais e estados explícitos para o que não possui fonte |
+| Autenticação M1 | cadastro/login/projetos por proxy same-origin; JWT RS256/JWKS; `issuer`, `audience`, expiração e claims obrigatórios; isolamento por `sub`/`project_id` |
+| Frontend | sete tabs navegáveis, cadastro/login/logout, expiração de sessão, seleção/criação de projetos, jornada real, PAT efêmero em memória, Analytics/Inteligência reais e estados explícitos para o que não possui fonte |
 | Qualidade | pytest/coverage, Ruff, Bandit, OpenAPI, lint/build/test do frontend e smoke de health após deploy |
 
 ## Não bloqueia o fechamento interno
@@ -20,8 +21,8 @@ Revisão de 22 de outubro de 2026. Este documento separa código concluído, pro
 Estes itens exigem infraestrutura, credenciais ou contrato de outro grupo. Permanecem como integração, não como código ausente do Módulo 2:
 
 - publicar a versão atual e registrar evidência do CI e do smoke no Azure;
-- configurar PostgreSQL, Redis, worker, secrets e `MODULE_ENFORCE_WRITE_AUTH=true` no ambiente remoto;
-- substituir o gate temporário de sessão/API key pelo JWT/RBAC e `project_id` definidos pelo Módulo 1;
+- configurar PostgreSQL, Redis, worker, secrets e `MODULE1_AUTH_REQUIRED=true` no ambiente remoto;
+- incorporar equipes/RBAC quando o Módulo 1 publicar esses campos; o contrato atual é proprietário individual;
 - acordar gateway, CORS e Data Bus com a turma;
 - executar E2E compartilhado com os módulos consumidores.
 
@@ -29,7 +30,7 @@ Estes itens exigem infraestrutura, credenciais ou contrato de outro grupo. Perma
 
 - GraphQL foi retirado do MVP: REST atende a carga atual e não houve medição que justificasse a complexidade adicional. O ADR 0003 registra a decisão.
 - A análise inteligente possui baseline determinístico auditável. Um provedor compatível com chat completions pode enriquecer somente recomendações agregadas quando `AI_INSIGHTS_ENABLED=true`.
-- Login e cadastro de usuário permanecem no Módulo 1. PAT GitHub não é identidade da plataforma.
+- Login, cadastro e projetos permanecem como fonte de verdade do Módulo 1; o M2 fornece somente um proxy same-origin. PAT GitHub não é identidade da plataforma.
 
 ## Critério para declarar produção
 

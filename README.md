@@ -14,6 +14,8 @@ Desenvolvido para a disciplina de **Engenharia de Software (2026.2)** — Univer
 ## Fundação Entregue
 
 - **Django REST Framework** com documentação OpenAPI e Swagger UI em `/docs/`.
+- Cadastro, login e projetos integrados ao Módulo 1 por proxy same-origin; JWT `RS256` validado por JWKS, `issuer`, `audience` e expiração.
+- Isolamento dos repositórios e de todos os dados derivados por usuário (`sub`) e `project_id` do Módulo 1.
 - Endpoints de Webhooks: `POST /webhooks/github` e `/api/v1/webhooks/github` com validação de assinatura **HMAC-SHA256**.
 - Segredos de webhooks criptografados no banco por repositório com **AES-256-GCM**.
 - Idempotência rigorosa via cabeçalho `X-GitHub-Delivery` e enfileiramento assíncrono via **Celery / Redis**.
@@ -103,7 +105,8 @@ npm run build --prefix frontend
 
 Meta de cobertura de testes: **80%**.
 
-O código pode ser validado localmente sem provar publicação. Produção exige CI remoto verde, migrações, `MODULE_ENFORCE_WRITE_AUTH=true`, readiness verde e um sync/webhook real no ambiente publicado.
+O código pode ser validado localmente sem provar publicação. Produção exige CI remoto verde, migrações,
+`MODULE1_AUTH_REQUIRED=true`, secrets, readiness verde e um sync/webhook real no ambiente publicado.
 
 ---
 
