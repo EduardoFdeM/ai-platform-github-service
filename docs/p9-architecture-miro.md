@@ -40,7 +40,7 @@ Regra de propriedade: cada grupo desenha e mantém a arquitetura interna do pró
 ```mermaid
 flowchart LR
     User[Usuário / navegador] --> M6[M6 · Interface, dashboard e notificações]
-    M1[M1 · Autenticação, projetos e backlog] -->|JWT RS256 + project_id| M2[M2 · GitHub Sync]
+    M1[M1 · Autenticação, projetos e backlog] -->|JWT RS256; project_id via Projects API| M2[M2 · GitHub Sync]
     GitHub[GitHub · API e webhooks] <--> M2
 
     M2 -. commits, branches, PRs e conteúdo .-> M3[M3 · Ingestão de artefatos]
@@ -77,12 +77,11 @@ flowchart TB
     App --> Docs[OpenAPI / Swagger]
     App --> ORM[Django ORM]
 
-    GitHubAPI[GitHub REST / GraphQL] <--> RepoService
+    GitHubAPI[GitHub REST API] <--> RepoService
     GitHubHooks[GitHub Webhooks] -->|HMAC SHA-256| Webhook[Receiver idempotente]
     Webhook --> ORM
     Webhook -->|enfileira| Redis[(Redis)]
     Redis --> Worker[Celery Worker]
-    Worker --> RepoService
     Worker --> ORM
 
     ORM --> DB[(PostgreSQL em produção / SQLite local)]
@@ -94,7 +93,7 @@ flowchart TB
 
 | Camada | Responsabilidade |
 | --- | --- |
-| React + Vite | navegação, login/cadastro, seleção/criação de projeto, conexão e visualização sem dados fictícios |
+| React + Vite | interface específica do Módulo 2: navegação, login/cadastro, seleção/criação de projeto, conexão e visualização sem dados fictícios |
 | Django/DRF | fachada same-origin, autenticação, autorização, APIs e documentação OpenAPI |
 | Serviços GitHub | handshake, metadados, commits, branches, PRs, conteúdo, diff e sincronização incremental |
 | Webhook + Celery | validação HMAC, idempotência, persistência da entrega, retry e processamento assíncrono |
@@ -132,6 +131,8 @@ Para cada módulo, peça e registre no frame `10 — Contratos e pendências`:
 
 - equipes, papéis e permissões por função do M1 ainda não foram publicados;
 - integrações M2 → M3/M4/M5/M6/M7/M8 são contratos previstos até haver URL e teste real dos consumidores;
+- API Gateway e Data Bus permanecem `A definir` até existir um contrato comum da turma;
+- cada módulo deve representar o próprio banco; não existe um banco compartilhado da plataforma;
 - o deploy público do M2 precisa ser restabelecido antes de divulgar uma mensagem de consumo para a turma;
 - recursos visuais ainda sem backend devem permanecer visíveis somente como `Em desenvolvimento` ou `Em breve`, sem números ou ações fictícias.
 
