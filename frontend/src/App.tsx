@@ -10,7 +10,16 @@ import { IntelligenceTab } from './components/tabs/IntelligenceTab'
 import { DevelopmentTab } from './components/tabs/DevelopmentTab'
 import LegacyDashboard from './components/legacy/LegacyDashboard'
 import { LandingPage } from './components/LandingPage'
+import { PlatformAccess } from './components/PlatformAccess'
+import { CreateProjectModal } from './components/CreateProjectModal'
 import { buildWorkspaceUrl, parseWorkspaceState } from './workspaceState'
+import {
+  clearPlatformSession,
+  isSessionExpired,
+  readPlatformSession,
+  savePlatformSession,
+  type PlatformSession,
+} from './platformSession'
 import {
   api,
   type Branch,
@@ -19,6 +28,7 @@ import {
   type Delivery,
   type FlowMetrics,
   type PullRequest,
+  type PlatformProject,
   type Repository,
 } from './api'
 
@@ -41,6 +51,12 @@ export default function App() {
     return parseWorkspaceState(window.location.search).tab
   })
   const [connectModalOpen, setConnectModalOpen] = useState(false)
+  const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false)
+  const [platformSession, setPlatformSession] = useState<PlatformSession | null>(() => readPlatformSession())
+  const [sessionChecking, setSessionChecking] = useState(() => Boolean(readPlatformSession()))
+  const [accessNotice, setAccessNotice] = useState<string | null>(null)
+  const [projects, setProjects] = useState<PlatformProject[]>([])
+  const [selectedProject, setSelectedProject] = useState<PlatformProject | null>(null)
 
   // Estados Globais de Repositórios e Backend
   const [repositories, setRepositories] = useState<Repository[]>([])
@@ -87,6 +103,53 @@ export default function App() {
     setViewMode('workspace')
   }
 
+  const handleLogout = useCallback((reason: 'expired' | 'manual' = 'expired') => {
+    api.setAccessToken(null)
+    clearPlatformSession()
+    setPlatformSession(null)
+    setProjects([])
+    setSelectedProject(null)
+    setRepositories([])
+    setSelectedRepo(null)
+    setCommits([])
+    setBranches([])
+    setPullRequests([])
+    setDeliveries([])
+    setFlow(null)
+    setRepositoryTokens({})
+    setSessionChecking(false)
+    setAccessNotice(reason === 'manual' ? 'Sessão encerrada com segurança.' : 'Sua sessão expirou. Entre novamente para continuar.')
+  }, [])
+
+  const handleAuthenticated = useCallback((session: PlatformSession) => {
+    api.setAccessToken(session.accessToken)
+    savePlatformSession(session)
+    setPlatformSession(session)
+    setSessionChecking(false)
+    setAccessNotice(null)
+  }, [])
+
+  useEffect(() => {
+    if (!platformSession) {
+      api.setAccessToken(null)
+      return
+    }
+
+    api.setAccessToken(platformSession.accessToken)
+    if (isSessionExpired(platformSession)) {
+      handleLogout('expired')
+      return
+    }
+
+    const expired = () => handleLogout('expired')
+    const timeout = window.setTimeout(expired, Math.max(0, platformSession.expiresAt - Date.now()))
+    window.addEventListener('platform-session-expired', expired)
+    return () => {
+      window.clearTimeout(timeout)
+      window.removeEventListener('platform-session-expired', expired)
+    }
+  }, [handleLogout, platformSession])
+
   // Carregar dados iniciais da API Django
   const loadRepoCommitsAndDeliveries = useCallback(async (repoId: number) => {
     setRepoDataLoading(true)
@@ -117,40 +180,75 @@ export default function App() {
     }
   }, [])
 
-  const loadInitialData = useCallback(async () => {
+  const loadProjectRepositories = useCallback(async (project: PlatformProject) => {
     try {
       const [cRes, repos] = await Promise.all([
         api.connectivity().catch(() => ({ status: 500, data: null as any })),
-        api.repositories().catch(() => []),
+        api.repositories(project.id),
       ])
 
       if (cRes.status === 200) setConnectivity(cRes.data)
       setRepositories(repos)
 
-      const requestedRepoId = parseWorkspaceState(window.location.search).repositoryId
+      const routeState = parseWorkspaceState(window.location.search)
+      const requestedRepoId = routeState.projectId === project.id ? routeState.repositoryId : null
       const active = repos.find((repository) => repository.id === requestedRepoId) || repos[0] || null
+      setSelectedRepo(active)
       if (active) {
-        setSelectedRepo(active)
         await loadRepoCommitsAndDeliveries(active.id)
+      } else {
+        setCommits([])
+        setBranches([])
+        setPullRequests([])
+        setDeliveries([])
+        setFlow(null)
       }
     } catch (err) {
-      console.error('Erro ao carregar dados iniciais:', err)
+      console.error('Erro ao carregar repositórios do projeto:', err)
+      setRepositories([])
+      setSelectedRepo(null)
     }
   }, [loadRepoCommitsAndDeliveries])
 
   useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect -- carrega a API ao montar o workspace.
-    void loadInitialData()
-  }, [loadInitialData])
+    if (!platformSession) return
+    let cancelled = false
+    const loadPlatformContext = async () => {
+      setSessionChecking(true)
+      try {
+        const [user, page] = await Promise.all([api.platformMe(), api.platformProjects()])
+        if (cancelled) return
+        const refreshedSession = { ...platformSession, user }
+        savePlatformSession(refreshedSession)
+        setPlatformSession(refreshedSession)
+        setProjects(page.items)
+        const requestedProjectId = parseWorkspaceState(window.location.search).projectId
+        const activeProject = page.items.find((project) => project.id === requestedProjectId) || page.items[0] || null
+        setSelectedProject(activeProject)
+      } catch {
+        if (!cancelled) handleLogout('expired')
+      } finally {
+        if (!cancelled) setSessionChecking(false)
+      }
+    }
+    void loadPlatformContext()
+    return () => { cancelled = true }
+    // A sessão só deve ser revalidada quando o token mudar, não após atualizar os dados do usuário.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [handleLogout, platformSession?.accessToken])
+
+  useEffect(() => {
+    if (selectedProject) void loadProjectRepositories(selectedProject)
+  }, [loadProjectRepositories, selectedProject])
 
   const handleRefreshRepositoryData = useCallback(() => {
     if (selectedRepo) void loadRepoCommitsAndDeliveries(selectedRepo.id)
   }, [loadRepoCommitsAndDeliveries, selectedRepo])
 
   useEffect(() => {
-    if (viewMode !== 'workspace') return
-    window.history.replaceState(null, '', buildWorkspaceUrl(activeTab, selectedRepo?.id))
-  }, [activeTab, selectedRepo, viewMode])
+    if (viewMode !== 'workspace' || sessionChecking || !platformSession) return
+    window.history.replaceState(null, '', buildWorkspaceUrl(activeTab, selectedProject?.id, selectedRepo?.id))
+  }, [activeTab, platformSession, selectedProject, selectedRepo, sessionChecking, viewMode])
 
   // Disparo manual de sincronização real via GitHub API
   const handleSyncNow = async () => {
@@ -201,10 +299,25 @@ export default function App() {
     return <LandingPage onEnterWorkspace={handleSwitchToWorkspace} />
   }
 
+  if (sessionChecking) {
+    return (
+      <main className="platform-access-page">
+        <div className="platform-session-loading" role="status">Validando sua sessão…</div>
+      </main>
+    )
+  }
+
+  if (!platformSession) {
+    return <PlatformAccess notice={accessNotice} onAuthenticated={handleAuthenticated} onBack={() => {
+      window.history.pushState(null, '', '/')
+      setViewMode('landing')
+    }} />
+  }
+
   return (
     <div className="module-layout">
       {/* Sidebar lateral do Módulo 2 (fixa e acompanha a viewport). */}
-      <Sidebar />
+      <Sidebar user={platformSession.user} projectName={selectedProject?.name} />
 
       {/* Área de Conteúdo Principal */}
       <main className="module-main">
@@ -213,17 +326,37 @@ export default function App() {
           activeTab={activeTab}
           onSelectTab={setActiveTab}
           repositories={repositories}
+          projects={projects}
+          selectedProject={selectedProject}
+          user={platformSession.user}
           selectedRepo={selectedRepo}
+          onSelectProject={(project) => {
+            setSelectedProject(project)
+            setSelectedRepo(null)
+          }}
           onSelectRepo={(r) => {
             setSelectedRepo(r)
             loadRepoCommitsAndDeliveries(r.id)
           }}
           onOpenConnectModal={() => setConnectModalOpen(true)}
+          onOpenCreateProject={() => setCreateProjectModalOpen(true)}
           onSyncNow={handleSyncNow}
           syncing={syncing}
           connectivity={connectivity}
           onSwitchToLegacy={handleSwitchToLegacy}
+          onLogout={() => handleLogout('manual')}
         />
+
+        {!selectedProject && (
+          <section className="project-empty-state">
+            <div className="project-empty-icon">M1</div>
+            <h2>Crie seu primeiro projeto</h2>
+            <p>Os repositórios do GitHub precisam estar associados a um projeto oficial da plataforma.</p>
+            <button type="button" className="btn-module btn-module-primary" onClick={() => setCreateProjectModalOpen(true)}>
+              Criar projeto
+            </button>
+          </section>
+        )}
 
         {/* Feedback flutuante de sincronização */}
         {syncFeedback && (
@@ -248,7 +381,7 @@ export default function App() {
         )}
 
         {/* Visualização de Conteúdo por Aba Selecionada */}
-        {activeTab === 'overview' && (
+        {selectedProject && activeTab === 'overview' && (
           <OverviewTab
             selectedRepo={selectedRepo}
             commits={commits}
@@ -259,7 +392,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'auth' && (
+        {selectedProject && activeTab === 'auth' && (
           <AuthTab
             onTokenValidated={(token) => {
               if (selectedRepo) setRepositoryTokens((current) => ({ ...current, [selectedRepo.id]: token }))
@@ -267,7 +400,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'webhooks' && (
+        {selectedProject && activeTab === 'webhooks' && (
           <WebhooksTab
             repository={selectedRepo}
             deliveries={deliveries}
@@ -275,7 +408,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'sync' && (
+        {selectedProject && activeTab === 'sync' && (
           <SyncTab
             repository={selectedRepo}
             commits={commits}
@@ -289,11 +422,11 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'analytics' && <IntelligenceTab repository={selectedRepo} variant="analytics" />}
+        {selectedProject && activeTab === 'analytics' && <IntelligenceTab repository={selectedRepo} variant="analytics" />}
 
-        {activeTab === 'ai' && <IntelligenceTab repository={selectedRepo} variant="ai" />}
+        {selectedProject && activeTab === 'ai' && <IntelligenceTab repository={selectedRepo} variant="ai" />}
 
-        {activeTab === 'devops' && (
+        {selectedProject && activeTab === 'devops' && (
           <DevelopmentTab
             title="DevOps e documentação"
             status="Em desenvolvimento"
@@ -314,8 +447,17 @@ export default function App() {
       {/* Modal para Conectar Repositório via Link do GitHub */}
       <ConnectRepoModal
         isOpen={connectModalOpen}
+        projectId={selectedProject?.id || null}
         onClose={() => setConnectModalOpen(false)}
         onSuccess={handleRepoConnected}
+      />
+      <CreateProjectModal
+        isOpen={createProjectModalOpen}
+        onClose={() => setCreateProjectModalOpen(false)}
+        onSuccess={(project) => {
+          setProjects((current) => [project, ...current.filter((item) => item.id !== project.id)])
+          setSelectedProject(project)
+        }}
       />
     </div>
   )

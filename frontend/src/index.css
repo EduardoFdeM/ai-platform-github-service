@@ -1552,3 +1552,235 @@ html, body {
     padding-inline: 16px;
   }
 }
+
+/* ==========================================================================
+   ACESSO UNIFICADO E CONTEXTO DE PROJETO (MÓDULO 1)
+   ========================================================================== */
+.platform-access-page {
+  min-height: 100vh;
+  padding: 32px 20px;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(37, 99, 235, 0.16), transparent 34%),
+    radial-gradient(circle at 85% 90%, rgba(124, 58, 237, 0.1), transparent 32%),
+    var(--bg-base);
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.platform-access-back {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: 600 12px var(--font-sans);
+  cursor: pointer;
+}
+
+.platform-access-back:hover { color: #fff; }
+
+.platform-access-card {
+  width: min(100%, 460px);
+  padding: 28px;
+  background: rgba(13, 19, 34, 0.96);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.platform-access-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.platform-access-brand > div:last-child { display: flex; flex-direction: column; }
+.platform-access-brand strong { color: #fff; font-size: 14px; }
+.platform-access-brand span { color: var(--text-tertiary); font-size: 10.5px; }
+
+.platform-access-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.platform-access-heading h1 { color: #fff; font-size: 21px; margin: 0 0 5px; }
+.platform-access-heading p { color: var(--text-tertiary); font-size: 12px; line-height: 1.55; }
+
+.platform-access-icon,
+.modal-title-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: #60A5FA;
+  background: rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+}
+
+.platform-access-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background: #080C16;
+  border: 1px solid var(--border-subtle);
+}
+
+.platform-access-tabs button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font: 600 12px var(--font-sans);
+  cursor: pointer;
+}
+
+.platform-access-tabs button.active {
+  color: #fff;
+  background: #1E293B;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.platform-access-form { display: flex; flex-direction: column; gap: 16px; }
+.platform-access-submit { width: 100%; min-height: 42px; margin-top: 3px; }
+
+.password-input-wrap { position: relative; }
+.password-input-wrap .form-input { padding-right: 42px; }
+.password-input-wrap button {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.platform-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.platform-feedback svg { flex: 0 0 auto; margin-top: 1px; }
+.platform-feedback-error { color: #FCA5A5; background: var(--danger-subtle); border: 1px solid var(--danger-border); }
+.platform-feedback-success { color: #6EE7B7; background: var(--success-subtle); border: 1px solid var(--success-border); }
+.platform-feedback-info { color: #93C5FD; background: var(--info-subtle); border: 1px solid var(--info-border); }
+
+.platform-security-note {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.platform-security-note svg { color: #34D399; flex: 0 0 auto; }
+.platform-session-loading { color: var(--text-muted); font-size: 13px; }
+
+.header-account {
+  min-height: 34px;
+  padding: 5px 6px 5px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  max-width: 230px;
+}
+
+.header-repository-select {
+  min-width: 110px;
+  max-width: 220px;
+  background: transparent;
+  border: 0;
+  color: var(--text-main);
+  font: 600 12px var(--font-mono);
+  cursor: pointer;
+  outline: none;
+  text-overflow: ellipsis;
+}
+
+.header-repository-select option { background: #0D1322; color: var(--text-main); }
+
+.header-account > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header-account button,
+.icon-button {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 5px;
+  color: var(--text-tertiary);
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.header-account button:hover,
+.icon-button:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
+
+.project-empty-state {
+  margin: 30px auto 0;
+  width: min(calc(100% - 40px), 560px);
+  padding: 36px;
+  border: 1px dashed var(--border-highlight);
+  border-radius: 12px;
+  background: rgba(13, 19, 34, 0.7);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.project-empty-state h2 { color: #fff; font-size: 18px; }
+.project-empty-state p { color: var(--text-tertiary); font-size: 12px; line-height: 1.5; margin-bottom: 8px; }
+.project-empty-icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; color: #C4B5FD; background: rgba(124, 58, 237, 0.15); border: 1px solid rgba(167, 139, 250, 0.28); font-size: 11px; font-weight: 800; }
+
+.modal-title-row,
+.modal-title-content,
+.modal-actions { display: flex; align-items: center; }
+.modal-title-row { justify-content: space-between; gap: 14px; }
+.modal-title-content { gap: 11px; }
+.modal-title-content h3 { color: #fff; font-size: 15px; }
+.modal-title-content p { color: var(--text-tertiary); font-size: 11.5px; margin-top: 2px; }
+.modal-actions { justify-content: flex-end; gap: 10px; margin-top: 4px; }
+.form-textarea { min-height: 104px; resize: vertical; line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .platform-access-page { padding: 74px 14px 20px; place-items: start center; }
+  .platform-access-back { top: 22px; left: 16px; }
+  .platform-access-card { padding: 20px 17px; gap: 18px; }
+  .platform-access-heading h1 { font-size: 19px; }
+  .header-account { width: 100%; max-width: none; }
+  .header-account > span { flex: 1; }
+  .project-empty-state { width: calc(100% - 28px); padding: 26px 18px; }
+}

@@ -4,11 +4,12 @@ import { api, type Repository } from '../api'
 
 interface ConnectRepoModalProps {
   isOpen: boolean
+  projectId: string | null
   onClose: () => void
   onSuccess: (repo: Repository, token?: string) => void
 }
 
-export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, projectId, onClose, onSuccess }) => {
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
   const [webhookSecret, setWebhookSecret] = useState('')
@@ -78,6 +79,11 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
       return
     }
 
+    if (!projectId) {
+      setError('Selecione ou crie um projeto antes de conectar o repositório.')
+      return
+    }
+
     if (!isValidGitHubUrl(cleanUrl)) {
       setError('A URL informada deve pertencer obrigatoriamente ao domínio github.com (ex: https://github.com/owner/repo).')
       return
@@ -93,6 +99,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
 
     try {
       const { status, data } = await api.createRepository({
+        project_id: projectId,
         url: cleanUrl,
         token: token.trim() || undefined,
         webhook_secret: webhookSecret.trim(),
@@ -113,7 +120,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
   }
 
   return (
-    <div className="modal-backdrop" onClick={resetAndClose}>
+    <div className="modal-backdrop" onClick={() => { if (!loading) resetAndClose() }}>
       <div
         ref={dialogRef}
         className="modal-dialog"
@@ -265,7 +272,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, onCl
             </button>
             <button
               type="submit"
-              disabled={loading || isInvalidUrl || !url.trim() || webhookSecret.trim().length < 16}
+              disabled={loading || !projectId || isInvalidUrl || !url.trim() || webhookSecret.trim().length < 16}
               className="btn-module btn-module-primary"
             >
               {loading ? 'Conectando & Sincronizando...' : 'Conectar Repositório'}

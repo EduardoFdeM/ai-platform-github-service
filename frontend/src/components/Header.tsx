@@ -10,8 +10,12 @@ import {
   BarChart3,
   Bot,
   Rocket,
+  FolderPlus,
+  LogOut,
+  UserCircle2,
 } from 'lucide-react'
-import type { ConnectivityStatus, Repository } from '../api'
+import type { ConnectivityStatus, PlatformProject, Repository } from '../api'
+import type { PlatformUser } from '../platformSession'
 
 export type TabId = 'overview' | 'auth' | 'webhooks' | 'sync' | 'analytics' | 'ai' | 'devops'
 
@@ -19,26 +23,38 @@ interface HeaderProps {
   activeTab: TabId
   onSelectTab: (tab: TabId) => void
   repositories: Repository[]
+  projects: PlatformProject[]
+  selectedProject: PlatformProject | null
+  user: PlatformUser
   selectedRepo: Repository | null
+  onSelectProject: (project: PlatformProject) => void
   onSelectRepo: (repo: Repository) => void
+  onOpenCreateProject: () => void
   onOpenConnectModal: () => void
   onSyncNow: () => void
   syncing: boolean
   connectivity: ConnectivityStatus | null
   onSwitchToLegacy?: () => void
+  onLogout: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   onSelectTab,
   repositories,
+  projects,
+  selectedProject,
+  user,
   selectedRepo,
+  onSelectProject,
   onSelectRepo,
+  onOpenCreateProject,
   onOpenConnectModal,
   onSyncNow,
   syncing,
   connectivity,
   onSwitchToLegacy,
+  onLogout,
 }) => {
   // Breadcrumb e Título baseados na tela ativa
   const getHeaderMeta = () => {
@@ -95,6 +111,28 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="header-controls">
+          <div className="select-chip" title="Projeto da plataforma">
+            <FolderGit2 size={13} style={{ color: '#A78BFA' }} />
+            <span>projeto:</span>
+            <select
+              className="header-repository-select"
+              aria-label="Selecionar projeto"
+              value={selectedProject?.id || ''}
+              onChange={(event) => {
+                const found = projects.find((project) => project.id === event.target.value)
+                if (found) onSelectProject(found)
+              }}
+            >
+              {projects.length === 0 && <option value="">Nenhum projeto</option>}
+              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            </select>
+          </div>
+
+          <button type="button" onClick={onOpenCreateProject} className="btn-module btn-module-secondary" title="Criar projeto no Módulo 1">
+            <FolderPlus size={13} />
+            <span>Novo projeto</span>
+          </button>
+
           {/* Seletor de Repositório Conectado */}
           <div className="select-chip" title="Selecionar Repositório">
             <FolderGit2 size={13} style={{ color: '#60A5FA' }} />
@@ -155,11 +193,12 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Botão Conectar Repositório (abre modal via Link GitHub) */}
           <button
             onClick={onOpenConnectModal}
+            disabled={!selectedProject}
             className="btn-module btn-module-secondary"
-            title="Conectar novo repositório colando a URL do GitHub"
+            title={selectedProject ? 'Conectar novo repositório colando a URL do GitHub' : 'Crie ou selecione um projeto primeiro'}
           >
             <Plus size={13} />
-            <span>+ Conectar Repo</span>
+            <span>{selectedProject ? '+ Conectar Repo' : 'Selecione um projeto'}</span>
           </button>
 
           {/* Botão Configurar */}
@@ -197,6 +236,14 @@ export const Header: React.FC<HeaderProps> = ({
               <span>🎥 Versão Anterior (Demo)</span>
             </button>
           )}
+
+          <div className="header-account" title={user.email}>
+            <UserCircle2 size={15} />
+            <span>{user.display_name}</span>
+            <button type="button" onClick={onLogout} aria-label="Sair da plataforma" title="Encerrar sessão">
+              <LogOut size={14} />
+            </button>
+          </div>
         </div>
       </div>
 

@@ -13,12 +13,15 @@ import {
   FileText,
   ChevronDown,
 } from 'lucide-react'
+import type { PlatformUser } from '../platformSession'
 
 interface SidebarProps {
   activeModule?: string
+  user?: PlatformUser
+  projectName?: string
 }
 
-export const Sidebar: React.FC<SidebarProps> = () => {
+export const Sidebar: React.FC<SidebarProps> = ({ user, projectName }) => {
   // O shell completo da plataforma pertence à integração entre os grupos.
   // Mantemos a estrutura pronta, mas escondida por padrão enquanto os demais
   // módulos não publicarem rotas/contratos navegáveis.
@@ -39,7 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
         {/* Seletor de Contexto / Workspace */}
         <div className={`workspace-selector ${showPlatformShell ? '' : 'is-static'}`} title="Contexto acadêmico do módulo">
           <span className="workspace-badge">M2</span>
-          <span className="workspace-name">Plataforma acadêmica</span>
+          <span className="workspace-name">{projectName || 'Selecione um projeto'}</span>
           {showPlatformShell && <ChevronDown size={14} style={{ color: 'var(--text-tertiary)' }} />}
         </div>
 
@@ -117,12 +120,12 @@ export const Sidebar: React.FC<SidebarProps> = () => {
         </div>
 
         <div className="user-profile-strip">
-          <div className="user-avatar-circle">M2</div>
+          <div className="user-avatar-circle">{user?.display_name?.slice(0, 2).toUpperCase() || 'M2'}</div>
           <div className="user-meta">
-            <span className="user-meta-name">Sessão local do módulo</span>
-            <span className="user-meta-role">Login integrado em breve</span>
+            <span className="user-meta-name">{user?.display_name || 'Visitante'}</span>
+            <span className="user-meta-role">{user?.email || 'Autenticação necessária'}</span>
           </div>
-          <span className="badge badge-info" title="Autenticação será fornecida pelo módulo responsável">Em breve</span>
+          {user && <span className="badge badge-success" title="Sessão autenticada pelo Módulo 1">Ativo</span>}
         </div>
       </div>
     </aside>

@@ -27,6 +27,7 @@ export interface HandshakeResult {
 
 export interface Repository {
   id: number
+  project_id: string
   github_id: number
   owner: string
   name: string
@@ -152,11 +153,42 @@ export class ApiError extends Error {
   }
 }
 
+export interface PlatformLoginResult {
+  access_token: string
+  token_type: 'bearer'
+  expires_in: number
+}
+
+export interface PlatformUser {
+  id: string
+  email: string
+  display_name: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface PlatformProject {
+  id: string
+  owner_id: string
+  name: string
+  description: string
+  created_at: string
+}
+
+export interface PlatformProjectPage {
+  items: PlatformProject[]
+  total: number
+  limit: number
+  offset: number
+}
+
 // During local development Vite runs on a different port from Django. The API
 // proxy covers fetch calls, but a browser navigation to /docs would otherwise
 // remain on Vite and return 404. Point documentation links to Django directly.
-export const apiOrigin = import.meta.env.VITE_API_TARGET || (
-  import.meta.env.DEV
+const viteEnv = import.meta.env ?? { DEV: false, VITE_API_TARGET: undefined }
+
+export const apiOrigin = viteEnv.VITE_API_TARGET || (
+  viteEnv.DEV
     ? 'http://localhost:8000'
     : (typeof window === 'undefined' ? '' : window.location.origin)
 )
@@ -166,23 +198,72 @@ export const apiDocumentation = {
   schema: `${apiOrigin}/api/schema/`,
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<{ status: number; data: T }> {
+let platformAccessToken: string | null = null
+
+function authenticatedHeaders(headers?: HeadersInit): Headers {
+  const result = new Headers(headers)
+  if (platformAccessToken && !result.has('Authorization')) {
+    result.set('Authorization', `Bearer ${platformAccessToken}`)
+  }
+  return result
+}
+
+async function request<T>(path: string, init?: RequestInit, authenticated = true): Promise<{ status: number; data: T }> {
   // Os cookies de localhost são compartilhados entre portas: se houver sessão do
   // Django admin aberta, o DRF passaria a exigir CSRF. A SPA só usa endpoints
   // públicos, então omitimos credenciais.
-  const response = await fetch(path, { credentials: 'omit', ...init })
+  const headers = authenticated ? authenticatedHeaders(init?.headers) : new Headers(init?.headers)
+  const response = await fetch(path, { credentials: 'omit', ...init, headers })
   const text = await response.text()
-  const data = text ? (JSON.parse(text) as T) : (undefined as T)
+  let data: T
+  try {
+    data = text ? (JSON.parse(text) as T) : (undefined as T)
+  } catch {
+    data = ({ detail: text || `HTTP ${response.status}` } as T)
+  }
+  if (authenticated && platformAccessToken && response.status === 401 && typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('platform-session-expired'))
+  }
   return { status: response.status, data }
 }
 
-async function getJson<T>(path: string): Promise<T> {
-  const { status, data } = await request<T>(path)
+async function getJson<T>(path: string, init?: RequestInit, authenticated = true): Promise<T> {
+  const { status, data } = await request<T>(path, init, authenticated)
   if (status >= 400) throw new ApiError(status, data)
   return data
 }
 
 export const api = {
+  setAccessToken: (token: string | null) => {
+    platformAccessToken = token
+  },
+
+  platformRegister: (payload: { email: string; display_name: string; password: string }) =>
+    getJson<{ message: string }>('/api/v1/platform/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }, false),
+
+  platformLogin: (email: string, password: string) => {
+    return getJson<PlatformLoginResult>('/api/v1/platform/auth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    }, false)
+  },
+
+  platformMe: () => getJson<PlatformUser>('/api/v1/platform/auth/me'),
+
+  platformProjects: () => getJson<PlatformProjectPage>('/api/v1/platform/projects?limit=100&offset=0'),
+
+  createPlatformProject: (payload: { name: string; description: string }) =>
+    getJson<PlatformProject>('/api/v1/platform/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+
   health: () => request<HealthStatus>('/api/v1/health'),
   connectivity: () => request<ConnectivityStatus>('/api/v1/health/github-connectivity'),
 
@@ -193,7 +274,10 @@ export const api = {
       body: JSON.stringify({ token }),
     }),
 
-  repositories: () => getJson<Repository[]>('/api/v1/repositories'),
+  repositories: (projectId?: string) =>
+    getJson<Repository[]>(projectId
+      ? `/api/v1/repositories?project_id=${encodeURIComponent(projectId)}`
+      : '/api/v1/repositories'),
 
   commits: (repositoryId: number) =>
     getJson<Paginated<Commit>>(`/api/v1/commits?repository_id=${repositoryId}&page_size=20`),
@@ -229,7 +313,7 @@ export const api = {
       }
     ),
 
-  createRepository: (params: { url?: string; owner?: string; name?: string; token?: string; webhook_secret: string }) =>
+  createRepository: (params: { project_id?: string; url?: string; owner?: string; name?: string; token?: string; webhook_secret: string }) =>
     request<Repository>('/api/v1/repositories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
