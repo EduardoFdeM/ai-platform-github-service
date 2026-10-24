@@ -1,5 +1,5 @@
 import base64
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
@@ -122,22 +122,20 @@ def test_commit_diff_endpoint_caps_patch_and_reports_truncation(client, reposito
     assert response.json()["files"][0]["truncated"] is True
 
 
-def test_private_consumer_contract_honors_module_write_gate(client, repository, settings):
-    settings.MODULE_ENFORCE_WRITE_AUTH = True
-    settings.MODULE_API_KEY = "consumer-key"
+def test_private_consumer_contract_rejects_legacy_module_key(client, repository, settings):
+    settings.MODULE1_AUTH_REQUIRED = True
 
     denied = client.post(
         reverse("repository-content", kwargs={"pk": repository.pk}),
         {"path": "README.md"},
         content_type="application/json",
     )
-    with patch("apps.github_sync.views.GitHubClient.get_content", return_value=Mock()):
-        allowed = client.post(
-            reverse("repository-content", kwargs={"pk": repository.pk}),
-            {"path": "../invalid"},
-            content_type="application/json",
-            HTTP_X_MODULE_API_KEY="consumer-key",
-        )
+    legacy_key = client.post(
+        reverse("repository-content", kwargs={"pk": repository.pk}),
+        {"path": "../invalid"},
+        content_type="application/json",
+        HTTP_X_MODULE_API_KEY="consumer-key",
+    )
 
-    assert denied.status_code == 403
-    assert allowed.status_code == 400
+    assert denied.status_code == 401
+    assert legacy_key.status_code == 401

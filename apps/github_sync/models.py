@@ -2,6 +2,8 @@ from django.db import models
 
 
 class Repository(models.Model):
+    project_id = models.UUIDField(null=True, blank=True, db_index=True)
+    platform_user_id = models.UUIDField(null=True, blank=True, db_index=True)
     github_id = models.PositiveBigIntegerField(unique=True)
     owner = models.CharField(max_length=255)
     name = models.CharField(max_length=255)

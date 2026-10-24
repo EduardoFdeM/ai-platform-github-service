@@ -12,14 +12,14 @@ from django.db.models import Count
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.generics import ListAPIView, ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .dashboard import dashboard_repository, dashboard_summary
 from .models import Branch, Commit, PullRequest, Repository, WebhookDelivery
-from .permissions import ModuleWritePermission
+from .permissions import Module1AccessPermission
 from .serializers import (
     BranchSerializer,
     CommitDiffRequestSerializer,
@@ -32,6 +32,10 @@ from .serializers import (
     HandshakeRequestSerializer,
     HandshakeResponseSerializer,
     HealthSerializer,
+    PlatformProjectDraftSerializer,
+    PlatformRegistrationSerializer,
+    PlatformTokenRequestSerializer,
+    PlatformTokenResponseSerializer,
     PullRequestSerializer,
     ReadinessSerializer,
     RepositoryContentRequestSerializer,
@@ -49,15 +53,92 @@ from .services.crypto import decrypt_secret
 from .services.github import GitHubClient
 from .services.health import readiness_report
 from .services.intelligence import repository_intelligence
+from .services.platform import (
+    PlatformServiceError,
+    create_project,
+    current_user,
+    get_project,
+    issue_token,
+    list_projects,
+    register_user,
+)
 from .services.signatures import is_valid_github_signature
 from .services.sync import sync_repository_from_github
 from .tasks import process_webhook
+from .throttles import PlatformAuthThrottle
 
 logger = logging.getLogger(__name__)
 
 
 def _error_response(code: str, detail: str, http_status: int) -> Response:
     return Response({"code": code, "detail": detail}, status=http_status)
+
+
+def _platform_error_response(exc: PlatformServiceError) -> Response:
+    payload = exc.detail if isinstance(exc.detail, dict) else {"detail": str(exc.detail)}
+    return Response(payload, status=exc.status_code)
+
+
+def _owned_repositories(request):
+    queryset = Repository.objects.filter(active=True)
+    if not settings.MODULE1_AUTH_REQUIRED:
+        return queryset
+    return queryset.filter(platform_user_id=request.user.id)
+
+
+@extend_schema(request=PlatformRegistrationSerializer, responses={200: dict, 422: dict, 503: ErrorSerializer}, auth=[])
+@api_view(["POST"])
+@throttle_classes([PlatformAuthThrottle])
+def platform_register(request):
+    serializer = PlatformRegistrationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    try:
+        return Response(register_user(serializer.validated_data))
+    except PlatformServiceError as exc:
+        return _platform_error_response(exc)
+
+
+@extend_schema(
+    request=PlatformTokenRequestSerializer,
+    responses={200: PlatformTokenResponseSerializer, 401: ErrorSerializer, 422: dict, 503: ErrorSerializer},
+    auth=[],
+)
+@api_view(["POST"])
+@throttle_classes([PlatformAuthThrottle])
+def platform_token(request):
+    serializer = PlatformTokenRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    try:
+        return Response(issue_token(serializer.validated_data["email"], serializer.validated_data["password"]))
+    except PlatformServiceError as exc:
+        return _platform_error_response(exc)
+
+
+@extend_schema(responses={200: dict, 401: ErrorSerializer, 503: ErrorSerializer})
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def platform_me(request):
+    try:
+        return Response(current_user(request.auth))
+    except PlatformServiceError as exc:
+        return _platform_error_response(exc)
+
+
+@extend_schema(
+    request=PlatformProjectDraftSerializer,
+    responses={200: dict, 201: dict, 401: ErrorSerializer, 503: ErrorSerializer},
+)
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def platform_projects(request):
+    try:
+        if request.method == "GET":
+            return Response(list_projects(request.auth))
+        serializer = PlatformProjectDraftSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(create_project(request.auth, serializer.validated_data), status=status.HTTP_201_CREATED)
+    except PlatformServiceError as exc:
+        return _platform_error_response(exc)
 
 
 @extend_schema(
@@ -125,6 +206,7 @@ def github_connectivity(request):
     },
 )
 @api_view(["POST"])
+@permission_classes([Module1AccessPermission])
 def github_handshake(request):
     # O token so e usado nesta chamada: nao e persistido, logado nem devolvido.
     serializer = HandshakeRequestSerializer(data=request.data)
@@ -232,12 +314,15 @@ def github_webhook(request):
     responses={202: WebhookDeliverySerializer, 404: ErrorSerializer, 409: ErrorSerializer},
 )
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([Module1AccessPermission])
 def replay_webhook(request, delivery_id):
     """Reagenda uma entrega falha sem duplicar efeitos ja processados."""
     try:
         with transaction.atomic():
-            delivery = WebhookDelivery.objects.select_for_update().get(delivery_id=delivery_id)
+            delivery = WebhookDelivery.objects.select_for_update().get(
+                delivery_id=delivery_id,
+                repository__in=_owned_repositories(request),
+            )
             if delivery.status != WebhookDelivery.Status.FAILED:
                 return _error_response(
                     "delivery_not_replayable",
@@ -256,10 +341,12 @@ def replay_webhook(request, delivery_id):
 
 class CommitListView(ListAPIView):
     serializer_class = CommitSerializer
+    permission_classes = (Module1AccessPermission,)
 
     def get_queryset(self):
         queryset = (
-            Commit.objects.select_related("repository", "branch", "author")
+            Commit.objects.filter(repository__in=_owned_repositories(self.request))
+            .select_related("repository", "branch", "author")
             .prefetch_related("files")
             .order_by("-authored_at")
         )
@@ -280,9 +367,12 @@ class CommitListView(ListAPIView):
 
 class BranchListView(ListAPIView):
     serializer_class = BranchSerializer
+    permission_classes = (Module1AccessPermission,)
 
     def get_queryset(self):
-        queryset = Branch.objects.select_related("repository").order_by("repository_id", "name")
+        queryset = Branch.objects.filter(repository__in=_owned_repositories(self.request)).select_related(
+            "repository"
+        ).order_by("repository_id", "name")
         repository_id = self.request.query_params.get("repository_id")
         if repository_id:
             queryset = queryset.filter(repository_id=repository_id)
@@ -293,9 +383,12 @@ class BranchListView(ListAPIView):
 
 class PullRequestListView(ListAPIView):
     serializer_class = PullRequestSerializer
+    permission_classes = (Module1AccessPermission,)
 
     def get_queryset(self):
-        queryset = PullRequest.objects.select_related("repository", "author").order_by("-updated_at")
+        queryset = PullRequest.objects.filter(repository__in=_owned_repositories(self.request)).select_related(
+            "repository", "author"
+        ).order_by("-updated_at")
         repository_id = self.request.query_params.get("repository_id")
         state_filter = self.request.query_params.get("state")
         author = self.request.query_params.get("author")
@@ -310,8 +403,9 @@ class PullRequestListView(ListAPIView):
 
 @extend_schema(responses={200: FlowMetricsSerializer})
 @api_view(["GET"])
+@permission_classes([Module1AccessPermission])
 def flow_metrics(request):
-    queryset = Commit.objects.all()
+    queryset = Commit.objects.filter(repository__in=_owned_repositories(request))
     repository_id = request.query_params.get("repository_id")
     if repository_id:
         queryset = queryset.filter(repository_id=repository_id)
@@ -336,11 +430,11 @@ def _dashboard_params(params):
     },
 )
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([Module1AccessPermission])
 def dashboard_metrics(request):
     try:
         days, repository_id = _dashboard_params(request.query_params)
-        repository, _ = dashboard_repository(repository_id)
+        repository, _ = dashboard_repository(repository_id, repositories=_owned_repositories(request))
     except (ValueError, Repository.DoesNotExist):
         return _error_response("invalid_dashboard_parameters", "Parâmetros inválidos.", status.HTTP_400_BAD_REQUEST)
     if repository is None:
@@ -360,11 +454,11 @@ def dashboard_metrics(request):
     },
 )
 @api_view(["POST"])
-@permission_classes([ModuleWritePermission])
+@permission_classes([Module1AccessPermission])
 def repository_sync(request, pk):
     """Sincroniza commits e dados reais de um repositorio via GitHub API (M2-111 / M2-114)."""
     try:
-        repository = Repository.objects.get(pk=pk, active=True)
+        repository = _owned_repositories(request).get(pk=pk)
     except Repository.DoesNotExist:
         return _error_response("repository_not_found", "Repositório não encontrado.", status.HTTP_404_NOT_FOUND)
     token = request.data.get("token")
@@ -403,6 +497,7 @@ def repository_sync(request, pk):
     responses={200: RepositoryIntelligenceSerializer, 400: ErrorSerializer, 404: ErrorSerializer},
 )
 @api_view(["GET"])
+@permission_classes([Module1AccessPermission])
 def repository_insights(request, pk):
     try:
         days = int(request.query_params.get("days", "30"))
@@ -411,15 +506,15 @@ def repository_insights(request, pk):
     if not 1 <= days <= 365:
         return _error_response("invalid_period", "days precisa estar entre 1 e 365.", status.HTTP_400_BAD_REQUEST)
     try:
-        repository = Repository.objects.get(pk=pk, active=True)
+        repository = _owned_repositories(request).get(pk=pk)
     except Repository.DoesNotExist:
         return _error_response("repository_not_found", "Repositório não encontrado.", status.HTTP_404_NOT_FOUND)
     return Response(repository_intelligence(repository, days=days))
 
 
-def _active_repository(pk):
+def _active_repository(request, pk):
     try:
-        return Repository.objects.get(pk=pk, active=True), None
+        return _owned_repositories(request).get(pk=pk), None
     except Repository.DoesNotExist:
         return None, _error_response("repository_not_found", "Repositório não encontrado.", status.HTTP_404_NOT_FOUND)
 
@@ -434,12 +529,12 @@ def _active_repository(pk):
     },
 )
 @api_view(["POST"])
-@permission_classes([ModuleWritePermission])
+@permission_classes([Module1AccessPermission])
 def repository_content(request, pk):
     serializer = RepositoryContentRequestSerializer(data=request.data)
     if not serializer.is_valid():
         return _error_response("invalid_content_request", str(serializer.errors), status.HTTP_400_BAD_REQUEST)
-    repository, error = _active_repository(pk)
+    repository, error = _active_repository(request, pk)
     if error:
         return error
     path = serializer.validated_data["path"].strip("/")
@@ -498,11 +593,11 @@ def repository_content(request, pk):
     responses={200: CommitDiffResponseSerializer, 404: ErrorSerializer, 502: ErrorSerializer},
 )
 @api_view(["POST"])
-@permission_classes([ModuleWritePermission])
+@permission_classes([Module1AccessPermission])
 def repository_commit_diff(request, pk, sha):
     serializer = CommitDiffRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    repository, error = _active_repository(pk)
+    repository, error = _active_repository(request, pk)
     if error:
         return error
     try:
@@ -541,10 +636,18 @@ def repository_commit_diff(request, pk, sha):
 class RepositoryListView(ListCreateAPIView):
     serializer_class = RepositorySerializer
     pagination_class = None
-    permission_classes = (ModuleWritePermission,)
+    permission_classes = (Module1AccessPermission,)
 
     def get_queryset(self):
-        return Repository.objects.filter(active=True).order_by("owner", "name")
+        queryset = _owned_repositories(self.request)
+        project_id = self.request.query_params.get("project_id")
+        if project_id:
+            try:
+                project_id = uuid.UUID(project_id)
+            except ValueError:
+                return queryset.none()
+            queryset = queryset.filter(project_id=project_id)
+        return queryset.order_by("owner", "name")
 
     @extend_schema(
         request=RepositoryCreateRequestSerializer,
@@ -564,12 +667,31 @@ class RepositoryListView(ListCreateAPIView):
                 status.HTTP_400_BAD_REQUEST,
             )
         request_data = request_serializer.validated_data
+        project_id = request_data.get("project_id")
         url_input = request_data.get("url") or request_data.get("repository_url") or ""
         owner = request_data.get("owner", "").strip()
         name = request_data.get("name", "").strip()
         token = request_data.get("token")
         raw_secret = request_data["webhook_secret"].strip()
         expires_at = request_data.get("webhook_secret_expires_at")
+
+        if settings.MODULE1_AUTH_REQUIRED:
+            if not project_id:
+                return _error_response(
+                    "project_required",
+                    "Selecione um projeto do Módulo 1.",
+                    status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                project = get_project(request.auth, project_id)
+            except PlatformServiceError as exc:
+                return _platform_error_response(exc)
+            if str(project.get("id")) != str(project_id) or str(project.get("owner_id")) != str(request.user.id):
+                return _error_response(
+                    "project_access_denied",
+                    "O projeto não pertence ao usuário autenticado.",
+                    status.HTTP_403_FORBIDDEN,
+                )
 
         if url_input:
             from urllib.parse import urlparse
@@ -617,12 +739,21 @@ class RepositoryListView(ListCreateAPIView):
             )
 
         actor = request.user.get_username() if request.user and request.user.is_authenticated else "module-api"
-        repository, _created = store_repository_credential(
-            repo_data,
-            raw_secret,
-            expires_at,
-            actor,
-        )
+        try:
+            repository, _created = store_repository_credential(
+                repo_data,
+                raw_secret,
+                expires_at,
+                actor,
+                project_id=project_id,
+                platform_user_id=request.user.id if settings.MODULE1_AUTH_REQUIRED else None,
+            )
+        except PermissionError:
+            return _error_response(
+                "repository_access_denied",
+                "Este repositório já está associado a outro usuário ou projeto.",
+                status.HTTP_403_FORBIDDEN,
+            )
         sync_status = "completed"
         sync_detail = None
         try:
@@ -646,9 +777,12 @@ class RepositoryListView(ListCreateAPIView):
 class WebhookDeliveryListView(ListAPIView):
     serializer_class = WebhookDeliverySerializer
     pagination_class = None
+    permission_classes = (Module1AccessPermission,)
 
     def get_queryset(self):
-        queryset = WebhookDelivery.objects.select_related("repository").order_by("-received_at")
+        queryset = WebhookDelivery.objects.filter(repository__in=_owned_repositories(self.request)).select_related(
+            "repository"
+        ).order_by("-received_at")
         repository_id = self.request.query_params.get("repository_id")
         if repository_id:
             queryset = queryset.filter(repository_id=repository_id)

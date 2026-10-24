@@ -6,13 +6,25 @@ from .crypto import encrypt_secret
 
 
 @transaction.atomic
-def store_repository_credential(repo_data: dict, raw_secret: str, expires_at, actor: str) -> tuple[Repository, bool]:
+def store_repository_credential(
+    repo_data: dict,
+    raw_secret: str,
+    expires_at,
+    actor: str,
+    *,
+    project_id=None,
+    platform_user_id=None,
+) -> tuple[Repository, bool]:
     repository = Repository.objects.select_for_update().filter(github_id=repo_data["id"]).first()
     created = repository is None
     if created:
         repository = Repository(github_id=repo_data["id"], webhook_secret_version=1)
         action = CredentialAuditEvent.Action.CREATED
     else:
+        if platform_user_id and repository.platform_user_id and repository.platform_user_id != platform_user_id:
+            raise PermissionError("repository belongs to another platform user")
+        if project_id and repository.project_id and repository.project_id != project_id:
+            raise PermissionError("repository belongs to another platform project")
         repository.webhook_secret_version += 1
         action = CredentialAuditEvent.Action.ROTATED
 
@@ -23,6 +35,10 @@ def store_repository_credential(repo_data: dict, raw_secret: str, expires_at, ac
     repository.webhook_secret_rotated_at = timezone.now()
     repository.webhook_secret_expires_at = expires_at
     repository.active = True
+    if project_id:
+        repository.project_id = project_id
+    if platform_user_id:
+        repository.platform_user_id = platform_user_id
     repository.save()
 
     CredentialAuditEvent.objects.create(

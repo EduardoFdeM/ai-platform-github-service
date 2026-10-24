@@ -199,12 +199,14 @@ def test_authenticated_operator_can_replay_failed_delivery(client, repository):
     delay.assert_called_once_with(delivery.pk)
 
 
-def test_replay_rejects_anonymous_and_processed_delivery(client, repository):
+def test_replay_rejects_anonymous_and_processed_delivery(client, repository, settings):
+    settings.MODULE1_AUTH_REQUIRED = True
     delivery = _delivery(repository)
 
     anonymous = client.post(reverse("webhook-delivery-replay", kwargs={"delivery_id": delivery.delivery_id}))
     assert anonymous.status_code in (401, 403)
 
+    settings.MODULE1_AUTH_REQUIRED = False
     user = get_user_model().objects.create_user(username="operator-two", password="secret")
     client.force_login(user)
     delivery.status = WebhookDelivery.Status.PROCESSED

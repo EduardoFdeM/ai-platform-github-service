@@ -183,12 +183,11 @@ def test_reconnecting_repository_rotates_secret_and_audits(client, monkeypatch):
     assert list(repository.credential_audit_events.values_list("action", flat=True)) == ["rotated", "created"]
 
 
-def test_write_auth_can_be_enforced_with_module_api_key(client, settings):
-    settings.MODULE_ENFORCE_WRITE_AUTH = True
-    settings.MODULE_API_KEY = "internal-key"
+def test_module1_auth_is_fail_closed_and_legacy_api_key_is_rejected(client, settings):
+    settings.MODULE1_AUTH_REQUIRED = True
 
     denied = client.post(reverse("repository-list"), {})
-    accepted = client.post(reverse("repository-list"), {}, HTTP_X_MODULE_API_KEY="internal-key")
+    legacy_key = client.post(reverse("repository-list"), {}, HTTP_X_MODULE_API_KEY="internal-key")
 
-    assert denied.status_code == 403
-    assert accepted.status_code == 400
+    assert denied.status_code == 401
+    assert legacy_key.status_code == 401

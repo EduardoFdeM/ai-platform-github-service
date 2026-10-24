@@ -3,6 +3,28 @@ from rest_framework import serializers
 from .models import Branch, Commit, CommitFile, PullRequest, Repository, WebhookDelivery
 
 
+class PlatformRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=320)
+    display_name = serializers.CharField(min_length=1, max_length=120)
+    password = serializers.CharField(min_length=12, max_length=128, write_only=True)
+
+
+class PlatformTokenRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=320)
+    password = serializers.CharField(max_length=128, write_only=True)
+
+
+class PlatformTokenResponseSerializer(serializers.Serializer):
+    access_token = serializers.CharField()
+    token_type = serializers.CharField()
+    expires_in = serializers.IntegerField(min_value=1)
+
+
+class PlatformProjectDraftSerializer(serializers.Serializer):
+    name = serializers.CharField(min_length=1, max_length=120)
+    description = serializers.CharField(required=False, allow_blank=True, max_length=2000)
+
+
 class HandshakeRequestSerializer(serializers.Serializer):
     token = serializers.CharField(write_only=True, max_length=255)
 
@@ -43,6 +65,7 @@ class HandshakeResponseSerializer(serializers.Serializer):
 
 
 class RepositoryCreateRequestSerializer(serializers.Serializer):
+    project_id = serializers.UUIDField(required=False)
     url = serializers.CharField(required=False, allow_blank=True)
     repository_url = serializers.CharField(required=False, allow_blank=True)
     owner = serializers.CharField(required=False, allow_blank=True)
@@ -200,6 +223,7 @@ class RepositorySerializer(serializers.ModelSerializer):
         model = Repository
         fields = (
             "id",
+            "project_id",
             "github_id",
             "owner",
             "name",
