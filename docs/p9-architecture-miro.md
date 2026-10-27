@@ -140,7 +140,7 @@ Para cada módulo, peça e registre no frame `10 — Contratos e pendências`:
 
 - [ ] imagem de referência inserida no Miro;
 - [ ] frame geral revisado por todos os grupos;
-- [ ] frame interno do M2 atualizado com a URL pública real;
+- [x] frame interno do M2 atualizado com a URL pública real: `https://ai-platform-github-service-eduardo-frapb8fbbcd0bfdm.brazilsouth-01.azurewebsites.net`;
 - [ ] cada grupo criou seu próprio frame interno;
 - [ ] bancos e filas identificados por módulo;
 - [ ] linhas contínuas e tracejadas conferidas contra testes reais;

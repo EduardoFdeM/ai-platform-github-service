@@ -1,6 +1,6 @@
 # Fechamento interno do Módulo 2
 
-Revisão de 22 de outubro de 2026. Este documento separa código concluído, prova local e dependências externas.
+Revisão de 27 de outubro de 2026. Este documento separa código concluído, prova local/remota e dependências externas.
 
 ## Concluído no repositório
 
@@ -20,8 +20,8 @@ Revisão de 22 de outubro de 2026. Este documento separa código concluído, pro
 
 Estes itens exigem infraestrutura, credenciais ou contrato de outro grupo. Permanecem como integração, não como código ausente do Módulo 2:
 
-- publicar a versão atual e registrar evidência do CI e do smoke no Azure;
-- configurar PostgreSQL, Redis, worker, secrets e `MODULE1_AUTH_REQUIRED=true` no ambiente remoto;
+- manter a publicação Azure e o pipeline já verdes; a URL, o health, a readiness, a conectividade GitHub e o OpenAPI possuem evidência remota;
+- migrar as tarefas do modo eager remoto para Redis + worker Celery somente quando houver infraestrutura compartilhada;
 - incorporar equipes/RBAC quando o Módulo 1 publicar esses campos; o contrato atual é proprietário individual;
 - acordar gateway, CORS e Data Bus com a turma;
 - executar E2E compartilhado com os módulos consumidores.
@@ -34,4 +34,4 @@ Estes itens exigem infraestrutura, credenciais ou contrato de outro grupo. Perma
 
 ## Critério para declarar produção
 
-O código está concluído e validado localmente. “Produção” só pode ser marcado após push, CI remoto verde, migração remota, readiness verde e um webhook/sync real no ambiente publicado.
+O código está concluído, publicado e validado local/remotamente. CI, deploy, health, readiness, conectividade GitHub, interface e OpenAPI estão verdes. Para evidência operacional integral com dados reais, falta somente executar webhook/sync com um repositório controlado e credenciais de teste autorizadas.

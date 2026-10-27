@@ -1,5 +1,7 @@
 # AI Platform — GitHub Service (Módulo 2)
 
+Ambiente publicado: [GitHub Sync](https://ai-platform-github-service-eduardo-frapb8fbbcd0bfdm.brazilsouth-01.azurewebsites.net/) · [Swagger UI](https://ai-platform-github-service-eduardo-frapb8fbbcd0bfdm.brazilsouth-01.azurewebsites.net/docs/) · [OpenAPI](https://ai-platform-github-service-eduardo-frapb8fbbcd0bfdm.brazilsouth-01.azurewebsites.net/api/schema/?format=json)
+
 Microsserviço responsável pela integração da **AI Platform** com o GitHub: webhooks, sincronização e indexação de repositórios, conteúdo/diffs com proveniência, métricas e inteligência auditável sobre o fluxo Git.
 
 Desenvolvido para a disciplina de **Engenharia de Software (2026.2)** — Universidade Presbiteriana Mackenzie.

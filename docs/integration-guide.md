@@ -1,12 +1,12 @@
 # Guia de integração — Módulo 2 (GitHub Sync)
 
-Referência dos contratos disponíveis no código em **22 de outubro de 2026**. O módulo recebe e sincroniza fatos do GitHub, expõe conteúdo/diffs sob demanda e produz indicadores auditáveis. Esta documentação não confirma que um ambiente remoto ou credenciais reais estejam ativos.
+Referência dos contratos disponíveis no código e no ambiente publicado em **27 de outubro de 2026**. O módulo recebe e sincroniza fatos do GitHub, expõe conteúdo/diffs sob demanda e produz indicadores auditáveis. O pipeline, o health, a readiness, a conectividade GitHub, o schema OpenAPI e a interface pública foram verificados no App Service.
 
 ## Prontidão
 
 | Capacidade | Estado no código | Dependência de ambiente |
 | --- | --- | --- |
-| REST + OpenAPI/Swagger | concluída e validada | base URL publicada |
+| REST + OpenAPI/Swagger | concluída, publicada e validada | nenhuma para consulta pública |
 | Repositórios, commits, branches e PRs | concluída | GitHub acessível; PAT efêmero para recursos privados |
 | Webhooks | concluída | HTTPS público, Redis e worker Celery |
 | Conteúdo textual e diff | concluída | permissão GitHub para o recurso solicitado |
@@ -22,6 +22,8 @@ Dados criados por `seed_demo_data` são somente demonstração local e nunca dev
 ## Endereços e descoberta
 
 Base local padrão: `http://localhost:8000`.
+
+Base pública validada: `https://ai-platform-github-service-eduardo-frapb8fbbcd0bfdm.brazilsouth-01.azurewebsites.net`.
 
 | Recurso | Rota |
 | --- | --- |
@@ -241,7 +243,7 @@ O cliente GitHub nunca dorme até o reset completo do rate limit. Ele respeita o
 
 1. Módulo 1: equipes/papéis ainda não existem; hoje cada usuário acessa somente os próprios projetos.
 2. Plataforma: gateway para origens diferentes e envelope de eventos/Data Bus.
-3. Operação: URL HTTPS, secrets, PostgreSQL, Redis, worker e evidência de smoke/E2E remoto.
+3. Operação futura: migrar do modo eager atual para Redis + worker Celery quando houver infraestrutura compartilhada; health, readiness, criptografia e conectividade GitHub já estão ativos no App Service.
 4. Consumidores: testes de contrato M2→M3/M4/M5/M6/M7/M8.
 
 Consulte também [platform-integration-map.md](platform-integration-map.md), [poc-coverage.md](poc-coverage.md), [youtrack-status-review.md](youtrack-status-review.md) e [DEPLOYMENT.md](../DEPLOYMENT.md).
