@@ -50,7 +50,7 @@ from .serializers import (
 )
 from .services.credentials import store_repository_credential
 from .services.crypto import decrypt_secret
-from .services.github import GitHubClient
+from .services.github import GitHubClient, GitHubRateLimitError
 from .services.health import readiness_report
 from .services.intelligence import repository_intelligence
 from .services.platform import (
@@ -655,7 +655,9 @@ class RepositoryListView(ListCreateAPIView):
             201: RepositoryCreateResponseSerializer,
             400: ErrorSerializer,
             404: ErrorSerializer,
+            429: ErrorSerializer,
             502: ErrorSerializer,
+            503: ErrorSerializer,
         },
     )
     def create(self, request, *args, **kwargs):
@@ -722,12 +724,31 @@ class RepositoryListView(ListCreateAPIView):
         try:
             client = GitHubClient(token=token)
             repo_data = client.get_repository(owner, name)
+        except GitHubRateLimitError as exc:
+            retry_hint = f" Tente novamente em aproximadamente {exc.retry_after} segundos." if exc.retry_after else ""
+            return _error_response(
+                "github_rate_limit_exceeded",
+                "O limite de consultas da API do GitHub foi atingido. Informe um PAT ou tente novamente mais tarde."
+                + retry_hint,
+                status.HTTP_429_TOO_MANY_REQUESTS,
+            )
         except requests.HTTPError as exc:
             code = exc.response.status_code if exc.response is not None else 502
             response_status = code if code in (401, 403, 404) else status.HTTP_502_BAD_GATEWAY
+            if code == 401:
+                detail = "O GitHub recusou o token informado. Verifique se ele é válido e possui acesso de leitura."
+            elif code == 403:
+                detail = (
+                    "O GitHub recusou o acesso ao repositório. "
+                    "Verifique as permissões do PAT ou tente novamente mais tarde."
+                )
+            elif code == 404:
+                detail = "O repositório não foi encontrado ou não está visível para a credencial informada."
+            else:
+                detail = f"Não foi possível consultar o repositório no GitHub (HTTP {code})."
             return _error_response(
                 "github_repository_lookup_failed",
-                f"Não foi possível consultar o repositório no GitHub (HTTP {code}).",
+                detail,
                 response_status,
             )
         except Exception:
@@ -753,6 +774,13 @@ class RepositoryListView(ListCreateAPIView):
                 "repository_access_denied",
                 "Este repositório já está associado a outro usuário ou projeto.",
                 status.HTTP_403_FORBIDDEN,
+            )
+        except RuntimeError:
+            logger.exception("repository_credential_store_unavailable", extra={"owner": owner, "repository": name})
+            return _error_response(
+                "credential_store_unavailable",
+                "O armazenamento seguro de credenciais está temporariamente indisponível.",
+                status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         sync_status = "completed"
         sync_detail = None
