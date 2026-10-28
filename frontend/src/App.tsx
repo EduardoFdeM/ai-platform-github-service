@@ -121,9 +121,9 @@ export default function App() {
     setAccessNotice(reason === 'manual' ? 'Sessão encerrada com segurança.' : 'Sua sessão expirou. Entre novamente para continuar.')
   }, [])
 
-  const handleAuthenticated = useCallback((session: PlatformSession) => {
+  const handleAuthenticated = useCallback((session: PlatformSession, rememberOnDevice: boolean) => {
     api.setAccessToken(session.accessToken)
-    savePlatformSession(session)
+    savePlatformSession(session, rememberOnDevice)
     setPlatformSession(session)
     setSessionChecking(false)
     setAccessNotice(null)

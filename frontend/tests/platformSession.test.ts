@@ -9,6 +9,7 @@ import {
   readPlatformSession,
   savePlatformSession,
   sessionRemainingSeconds,
+  type PlatformSessionStores,
   type StorageLike,
 } from '../src/platformSession.ts'
 
@@ -21,6 +22,10 @@ function memoryStorage(): StorageLike {
   }
 }
 
+function memoryStores(): PlatformSessionStores {
+  return { tab: memoryStorage(), device: memoryStorage() }
+}
+
 const user = {
   id: '46d493f0-40c7-4f92-b13c-330dde429779',
   email: 'aluno@example.com',
@@ -30,15 +35,34 @@ const user = {
 }
 
 test('session uses expires_in and can be restored only before expiration', () => {
-  const storage = memoryStorage()
+  const stores = memoryStores()
   const session = createPlatformSession('signed-token', 1800, user, 1_000)
-  savePlatformSession(session, storage)
+  savePlatformSession(session, false, stores)
 
   assert.equal(session.expiresAt, 1_801_000)
-  assert.equal(readPlatformSession(storage, 60_000)?.accessToken, 'signed-token')
+  assert.equal(readPlatformSession(stores, 60_000)?.accessToken, 'signed-token')
   assert.equal(sessionRemainingSeconds(session, 1_000), 1800)
   assert.equal(isSessionExpired(session, 1_796_001), true)
-  assert.equal(readPlatformSession(storage, 1_801_000), null)
+  assert.equal(readPlatformSession(stores, 1_801_000), null)
+})
+
+test('remember me persists in device storage and survives a new tab', () => {
+  const stores = memoryStores()
+  const session = createPlatformSession('remembered-token', 1800, user, 1_000)
+  savePlatformSession(session, true, stores)
+
+  const reopenedBrowser = { tab: memoryStorage(), device: stores.device }
+  assert.equal(readPlatformSession(reopenedBrowser, 60_000)?.accessToken, 'remembered-token')
+  assert.equal(stores.tab?.getItem('github-sync.platform-session.v1'), null)
+})
+
+test('tab-only login removes a previously remembered session', () => {
+  const stores = memoryStores()
+  savePlatformSession(createPlatformSession('remembered-token', 1800, user), true, stores)
+  savePlatformSession(createPlatformSession('tab-token', 1800, user), false, stores)
+
+  assert.equal(readPlatformSession(stores)?.accessToken, 'tab-token')
+  assert.equal(stores.device?.getItem('github-sync.platform-session.v1'), null)
 })
 
 test('authorization is omitted for missing or expired sessions', () => {
@@ -50,12 +74,12 @@ test('authorization is omitted for missing or expired sessions', () => {
 })
 
 test('invalid persisted content is discarded and logout clears storage', () => {
-  const storage = memoryStorage()
-  storage.setItem('github-sync.platform-session.v1', '{invalid')
-  assert.equal(readPlatformSession(storage), null)
+  const stores = memoryStores()
+  stores.device?.setItem('github-sync.platform-session.v1', '{invalid')
+  assert.equal(readPlatformSession(stores), null)
 
   const session = createPlatformSession('signed-token', 1800, user)
-  savePlatformSession(session, storage)
-  clearPlatformSession(storage)
-  assert.equal(readPlatformSession(storage), null)
+  savePlatformSession(session, true, stores)
+  clearPlatformSession(stores)
+  assert.equal(readPlatformSession(stores), null)
 })

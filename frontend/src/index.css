@@ -1797,6 +1797,26 @@ html, body {
 .platform-access-form { display: flex; flex-direction: column; gap: 16px; }
 .platform-access-submit { width: 100%; min-height: 42px; margin-top: 3px; }
 
+.remember-session-control {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.remember-session-control input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: #2563EB;
+  flex: 0 0 auto;
+}
+
+.remember-session-control span { display: flex; flex-direction: column; gap: 2px; }
+.remember-session-control strong { font-size: 12px; font-weight: 600; }
+.remember-session-control small { color: var(--text-tertiary); font-size: 10.5px; line-height: 1.4; }
+
 .password-input-wrap { position: relative; }
 .password-input-wrap .form-input { padding-right: 42px; }
 .password-input-wrap button {
