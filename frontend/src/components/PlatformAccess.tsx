@@ -16,7 +16,7 @@ export const PlatformAccess: React.FC<PlatformAccessProps> = ({ onAuthenticated,
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberOnDevice, setRememberOnDevice] = useState(false)
+  const [rememberOnDevice, setRememberOnDevice] = useState(true)
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 

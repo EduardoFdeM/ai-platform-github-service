@@ -103,20 +103,25 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_480DF30E424148BD9D1D915CCF8E52B1 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4B1F281B21EC400384C9CB910D07933F }}
 
-      - name: Configurar inicialização e migrations
-        run: |
-          RESOURCE_GROUP=$(az webapp show --name 'ai-platform-github-service-eduardo' --query resourceGroup --output tsv)
-          az webapp config set \
-            --resource-group "$RESOURCE_GROUP" \
-            --name 'ai-platform-github-service-eduardo' \
-            --startup-file 'bash startup.sh'
-
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'ai-platform-github-service-eduardo'
           slot-name: 'Production'
+
+      - name: Configurar inicialização e migrations
+        run: |
+          WEBAPP_ID=$(az resource list \
+            --name 'ai-platform-github-service-eduardo' \
+            --resource-type 'Microsoft.Web/sites' \
+            --query '[0].id' \
+            --output tsv)
+          if [ -z "$WEBAPP_ID" ]; then
+            echo "::error::Aplicação Azure ai-platform-github-service-eduardo não encontrada na assinatura autenticada."
+            exit 1
+          fi
+          az webapp config set --ids "$WEBAPP_ID" --startup-file 'bash startup.sh'
 
       - name: Smoke test do health publicado
         run: |

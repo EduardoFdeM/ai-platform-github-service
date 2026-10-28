@@ -207,7 +207,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, proj
             <input
               type="url"
               className="form-input"
-              placeholder="https://github.com/EduardoFdeM/ai-platform-github-service"
+              placeholder="https://github.com/organizacao/repositorio"
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value)
