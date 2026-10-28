@@ -56,7 +56,7 @@ export const OverviewKpis: React.FC<OverviewKpisProps> = ({
         </div>
         <div className="kpi-value-row">
           <span className="kpi-number">{latencyMs == null ? '—' : `${latencyMs} ms`}</span>
-          <span className="kpi-trend" style={{ color: connectivityStatus === 'up' ? '#10B981' : '#F59E0B', backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
+          <span className={`kpi-trend ${connectivityStatus === 'up' ? 'trend-up' : 'trend-warning'}`}>
             {connectivityStatus === 'up' ? 'Conectado' : 'Sem leitura'}
           </span>
         </div>

@@ -154,7 +154,7 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <GitBranch size={12} color="#60A5FA" />
-                        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#E2E8F0' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-main)' }}>
                           {item.branch}
                         </span>
                       </div>
@@ -221,7 +221,7 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             gap: 12,
-            backgroundColor: '#0A0F1D',
+            backgroundColor: 'var(--bg-card-secondary)',
             borderRadius: 8,
           }}
         >

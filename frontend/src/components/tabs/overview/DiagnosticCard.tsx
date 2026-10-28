@@ -15,7 +15,7 @@ export const DiagnosticCard: React.FC<DiagnosticCardProps> = ({
   return (
     <div
       style={{
-        backgroundColor: '#0A0F1D',
+        backgroundColor: 'var(--bg-card-secondary)',
         border: '1px solid var(--border-default)',
         borderRadius: 8,
         padding: 16,

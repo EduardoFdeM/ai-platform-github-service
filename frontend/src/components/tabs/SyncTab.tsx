@@ -236,7 +236,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           {/* Coluna Esquerda: Importação Histórica */}
           <div
             style={{
-              backgroundColor: '#0A0F1D',
+              backgroundColor: 'var(--bg-card-secondary)',
               border: '1px solid var(--border-default)',
               borderRadius: 8,
               padding: 16,
@@ -301,7 +301,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           {/* Coluna Direita: Sincronização Incremental (Delta Sync) */}
           <div
             style={{
-              backgroundColor: '#0A0F1D',
+              backgroundColor: 'var(--bg-card-secondary)',
               border: '1px solid var(--border-default)',
               borderRadius: 8,
               padding: 16,
@@ -324,7 +324,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
 
               <div
                 style={{
-                  backgroundColor: '#050811',
+                  backgroundColor: 'var(--bg-code)',
                   border: '1px solid var(--border-default)',
                   borderRadius: 6,
                   padding: '8px 10px',
@@ -334,7 +334,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
                 }}
               >
                 <span style={{ color: 'var(--text-tertiary)', fontSize: 10, display: 'block' }}>since:</span>
-                <strong style={{ color: '#93C5FD' }}>2026-10-02T14:27:31-03:00</strong>
+                <strong style={{ color: 'var(--info)' }}>2026-10-02T14:27:31-03:00</strong>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12, fontSize: 11 }}>
@@ -444,7 +444,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
                           style={{
                             fontFamily: 'var(--font-mono)',
                             fontSize: 10.5,
-                            color: idx === 0 ? '#93C5FD' : 'var(--text-dim)',
+                            color: idx === 0 ? 'var(--info)' : 'var(--text-dim)',
                           }}
                         >
                           {email}

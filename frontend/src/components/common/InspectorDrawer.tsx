@@ -94,7 +94,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
           bottom: 0,
           width: '540px',
           maxWidth: '90vw',
-          backgroundColor: '#0A0F1D',
+          backgroundColor: 'var(--bg-card-secondary)',
           borderLeft: '1px solid var(--border-default)',
           boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.6)',
           zIndex: 100,
@@ -127,9 +127,9 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
               {item.executionId || item.id.slice(0, 10)}
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, fontSize: 12, color: 'var(--text-muted)' }}>
-              <span>branch: <strong style={{ color: '#E2E8F0' }}>{item.branch || 'Não informada'}</strong></span>
+              <span>branch: <strong style={{ color: 'var(--text-main)' }}>{item.branch || 'Não informada'}</strong></span>
               <span>•</span>
-              <span>autor: <strong style={{ color: '#E2E8F0' }}>{item.author || 'Não informado'}</strong></span>
+              <span>autor: <strong style={{ color: 'var(--text-main)' }}>{item.author || 'Não informado'}</strong></span>
               {item.when && (
                 <>
                   <span>•</span>
@@ -241,13 +241,13 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
 
               <pre
                 style={{
-                  backgroundColor: '#050811',
+                  backgroundColor: 'var(--bg-code)',
                   border: '1px solid var(--border-default)',
                   borderRadius: 6,
                   padding: 16,
                   fontSize: 11.5,
                   fontFamily: 'var(--font-mono)',
-                  color: '#93C5FD',
+                  color: 'var(--info)',
                   overflowX: 'auto',
                   lineHeight: 1.6,
                 }}
@@ -266,7 +266,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
 
               <div
                 style={{
-                  backgroundColor: '#050811',
+                  backgroundColor: 'var(--bg-code)',
                   border: '1px solid var(--border-default)',
                   borderRadius: 6,
                   padding: 14,
@@ -297,7 +297,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
 
               <pre
                 style={{
-                  backgroundColor: '#050811',
+                  backgroundColor: 'var(--bg-code)',
                   border: '1px solid var(--border-default)',
                   borderRadius: 6,
                   padding: 16,

@@ -13,6 +13,7 @@
   --bg-card: var(--color-surface);
   --bg-card-hover: #F0F2F7;
   --bg-card-secondary: #F9FAFC;
+  --bg-code: #EEF1F7;
   --bg-input: var(--color-surface);
   --bg-overlay: rgba(26, 29, 41, 0.42);
 
@@ -55,6 +56,7 @@
   --text-muted: var(--color-text-muted);
   --text-tertiary: var(--color-text-muted);
   --text-dim: var(--color-text-muted);
+  --primary-content: var(--color-primary);
 
   /* Raios de Curvatura */
   --radius-xs: 4px;
@@ -73,6 +75,7 @@
 [data-theme="dark"] {
   --bg-card-hover: #20263B;
   --bg-card-secondary: #14192A;
+  --bg-code: #0A0F1D;
   --bg-input: var(--color-surface);
   --bg-overlay: rgba(7, 9, 18, 0.70);
   --border-subtle: var(--color-border);
@@ -91,6 +94,7 @@
   --purple-border: rgba(196, 181, 253, 0.40);
   --text-tertiary: var(--color-text-muted);
   --text-dim: var(--color-text-muted);
+  --primary-content: #B8C7FF;
   --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
   --shadow-drawer: -10px 0 35px rgba(0, 0, 0, 0.35);
   --shadow-modal: 0 20px 45px -5px rgba(0, 0, 0, 0.52);
@@ -497,7 +501,7 @@ html, body {
 
 .workspace-badge {
   background-color: var(--primary-subtle);
-  color: var(--primary);
+  color: var(--primary-content);
   font-size: 10px;
   font-weight: 700;
   padding: 2px 6px;
@@ -559,7 +563,7 @@ html, body {
 
 .nav-item.active {
   background-color: var(--primary-subtle);
-  color: var(--primary);
+  color: var(--primary-content);
   border: 1px solid var(--primary-border);
   font-weight: 600;
   cursor: default;
@@ -600,7 +604,7 @@ html, body {
 .module-sidebar.is-collapsed .user-profile-strip { flex-direction: column; }
 
 .nav-item.active svg {
-  color: var(--primary);
+  color: var(--primary-content);
 }
 
 .nav-item-badge {
@@ -877,8 +881,12 @@ html, body {
 }
 
 .btn-module:disabled {
-  opacity: 0.5;
+  opacity: 1;
   cursor: not-allowed;
+  color: var(--text-muted);
+  background: var(--bg-card-secondary);
+  border-color: var(--border-default);
+  box-shadow: none;
 }
 
 /* Abas de Navegação das 7 Telas do Figma */
@@ -1084,9 +1092,19 @@ html, body {
   font-weight: 600;
 }
 
+.trend-up {
+  color: var(--success);
+  background: var(--success-subtle);
+}
+
+.trend-warning {
+  color: var(--warning);
+  background: var(--warning-subtle);
+}
+
 .nav-item-projects {
   margin-bottom: 8px;
-  color: var(--primary);
+  color: var(--primary-content);
   border: 1px solid var(--border-default);
   background: var(--primary-subtle);
 }
