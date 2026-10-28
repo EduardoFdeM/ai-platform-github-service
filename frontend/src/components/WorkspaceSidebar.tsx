@@ -11,6 +11,8 @@ interface WorkspaceSidebarProps {
   onToggle: () => void
   user: PlatformUser
   projects: PlatformProject[]
+  projectsLoading: boolean
+  projectsError: boolean
   selectedProject: PlatformProject | null
   onSelectProject: (project: PlatformProject | null) => void
   onOpenProjects: () => void
@@ -35,6 +37,8 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   onToggle,
   user,
   projects,
+  projectsLoading,
+  projectsError,
   selectedProject,
   onSelectProject,
   onOpenProjects,
@@ -65,13 +69,15 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             <select
               className="workspace-project-select"
               aria-label="Selecionar projeto no menu lateral"
+              aria-busy={projectsLoading}
+              disabled={projectsLoading && projects.length === 0}
               value={selectedProject?.id || ''}
               onChange={(event) => {
                 const project = projects.find((item) => item.id === event.target.value) || null
                 onSelectProject(project)
               }}
             >
-              <option value="">Selecione um projeto</option>
+              <option value="">{projectsLoading && projects.length === 0 ? 'Carregando projetos…' : projectsError && projects.length === 0 ? 'Projetos indisponíveis' : 'Selecione um projeto'}</option>
               {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </select>
           </div>
@@ -101,7 +107,13 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           ))}
         </nav>
       ) : !collapsed ? (
-        <p className="sidebar-project-hint">Selecione ou crie um projeto para acessar as áreas do módulo.</p>
+        <p className="sidebar-project-hint" role={projectsLoading ? 'status' : undefined}>
+          {projectsLoading && projects.length === 0
+            ? 'Buscando seus projetos. O serviço compartilhado pode levar alguns segundos para iniciar.'
+            : projectsError && projects.length === 0
+              ? 'Não foi possível carregar os projetos. Use “Tentar novamente” na área principal.'
+              : 'Selecione ou crie um projeto para acessar as áreas do módulo.'}
+        </p>
       ) : null}
     </div>
 

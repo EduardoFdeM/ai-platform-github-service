@@ -103,6 +103,14 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_480DF30E424148BD9D1D915CCF8E52B1 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4B1F281B21EC400384C9CB910D07933F }}
 
+      - name: Configurar inicialização e migrations
+        run: |
+          RESOURCE_GROUP=$(az webapp show --name 'ai-platform-github-service-eduardo' --query resourceGroup --output tsv)
+          az webapp config set \
+            --resource-group "$RESOURCE_GROUP" \
+            --name 'ai-platform-github-service-eduardo' \
+            --startup-file 'bash startup.sh'
+
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp

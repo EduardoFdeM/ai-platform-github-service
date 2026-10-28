@@ -23,6 +23,23 @@ def database_check() -> dict:
     return _result("up")
 
 
+def schema_check() -> dict:
+    """Confirma as colunas usadas pelo escopo de projeto antes de declarar prontidão."""
+    try:
+        table = "github_sync_repository"
+        if table not in connection.introspection.table_names():
+            return _result("down", "repository schema migration is pending")
+        with connection.cursor() as cursor:
+            columns = {column.name for column in connection.introspection.get_table_description(cursor, table)}
+    except Exception:
+        return _result("down", "database schema inspection failed")
+
+    required = {"project_id", "platform_user_id"}
+    if not required.issubset(columns):
+        return _result("down", "repository schema migration is pending")
+    return _result("up")
+
+
 def redis_check() -> dict:
     if settings.CELERY_TASK_ALWAYS_EAGER:
         return _result("not_required", "tasks run eagerly in this environment")
@@ -56,6 +73,7 @@ def crypto_check() -> dict:
 def readiness_report() -> dict:
     checks = {
         "database": database_check(),
+        "schema": schema_check(),
         "redis": redis_check(),
         "worker": worker_check(),
         "crypto": crypto_check(),

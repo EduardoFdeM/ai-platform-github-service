@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Moon, Sun } from 'lucide-react'
 import { WorkspaceSidebar } from './components/WorkspaceSidebar'
 import { WorkspaceHeader } from './components/WorkspaceHeader'
 import type { TabId } from './components/Header'
@@ -39,6 +40,30 @@ import {
 } from './api'
 
 export default function App() {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = window.localStorage.getItem('github-sync-theme')
+    if (saved === 'light' || saved === 'dark') return saved
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  })
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    window.localStorage.setItem('github-sync-theme', theme)
+  }, [theme])
+
+  const themeControl = (
+    <button
+      type="button"
+      className="theme-toggle"
+      onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}
+      aria-label={theme === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'}
+      title={theme === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'}
+    >
+      {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+      <span>{theme === 'light' ? 'Tema escuro' : 'Tema claro'}</span>
+    </button>
+  )
+
   // A landing é a porta de entrada institucional e /app é o único workspace.
   const [viewMode, setViewMode] = useState<'landing' | 'workspace'>(() => {
     if (typeof window !== 'undefined') {
@@ -373,26 +398,28 @@ export default function App() {
   }
 
   if (viewMode === 'landing') {
-    return <LandingPage onEnterWorkspace={handleSwitchToWorkspace} />
+    return <><LandingPage onEnterWorkspace={handleSwitchToWorkspace} />{themeControl}</>
   }
 
   if (sessionChecking) {
-    return (
+    return (<>
       <main className="platform-access-page">
         <div className="platform-session-loading" role="status">Validando sua sessão…</div>
       </main>
-    )
+      {themeControl}
+    </>)
   }
 
   if (!platformSession) {
-    return <PlatformAccess notice={accessNotice} onAuthenticated={handleAuthenticated} onBack={() => {
+    return <><PlatformAccess notice={accessNotice} onAuthenticated={handleAuthenticated} onBack={() => {
       window.history.pushState(null, '', '/')
       setViewMode('landing')
-    }} />
+    }} />{themeControl}</>
   }
 
   return (
     <div className={`module-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {themeControl}
       <WorkspaceSidebar
         activeTab={activeTab}
         onSelectTab={(tab) => {
@@ -403,6 +430,8 @@ export default function App() {
         onToggle={() => setSidebarCollapsed((current) => !current)}
         user={platformSession.user}
         projects={projects}
+        projectsLoading={platformContextLoading}
+        projectsError={Boolean(platformContextError)}
         selectedProject={selectedProject}
         onSelectProject={handleSelectProject}
         onOpenProjects={() => {
