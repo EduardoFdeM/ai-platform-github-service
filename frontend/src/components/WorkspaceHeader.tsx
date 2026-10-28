@@ -1,5 +1,5 @@
 import React from 'react'
-import { FolderGit2, FolderPlus, GitBranch, Plus, RefreshCw, SlidersHorizontal } from 'lucide-react'
+import { FolderGit2, GitBranch, Plus, RefreshCw, SlidersHorizontal } from 'lucide-react'
 import type { ConnectivityStatus, PlatformProject, Repository } from '../api'
 import type { TabId } from './Header'
 
@@ -7,12 +7,9 @@ interface WorkspaceHeaderProps {
   activeTab: TabId
   onSelectTab: (tab: TabId) => void
   repositories: Repository[]
-  projects: PlatformProject[]
   selectedProject: PlatformProject | null
   selectedRepo: Repository | null
-  onSelectProject: (project: PlatformProject) => void
   onSelectRepo: (repo: Repository) => void
-  onOpenCreateProject: () => void
   onOpenConnectModal: () => void
   onSyncNow: () => void
   syncing: boolean
@@ -33,18 +30,17 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   activeTab,
   onSelectTab,
   repositories,
-  projects,
   selectedProject,
   selectedRepo,
-  onSelectProject,
   onSelectRepo,
-  onOpenCreateProject,
   onOpenConnectModal,
   onSyncNow,
   syncing,
   connectivity,
 }) => {
-  const { breadcrumb, title } = tabMeta[activeTab]
+  const { breadcrumb, title } = selectedProject
+    ? tabMeta[activeTab]
+    : { breadcrumb: 'Projetos', title: 'Seus projetos' }
 
   return (
     <header className="module-header">
@@ -54,28 +50,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
           <h1 className="header-h1">{title}</h1>
         </div>
 
-        <div className="header-controls">
-          <div className="select-chip" title="Projeto da plataforma">
-            <FolderGit2 size={14} className="control-icon-project" />
-            <span>projeto:</span>
-            <select
-              className="header-repository-select"
-              aria-label="Selecionar projeto"
-              value={selectedProject?.id || ''}
-              onChange={(event) => {
-                const found = projects.find((project) => project.id === event.target.value)
-                if (found) onSelectProject(found)
-              }}
-            >
-              {projects.length === 0 && <option value="">Nenhum projeto</option>}
-              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-            </select>
-          </div>
-
-          <button type="button" onClick={onOpenCreateProject} className="btn-module btn-module-secondary" title="Criar projeto no Módulo 1">
-            <FolderPlus size={14} /><span>Novo projeto</span>
-          </button>
-
+        {selectedProject && <div className="header-controls">
           <div className="select-chip" title="Selecionar repositório">
             <FolderGit2 size={14} className="control-icon-repository" />
             <span>repo:</span>
@@ -127,7 +102,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
             <span>{syncing ? 'Sincronizando…' : selectedRepo ? 'Sincronizar agora' : 'Conecte um repositório'}</span>
           </button>
-        </div>
+        </div>}
       </div>
     </header>
   )

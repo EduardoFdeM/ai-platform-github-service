@@ -12,6 +12,7 @@ import { DevelopmentTab } from './components/tabs/DevelopmentTab'
 import { LandingPage } from './components/LandingPage'
 import { PlatformAccess } from './components/PlatformAccess'
 import { CreateProjectModal } from './components/CreateProjectModal'
+import { ProjectHub } from './components/ProjectHub'
 import { buildWorkspaceUrl, parseWorkspaceState } from './workspaceState'
 import {
   clearPlatformSession,
@@ -216,6 +217,19 @@ export default function App() {
     }
   }, [loadRepoCommitsAndDeliveries])
 
+  const handleSelectProject = useCallback((project: PlatformProject | null) => {
+    setSelectedProject(project)
+    setSelectedRepo(null)
+    setRepositories([])
+    setCommits([])
+    setBranches([])
+    setPullRequests([])
+    setDeliveries([])
+    setFlow(null)
+    setRepoDataError(null)
+    setActiveTab('overview')
+  }, [])
+
   useEffect(() => {
     if (!platformSession) return
     let cancelled = false
@@ -227,7 +241,7 @@ export default function App() {
         if (cancelled) return
         setProjects(page.items)
         const requestedProjectId = parseWorkspaceState(window.location.search).projectId
-        const activeProject = page.items.find((project) => project.id === requestedProjectId) || page.items[0] || null
+        const activeProject = page.items.find((project) => project.id === requestedProjectId) || null
         setSelectedProject(activeProject)
       } catch (error) {
         if (cancelled) return
@@ -329,7 +343,10 @@ export default function App() {
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((current) => !current)}
         user={platformSession.user}
-        projectName={selectedProject?.name}
+        projects={projects}
+        selectedProject={selectedProject}
+        onSelectProject={handleSelectProject}
+        onOpenCreateProject={() => setCreateProjectModalOpen(true)}
         onLogout={() => handleLogout('manual')}
       />
 
@@ -339,19 +356,13 @@ export default function App() {
           activeTab={activeTab}
           onSelectTab={setActiveTab}
           repositories={repositories}
-          projects={projects}
           selectedProject={selectedProject}
           selectedRepo={selectedRepo}
-          onSelectProject={(project) => {
-            setSelectedProject(project)
-            setSelectedRepo(null)
-          }}
           onSelectRepo={(r) => {
             setSelectedRepo(r)
             loadRepoCommitsAndDeliveries(r.id)
           }}
           onOpenConnectModal={() => setConnectModalOpen(true)}
-          onOpenCreateProject={() => setCreateProjectModalOpen(true)}
           onSyncNow={handleSyncNow}
           syncing={syncing}
           connectivity={connectivity}
@@ -372,14 +383,11 @@ export default function App() {
         )}
 
         {!platformContextLoading && !platformContextError && !selectedProject && (
-          <section className="project-empty-state">
-            <div className="project-empty-icon">M1</div>
-            <h2>Crie seu primeiro projeto</h2>
-            <p>Os repositórios do GitHub precisam estar associados a um projeto oficial da plataforma.</p>
-            <button type="button" className="btn-module btn-module-primary" onClick={() => setCreateProjectModalOpen(true)}>
-              Criar projeto
-            </button>
-          </section>
+          <ProjectHub
+            projects={projects}
+            onSelectProject={handleSelectProject}
+            onCreateProject={() => setCreateProjectModalOpen(true)}
+          />
         )}
 
         {selectedProject && repoDataError && !selectedRepo && (
@@ -487,7 +495,7 @@ export default function App() {
         onClose={() => setCreateProjectModalOpen(false)}
         onSuccess={(project) => {
           setProjects((current) => [project, ...current.filter((item) => item.id !== project.id)])
-          setSelectedProject(project)
+          handleSelectProject(project)
         }}
       />
     </div>

@@ -1,23 +1,13 @@
 import React, { useState } from 'react'
 import { ArrowLeft, Eye, EyeOff, LoaderCircle, LockKeyhole, ShieldCheck, UserPlus } from 'lucide-react'
-import { ApiError, api, type PlatformLoginResult } from '../api'
+import { api, type PlatformLoginResult } from '../api'
 import { createPlatformSession, type PlatformSession } from '../platformSession'
+import { platformAccessErrorMessage } from '../platformErrors'
 
 interface PlatformAccessProps {
   onAuthenticated: (session: PlatformSession, rememberOnDevice: boolean) => void
   onBack: () => void
   notice?: string | null
-}
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    const body = error.body as { detail?: string | { msg?: string }[] } | undefined
-    if (typeof body?.detail === 'string') return body.detail
-    if (Array.isArray(body?.detail)) return body.detail.map((item) => item.msg).filter(Boolean).join(' ')
-    if (error.status === 401) return 'E-mail ou senha inválidos.'
-    if (error.status === 503 || error.status === 504) return 'O serviço de autenticação está iniciando. Tente novamente em alguns segundos.'
-  }
-  return 'Não foi possível concluir a solicitação. Verifique a conexão e tente novamente.'
 }
 
 export const PlatformAccess: React.FC<PlatformAccessProps> = ({ onAuthenticated, onBack, notice }) => {
@@ -53,7 +43,7 @@ export const PlatformAccess: React.FC<PlatformAccessProps> = ({ onAuthenticated,
       await finishLogin(login)
     } catch (error) {
       api.setAccessToken(null)
-      setFeedback({ type: 'error', text: errorMessage(error) })
+      setFeedback({ type: 'error', text: platformAccessErrorMessage(error, mode) })
     } finally {
       setLoading(false)
     }

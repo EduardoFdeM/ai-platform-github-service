@@ -1,5 +1,6 @@
 import React from 'react'
-import { Activity, BarChart3, Bot, ChevronLeft, ChevronRight, FileText, FolderGit2, LogOut, Menu, Radio, RefreshCw, ShieldCheck } from 'lucide-react'
+import { BarChart3, Bot, ChevronLeft, ChevronRight, FileText, FolderGit2, FolderPlus, LogOut, Menu, Radio, RefreshCw, ShieldCheck } from 'lucide-react'
+import type { PlatformProject } from '../api'
 import type { PlatformUser } from '../platformSession'
 import type { TabId } from './Header'
 
@@ -9,7 +10,10 @@ interface WorkspaceSidebarProps {
   collapsed: boolean
   onToggle: () => void
   user: PlatformUser
-  projectName?: string
+  projects: PlatformProject[]
+  selectedProject: PlatformProject | null
+  onSelectProject: (project: PlatformProject | null) => void
+  onOpenCreateProject: () => void
   onLogout: () => void
 }
 
@@ -23,7 +27,18 @@ const navigation: { id: TabId; label: string; icon: React.ElementType; comingSoo
   { id: 'devops', label: 'DevOps e documentação', icon: FileText, comingSoon: true },
 ]
 
-export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({ activeTab, onSelectTab, collapsed, onToggle, user, projectName, onLogout }) => (
+export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
+  activeTab,
+  onSelectTab,
+  collapsed,
+  onToggle,
+  user,
+  projects,
+  selectedProject,
+  onSelectProject,
+  onOpenCreateProject,
+  onLogout,
+}) => (
   <aside className={`module-sidebar ${collapsed ? 'is-collapsed' : ''}`}>
     <div className="sidebar-top">
       <div className="sidebar-brand-row">
@@ -37,29 +52,55 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({ activeTab, o
         </button>
       </div>
 
-      <div className="workspace-selector is-static" title={projectName || 'Nenhum projeto selecionado'}>
-        <span className="workspace-badge">M2</span><span className="workspace-name">{projectName || 'Selecione um projeto'}</span>
-      </div>
-
-      <nav className="sidebar-navigation" aria-label="Navegação do Módulo 2">
-        <span className="nav-group-title">NAVEGAÇÃO</span>
-        {navigation.map(({ id, label, icon: Icon, comingSoon }) => (
-          <button
-            type="button"
-            key={id}
-            className={`nav-item ${activeTab === id ? 'active' : ''}`}
-            onClick={() => onSelectTab(id)}
-            title={collapsed ? label : undefined}
-            aria-current={activeTab === id ? 'page' : undefined}
-          >
-            <Icon size={17} /><span className="nav-item-label">{label}</span>{comingSoon && <span className="nav-status-badge">em breve</span>}
+      {collapsed ? (
+        <button type="button" className="workspace-selector workspace-selector-collapsed" onClick={onToggle} title={selectedProject?.name || 'Selecionar projeto'}>
+          <FolderGit2 size={17} />
+        </button>
+      ) : (
+        <div className="workspace-project-picker">
+          <div className="workspace-selector" title="Projeto ativo">
+            <span className="workspace-badge">M2</span>
+            <select
+              className="workspace-project-select"
+              aria-label="Selecionar projeto no menu lateral"
+              value={selectedProject?.id || ''}
+              onChange={(event) => {
+                const project = projects.find((item) => item.id === event.target.value) || null
+                onSelectProject(project)
+              }}
+            >
+              <option value="">Selecione um projeto</option>
+              {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            </select>
+          </div>
+          <button type="button" className="workspace-project-create" onClick={onOpenCreateProject} aria-label="Criar novo projeto" title="Criar novo projeto">
+            <FolderPlus size={16} />
           </button>
-        ))}
-      </nav>
+        </div>
+      )}
+
+      {selectedProject ? (
+        <nav className="sidebar-navigation" aria-label="Navegação do Módulo 2">
+          <span className="nav-group-title">NAVEGAÇÃO</span>
+          {navigation.map(({ id, label, icon: Icon, comingSoon }) => (
+            <button
+              type="button"
+              key={id}
+              className={`nav-item ${activeTab === id ? 'active' : ''}`}
+              onClick={() => onSelectTab(id)}
+              title={collapsed ? label : undefined}
+              aria-current={activeTab === id ? 'page' : undefined}
+            >
+              <Icon size={17} /><span className="nav-item-label">{label}</span>{comingSoon && <span className="nav-status-badge">em breve</span>}
+            </button>
+          ))}
+        </nav>
+      ) : !collapsed ? (
+        <p className="sidebar-project-hint">Selecione ou crie um projeto para acessar as áreas do módulo.</p>
+      ) : null}
     </div>
 
     <div className="sidebar-footer">
-      <div className="system-status-indicator" title="Interface do módulo disponível"><Activity size={14} /><span>Interface disponível</span></div>
       <div className="user-profile-strip" title={`${user.display_name} · ${user.email}`}>
         <div className="user-avatar-circle">{user.display_name?.slice(0, 2).toUpperCase() || 'M2'}</div>
         <div className="user-meta"><span className="user-meta-name">{user.display_name}</span><span className="user-meta-role">{user.email}</span></div>
