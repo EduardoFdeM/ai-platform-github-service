@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Sidebar } from './components/Sidebar'
-import { Header, type TabId } from './components/Header'
+import { WorkspaceSidebar } from './components/WorkspaceSidebar'
+import { WorkspaceHeader } from './components/WorkspaceHeader'
+import type { TabId } from './components/Header'
 import { ConnectRepoModal } from './components/ConnectRepoModal'
 import { OverviewTab } from './components/tabs/OverviewTab'
 import { AuthTab } from './components/tabs/AuthTab'
@@ -8,7 +9,6 @@ import { WebhooksTab } from './components/tabs/WebhooksTab'
 import { SyncTab } from './components/tabs/SyncTab'
 import { IntelligenceTab } from './components/tabs/IntelligenceTab'
 import { DevelopmentTab } from './components/tabs/DevelopmentTab'
-import LegacyDashboard from './components/legacy/LegacyDashboard'
 import { LandingPage } from './components/LandingPage'
 import { PlatformAccess } from './components/PlatformAccess'
 import { CreateProjectModal } from './components/CreateProjectModal'
@@ -22,6 +22,7 @@ import {
 } from './platformSession'
 import {
   api,
+  ApiError,
   type Branch,
   type Commit,
   type ConnectivityStatus,
@@ -33,17 +34,19 @@ import {
 } from './api'
 
 export default function App() {
-  // A landing é a porta de entrada institucional. O workspace ativo fica em
-  // /app; a versão entregue anteriormente continua disponível em /legacy.
-  const [viewMode, setViewMode] = useState<'landing' | 'workspace' | 'legacy'>(() => {
+  // A landing é a porta de entrada institucional e /app é o único workspace.
+  const [viewMode, setViewMode] = useState<'landing' | 'workspace'>(() => {
     if (typeof window !== 'undefined') {
-      if (window.location.pathname.startsWith('/legacy')) return 'legacy'
+      if (window.location.pathname.startsWith('/legacy')) {
+        window.history.replaceState(null, '', '/app')
+        return 'workspace'
+      }
       if (
         window.location.pathname.startsWith('/app')
       ) return 'workspace'
       return 'landing'
     }
-    return 'legacy'
+    return 'landing'
   })
 
   const [activeTab, setActiveTab] = useState<TabId>(() => {
@@ -53,8 +56,12 @@ export default function App() {
   const [connectModalOpen, setConnectModalOpen] = useState(false)
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false)
   const [platformSession, setPlatformSession] = useState<PlatformSession | null>(() => readPlatformSession())
-  const [sessionChecking, setSessionChecking] = useState(() => Boolean(readPlatformSession()))
+  const [sessionChecking, setSessionChecking] = useState(false)
   const [accessNotice, setAccessNotice] = useState<string | null>(null)
+  const [platformContextLoading, setPlatformContextLoading] = useState(false)
+  const [platformContextError, setPlatformContextError] = useState<string | null>(null)
+  const [platformContextReload, setPlatformContextReload] = useState(0)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches)
   const [projects, setProjects] = useState<PlatformProject[]>([])
   const [selectedProject, setSelectedProject] = useState<PlatformProject | null>(null)
 
@@ -78,10 +85,7 @@ export default function App() {
   // Sincroniza a rota ao usar os botões voltar/avançar do navegador
   useEffect(() => {
     const handlePopState = () => {
-      if (window.location.pathname.startsWith('/legacy')) {
-        setViewMode('legacy')
-        return
-      }
+      if (window.location.pathname.startsWith('/legacy')) window.history.replaceState(null, '', '/app')
       const isWorkspace = window.location.pathname.startsWith('/app')
       setViewMode(isWorkspace ? 'workspace' : 'landing')
     }
@@ -92,11 +96,6 @@ export default function App() {
       window.removeEventListener('hashchange', handlePopState)
     }
   }, [])
-
-  const handleSwitchToLegacy = () => {
-    window.history.pushState(null, '', '/legacy')
-    setViewMode('legacy')
-  }
 
   const handleSwitchToWorkspace = () => {
     window.history.pushState(null, '', '/app')
@@ -117,6 +116,7 @@ export default function App() {
     setDeliveries([])
     setFlow(null)
     setRepositoryTokens({})
+    setPlatformContextError(null)
     setSessionChecking(false)
     setAccessNotice(reason === 'manual' ? 'Sessão encerrada com segurança.' : 'Sua sessão expirou. Entre novamente para continuar.')
   }, [])
@@ -181,6 +181,7 @@ export default function App() {
   }, [])
 
   const loadProjectRepositories = useCallback(async (project: PlatformProject) => {
+    setRepoDataError(null)
     try {
       const [cRes, repos] = await Promise.all([
         api.connectivity().catch(() => ({ status: 500, data: null as any })),
@@ -207,6 +208,11 @@ export default function App() {
       console.error('Erro ao carregar repositórios do projeto:', err)
       setRepositories([])
       setSelectedRepo(null)
+      if (err instanceof ApiError && err.status === 403) {
+        setRepoDataError('Seu acesso a este projeto ou aos repositórios foi recusado. Atualize os projetos ou entre novamente.')
+      } else {
+        setRepoDataError('Não foi possível carregar os repositórios deste projeto. Tente novamente.')
+      }
     }
   }, [loadRepoCommitsAndDeliveries])
 
@@ -214,28 +220,31 @@ export default function App() {
     if (!platformSession) return
     let cancelled = false
     const loadPlatformContext = async () => {
-      setSessionChecking(true)
+      setPlatformContextLoading(true)
+      setPlatformContextError(null)
       try {
-        const [user, page] = await Promise.all([api.platformMe(), api.platformProjects()])
+        const page = await api.platformProjects()
         if (cancelled) return
-        const refreshedSession = { ...platformSession, user }
-        savePlatformSession(refreshedSession)
-        setPlatformSession(refreshedSession)
         setProjects(page.items)
         const requestedProjectId = parseWorkspaceState(window.location.search).projectId
         const activeProject = page.items.find((project) => project.id === requestedProjectId) || page.items[0] || null
         setSelectedProject(activeProject)
-      } catch {
-        if (!cancelled) handleLogout('expired')
+      } catch (error) {
+        if (cancelled) return
+        if (error instanceof ApiError && error.status === 401) {
+          handleLogout('expired')
+          return
+        }
+        setPlatformContextError('O serviço de projetos do Módulo 1 ainda está iniciando ou indisponível. Sua sessão continua válida; tente carregar os projetos novamente.')
       } finally {
-        if (!cancelled) setSessionChecking(false)
+        if (!cancelled) setPlatformContextLoading(false)
       }
     }
     void loadPlatformContext()
     return () => { cancelled = true }
     // A sessão só deve ser revalidada quando o token mudar, não após atualizar os dados do usuário.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleLogout, platformSession?.accessToken])
+  }, [handleLogout, platformContextReload, platformSession?.accessToken])
 
   useEffect(() => {
     if (selectedProject) void loadProjectRepositories(selectedProject)
@@ -290,11 +299,6 @@ export default function App() {
     }
   }
 
-  // Se o usuário estiver no modo clássico para gravação ou na porta 5174 / rota /legacy:
-  if (viewMode === 'legacy') {
-    return <LegacyDashboard onSwitchToWorkspace={handleSwitchToWorkspace} />
-  }
-
   if (viewMode === 'landing') {
     return <LandingPage onEnterWorkspace={handleSwitchToWorkspace} />
   }
@@ -315,20 +319,28 @@ export default function App() {
   }
 
   return (
-    <div className="module-layout">
-      {/* Sidebar lateral do Módulo 2 (fixa e acompanha a viewport). */}
-      <Sidebar user={platformSession.user} projectName={selectedProject?.name} />
+    <div className={`module-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <WorkspaceSidebar
+        activeTab={activeTab}
+        onSelectTab={(tab) => {
+          setActiveTab(tab)
+          if (window.matchMedia('(max-width: 760px)').matches) setSidebarCollapsed(true)
+        }}
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((current) => !current)}
+        user={platformSession.user}
+        projectName={selectedProject?.name}
+        onLogout={() => handleLogout('manual')}
+      />
 
       {/* Área de Conteúdo Principal */}
       <main className="module-main">
-        {/* Topbar com navegação por abas, seletores e alternância de versão */}
-        <Header
+        <WorkspaceHeader
           activeTab={activeTab}
           onSelectTab={setActiveTab}
           repositories={repositories}
           projects={projects}
           selectedProject={selectedProject}
-          user={platformSession.user}
           selectedRepo={selectedRepo}
           onSelectProject={(project) => {
             setSelectedProject(project)
@@ -343,11 +355,23 @@ export default function App() {
           onSyncNow={handleSyncNow}
           syncing={syncing}
           connectivity={connectivity}
-          onSwitchToLegacy={handleSwitchToLegacy}
-          onLogout={() => handleLogout('manual')}
         />
 
-        {!selectedProject && (
+        {platformContextLoading && projects.length === 0 && (
+          <section className="platform-context-notice" role="status">
+            <span className="context-loading-dot" />
+            <div><strong>Carregando seus projetos em segundo plano</strong><p>Você já pode navegar pelo módulo enquanto o serviço compartilhado inicia.</p></div>
+          </section>
+        )}
+
+        {platformContextError && (
+          <section className="platform-context-notice is-warning" role="alert">
+            <div><strong>Projetos temporariamente indisponíveis</strong><p>{platformContextError}</p></div>
+            <button type="button" className="btn-module btn-module-secondary" onClick={() => setPlatformContextReload((value) => value + 1)}>Tentar novamente</button>
+          </section>
+        )}
+
+        {!platformContextLoading && !platformContextError && !selectedProject && (
           <section className="project-empty-state">
             <div className="project-empty-icon">M1</div>
             <h2>Crie seu primeiro projeto</h2>
@@ -355,6 +379,13 @@ export default function App() {
             <button type="button" className="btn-module btn-module-primary" onClick={() => setCreateProjectModalOpen(true)}>
               Criar projeto
             </button>
+          </section>
+        )}
+
+        {selectedProject && repoDataError && !selectedRepo && (
+          <section className="platform-context-notice is-warning" role="alert">
+            <div><strong>Repositórios indisponíveis</strong><p>{repoDataError}</p></div>
+            <button type="button" className="btn-module btn-module-secondary" onClick={() => void loadProjectRepositories(selectedProject)}>Tentar novamente</button>
           </section>
         )}
 

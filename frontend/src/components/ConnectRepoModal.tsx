@@ -109,8 +109,17 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, proj
         onSuccess(data, token.trim() || undefined)
         resetAndClose()
       } else {
-        const detail = (data as any)?.detail || (data as any)?.url || 'Falha ao conectar o repositório.'
-        setError(Array.isArray(detail) ? detail.join(' ') : String(detail))
+        const response = data as { code?: string; detail?: string; url?: string | string[] }
+        const detail = response.detail || response.url || 'Falha ao conectar o repositório.'
+        if (status === 429 || response.code === 'github_rate_limit_exceeded') {
+          setError('O limite de consultas públicas do GitHub foi atingido. Informe um PAT com acesso ao repositório ou tente novamente mais tarde.')
+        } else if (status === 403 && !token.trim()) {
+          setError('O GitHub recusou o acesso. Se o repositório for privado ou o limite público tiver sido atingido, informe um PAT com acesso de leitura.')
+        } else if (status >= 500 || (typeof detail === 'string' && detail.trim().startsWith('<'))) {
+          setError('O serviço não conseguiu concluir a conexão agora. Tente novamente em alguns instantes; se persistir, verifique a disponibilidade e a configuração segura do backend.')
+        } else {
+          setError(Array.isArray(detail) ? detail.join(' ') : String(detail))
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Erro de rede ao conectar repositório.')
@@ -211,7 +220,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, proj
               </span>
             ) : url.trim().length > 0 ? (
               <span style={{ fontSize: 11, color: '#10B981', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                <CheckCircle2 size={12} /> Link do GitHub verificado.
+                <CheckCircle2 size={12} /> Formato válido. O acesso será confirmado ao conectar.
               </span>
             ) : (
               <span className="form-help">
@@ -257,7 +266,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, proj
               onChange={(e) => setToken(e.target.value)}
             />
             <span className="form-help">
-              Necessário apenas se o repositório for privado ou para evitar rate limit de 60 req/h.
+              Use para repositórios privados ou quando o limite público do GitHub for atingido. O token não é exibido nem devolvido pela API.
             </span>
           </div>
 
