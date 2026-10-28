@@ -12,6 +12,7 @@ import { DevelopmentTab } from './components/tabs/DevelopmentTab'
 import { LandingPage } from './components/LandingPage'
 import { PlatformAccess } from './components/PlatformAccess'
 import { CreateProjectModal } from './components/CreateProjectModal'
+import { DisconnectRepositoryModal } from './components/DisconnectRepositoryModal'
 import { ProjectHub } from './components/ProjectHub'
 import { buildWorkspaceUrl, parseWorkspaceState } from './workspaceState'
 import {
@@ -59,6 +60,8 @@ export default function App() {
   })
   const [connectModalOpen, setConnectModalOpen] = useState(false)
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false)
+  const [disconnectRepository, setDisconnectRepository] = useState<Repository | null>(null)
+  const [disconnectingRepository, setDisconnectingRepository] = useState(false)
   const [platformSession, setPlatformSession] = useState<PlatformSession | null>(() => readPlatformSession())
   const [sessionChecking, setSessionChecking] = useState(false)
   const [accessNotice, setAccessNotice] = useState<string | null>(null)
@@ -335,6 +338,40 @@ export default function App() {
     }
   }
 
+  const handleDisconnectRepository = async () => {
+    if (!disconnectRepository) return
+    setDisconnectingRepository(true)
+    try {
+      const { status, data } = await api.deleteRepository(disconnectRepository.id)
+      if (status !== 204) {
+        const detail = (data as { detail?: string } | undefined)?.detail
+        throw new Error(detail || 'Não foi possível desvincular o repositório.')
+      }
+      const removedId = disconnectRepository.id
+      setRepositories((current) => current.filter((repository) => repository.id !== removedId))
+      setRepositoryTokens((current) => {
+        const { [removedId]: _removed, ...remaining } = current
+        return remaining
+      })
+      setSelectedRepo((current) => {
+        if (current?.id !== removedId) return current
+        return repositories.find((repository) => repository.id !== removedId) || null
+      })
+      setCommits([])
+      setBranches([])
+      setPullRequests([])
+      setDeliveries([])
+      setFlow(null)
+      setSyncFeedback('Repositório desvinculado do GitHub Sync. O projeto da plataforma foi preservado.')
+      setDisconnectRepository(null)
+    } catch (error) {
+      setSyncFeedback(error instanceof Error ? error.message : 'Não foi possível desvincular o repositório.')
+    } finally {
+      setDisconnectingRepository(false)
+      window.setTimeout(() => setSyncFeedback(null), 5000)
+    }
+  }
+
   if (viewMode === 'landing') {
     return <LandingPage onEnterWorkspace={handleSwitchToWorkspace} />
   }
@@ -388,6 +425,7 @@ export default function App() {
             loadRepoCommitsAndDeliveries(r.id)
           }}
           onOpenConnectModal={() => setConnectModalOpen(true)}
+          onRequestUnlinkRepository={() => setDisconnectRepository(selectedRepo)}
           onSyncNow={handleSyncNow}
           syncing={syncing}
           connectivity={connectivity}
@@ -430,12 +468,12 @@ export default function App() {
               position: 'fixed',
               bottom: 24,
               right: 28,
-              backgroundColor: '#1E293B',
-              border: '1px solid #3B82F6',
-              color: '#93C5FD',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--primary-border)',
+              color: 'var(--primary)',
               padding: '10px 16px',
               borderRadius: 8,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+              boxShadow: 'var(--shadow-modal)',
               fontSize: 12,
               fontWeight: 500,
               zIndex: 100,
@@ -527,6 +565,12 @@ export default function App() {
           })
           handleSelectProject(project)
         }}
+      />
+      <DisconnectRepositoryModal
+        repository={disconnectRepository}
+        loading={disconnectingRepository}
+        onCancel={() => { if (!disconnectingRepository) setDisconnectRepository(null) }}
+        onConfirm={() => void handleDisconnectRepository()}
       />
     </div>
   )

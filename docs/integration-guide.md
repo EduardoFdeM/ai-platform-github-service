@@ -65,6 +65,7 @@ ao Módulo 1. O access token fica no `sessionStorage` do frontend, expira após 
 | `POST /api/v1/github/handshake` | Bearer M1 + PAT efêmero | valida identidade GitHub e escopos |
 | `GET /api/v1/repositories?project_id={uuid}` | Bearer M1 | lista somente repositórios do usuário/projeto |
 | `POST /api/v1/repositories` | Bearer M1 | valida projeto, cadastra, cifra segredo e tenta carga inicial |
+| `DELETE /api/v1/repositories/{id}` | Bearer M1 | desvincula o repositório e remove somente os dados derivados do Módulo 2; o projeto do Módulo 1 é preservado |
 | `POST /api/v1/repositories/{id}/sync` | Bearer M1 | sincronização incremental |
 | `GET /api/v1/repositories/{id}/insights?days=30` | Bearer M1 | clareza, frequência, padrões, gargalos e recomendações |
 | `POST /api/v1/repositories/{id}/contents` | Bearer M1 | conteúdo UTF-8 com SHA e URL de origem |

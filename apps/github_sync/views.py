@@ -13,7 +13,7 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
-from rest_framework.generics import ListAPIView, ListCreateAPIView
+from rest_framework.generics import DestroyAPIView, ListAPIView, ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -800,6 +800,27 @@ class RepositoryListView(ListCreateAPIView):
         if sync_detail:
             response_data["initial_sync_detail"] = sync_detail
         return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+class RepositoryDetailView(DestroyAPIView):
+    """Remove a vinculação local do Módulo 2 e seus dados derivados.
+
+    O projeto da plataforma continua intacto no Módulo 1. O queryset com
+    escopo de proprietário mantém a existência de repositórios de terceiros
+    indistinguível para o chamador.
+    """
+
+    permission_classes = (Module1AccessPermission,)
+
+    def get_queryset(self):
+        return _owned_repositories(self.request)
+
+    @extend_schema(responses={204: None, 404: ErrorSerializer})
+    def delete(self, request, *args, **kwargs):
+        repository = self.get_object()
+        logger.info("repository_unlinked", extra={"repository_id": repository.pk})
+        repository.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class WebhookDeliveryListView(ListAPIView):

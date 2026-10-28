@@ -202,7 +202,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
               {pullRequests.map((pullRequest) => (
                 <div key={pullRequest.id} className="code-box-dark" style={{ padding: '8px 10px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                    <span style={{ fontSize: 11, color: '#FFFFFF' }}>#{pullRequest.number} {pullRequest.title}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-main)' }}>#{pullRequest.number} {pullRequest.title}</span>
                     <span className={`badge ${pullRequest.merged_at ? 'badge-success' : pullRequest.state === 'open' ? 'badge-info' : 'badge-neutral'}`}>
                       {pullRequest.merged_at ? 'mergeada' : pullRequest.state}
                     </span>
@@ -247,7 +247,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
                   Importação histórica de commits e PRs
                 </span>
                 <span className="badge badge-info">Em execução</span>
@@ -272,17 +272,17 @@ export const SyncTab: React.FC<SyncTabProps> = ({
             <div className="responsive-grid-four" style={{ fontSize: 11 }}>
               <div>
                 <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>COMMITS PROCESSADOS</span>
-                <strong style={{ color: '#FFFFFF' }}>18.642 / 21.480</strong>
+                <strong style={{ color: 'var(--text-main)' }}>18.642 / 21.480</strong>
                 <span style={{ color: 'var(--text-tertiary)', display: 'block', fontSize: 10 }}>86,8% indexados</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>PRS PROCESSADOS</span>
-                <strong style={{ color: '#FFFFFF' }}>1.126 / 1.584</strong>
+                <strong style={{ color: 'var(--text-main)' }}>1.126 / 1.584</strong>
                 <span style={{ color: 'var(--text-tertiary)', display: 'block', fontSize: 10 }}>458 restantes</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>PÁGINAS CONSUMIDAS</span>
-                <strong style={{ color: '#FFFFFF' }}>142 / 196</strong>
+                <strong style={{ color: 'var(--text-main)' }}>142 / 196</strong>
                 <span style={{ color: 'var(--text-tertiary)', display: 'block', fontSize: 10 }}>100 itens por página</span>
               </div>
               <div>
@@ -313,7 +313,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           >
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
                   Sincronização Incremental (Delta Sync)
                 </span>
                 <span className="badge badge-success">● Ativa</span>
@@ -428,7 +428,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
                 <tr key={item.id}>
                   <td>
                     <div>
-                      <strong style={{ color: '#FFFFFF', display: 'block' }}>{item.name}</strong>
+                      <strong style={{ color: 'var(--text-main)', display: 'block' }}>{item.name}</strong>
                       <span style={{ color: 'var(--text-tertiary)', fontSize: 10.5 }}>{item.course}</span>
                     </div>
                   </td>
@@ -453,7 +453,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
                     </div>
                   </td>
                   <td>
-                    <strong style={{ color: '#FFFFFF', fontFamily: 'var(--font-mono)' }}>{item.commits}</strong>
+                    <strong style={{ color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>{item.commits}</strong>
                     <span style={{ color: 'var(--text-tertiary)', fontSize: 10, display: 'block' }}>
                       commits vinculados
                     </span>

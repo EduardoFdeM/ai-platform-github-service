@@ -27,7 +27,7 @@ export const DiagnosticCard: React.FC<DiagnosticCardProps> = ({
     >
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#FFFFFF' }}>Diagnóstico rápido</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-main)' }}>Diagnóstico rápido</span>
           <span style={{ fontSize: 10.5, color: 'var(--text-dim)' }}>tempo real</span>
         </div>
 

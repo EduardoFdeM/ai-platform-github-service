@@ -336,7 +336,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
       {/* Card Verde: Saúde do Webhook */}
       <div
         style={{
-          backgroundColor: '#0D1322',
+          backgroundColor: 'var(--bg-card)',
           border: '1px solid var(--border-default)',
           borderRadius: 8,
           padding: '14px 18px',
@@ -365,7 +365,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF' }}>Saúde do webhook</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>Saúde do webhook</span>
               <span className={`badge ${hasLiveDeliveries ? 'badge-success' : 'badge-info'}`}>
                 {hasLiveDeliveries ? '● Entregas persistidas' : 'Prévia sem entregas'}
               </span>
@@ -392,7 +392,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
           </div>
           <div>
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>IDEMPOTÊNCIA</span>
-            <strong style={{ color: '#FFFFFF' }}>Delivery ID persistido</strong>
+            <strong style={{ color: 'var(--text-main)' }}>Delivery ID persistido</strong>
           </div>
         </div>
       </div>
@@ -702,7 +702,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
           <div className="drawer-header">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 14 }}>Inspeção da entrega</span>
+                <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 14 }}>Inspeção da entrega</span>
                 <span className={`badge ${deliveryStatusBadge(selectedEvent.status)}`}>
                   ● {deliveryStatusLabel(selectedEvent.status)}
                 </span>
@@ -734,14 +734,14 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#FFFFFF' }}>Evento selecionado</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-main)' }}>Evento selecionado</span>
                 <span className="badge badge-info">{selectedEvent.event}</span>
               </div>
 
               <div className="responsive-grid-three" style={{ gap: 8, fontSize: 11 }}>
                 <div>
                   <span style={{ color: 'var(--text-tertiary)', display: 'block', fontSize: 10 }}>AUTOR</span>
-                  <span style={{ color: '#FFFFFF', fontWeight: 500 }}>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
                     {selectedEvent.author || 'Não exposto'}
                   </span>
                 </div>

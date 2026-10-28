@@ -115,8 +115,10 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, proj
           setError('O limite de consultas públicas do GitHub foi atingido. Informe um PAT com acesso ao repositório ou tente novamente mais tarde.')
         } else if (status === 403 && !token.trim()) {
           setError('O GitHub recusou o acesso. Se o repositório for privado ou o limite público tiver sido atingido, informe um PAT com acesso de leitura.')
+        } else if (status === 500) {
+          setError('A integração do Módulo 2 apresentou uma falha interna ao processar o repositório. A URL e o PAT não são expostos; tente novamente e, se persistir, reporte o horário do erro para verificarmos os logs do serviço.')
         } else if (status >= 500 || (typeof detail === 'string' && detail.trim().startsWith('<'))) {
-          setError('O serviço não conseguiu concluir a conexão agora. Tente novamente em alguns instantes; se persistir, verifique a disponibilidade e a configuração segura do backend.')
+          setError('O serviço de integração está temporariamente indisponível. Tente novamente em alguns instantes; se persistir, a equipe deve verificar as variáveis seguras do backend.')
         } else {
           setError(Array.isArray(detail) ? detail.join(' ') : String(detail))
         }
@@ -145,12 +147,12 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, proj
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: 'rgba(37, 99, 235, 0.15)',
-                border: '1px solid rgba(37, 99, 235, 0.3)',
+                backgroundColor: 'var(--primary-subtle)',
+                border: '1px solid var(--primary-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#60A5FA',
+                color: 'var(--primary)',
               }}
             >
               {/* GitHub SVG Icon */}
@@ -159,7 +161,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, proj
               </svg>
             </div>
             <div>
-              <h3 id="connect-repository-title" style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF' }}>Conectar Repositório GitHub</h3>
+              <h3 id="connect-repository-title" style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-main)' }}>Conectar Repositório GitHub</h3>
               <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>
                 Cole o link direto do repositório no GitHub para ingestão e rastreabilidade.
               </p>
@@ -187,7 +189,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, proj
               borderRadius: 6,
               backgroundColor: 'var(--danger-subtle)',
               border: '1px solid var(--danger-border)',
-              color: '#F87171',
+              color: 'var(--danger)',
               fontSize: 12,
               display: 'flex',
               alignItems: 'center',
@@ -215,11 +217,11 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, proj
               autoFocus
             />
             {isInvalidUrl ? (
-              <span style={{ fontSize: 11, color: '#EF4444', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+              <span style={{ fontSize: 11, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                 <AlertCircle size={12} /> Apenas links válidos do github.com são aceitos.
               </span>
             ) : url.trim().length > 0 ? (
-              <span style={{ fontSize: 11, color: '#10B981', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+              <span style={{ fontSize: 11, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                 <CheckCircle2 size={12} /> Formato válido. O acesso será confirmado ao conectar.
               </span>
             ) : (

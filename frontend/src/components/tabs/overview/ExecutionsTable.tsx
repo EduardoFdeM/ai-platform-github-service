@@ -227,7 +227,7 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
         >
           <FolderGit2 size={36} color="#60A5FA" style={{ opacity: 0.6 }} />
           <div>
-            <h3 style={{ fontSize: 15, fontWeight: 600, color: '#FFFFFF', margin: '0 0 4px' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-main)', margin: '0 0 4px' }}>
               Nenhum commit encontrado para este repositório
             </h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>

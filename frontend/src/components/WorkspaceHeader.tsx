@@ -1,5 +1,5 @@
 import React from 'react'
-import { FolderGit2, GitBranch, Plus, RefreshCw } from 'lucide-react'
+import { FolderGit2, GitBranch, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import type { ConnectivityStatus, PlatformProject, Repository } from '../api'
 import type { TabId } from './Header'
 
@@ -10,6 +10,7 @@ interface WorkspaceHeaderProps {
   selectedRepo: Repository | null
   onSelectRepo: (repo: Repository) => void
   onOpenConnectModal: () => void
+  onRequestUnlinkRepository: () => void
   onSyncNow: () => void
   syncing: boolean
   connectivity: ConnectivityStatus | null
@@ -32,6 +33,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   selectedRepo,
   onSelectRepo,
   onOpenConnectModal,
+  onRequestUnlinkRepository,
   onSyncNow,
   syncing,
   connectivity,
@@ -85,6 +87,15 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
           >
             <Plus size={14} /><span>{selectedProject ? 'Conectar repositório' : 'Selecione um projeto'}</span>
           </button>
+
+          {selectedRepo && <button
+            type="button"
+            onClick={onRequestUnlinkRepository}
+            className="btn-module btn-module-secondary"
+            title="Desvincular este repositório da integração GitHub Sync"
+          >
+            <Trash2 size={14} /><span>Desvincular</span>
+          </button>}
 
           <button
             type="button"

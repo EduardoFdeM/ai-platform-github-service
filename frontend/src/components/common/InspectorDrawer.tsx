@@ -113,7 +113,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
             alignItems: 'flex-start',
             justifyContent: 'space-between',
             gap: 16,
-            backgroundColor: '#0D1322',
+            backgroundColor: 'var(--bg-card)',
           }}
         >
           <div>
@@ -123,7 +123,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
               </span>
               {getStatusBadge(item.status)}
             </div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
               {item.executionId || item.id.slice(0, 10)}
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, fontSize: 12, color: 'var(--text-muted)' }}>
@@ -160,7 +160,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
           style={{
             display: 'flex',
             borderBottom: '1px solid var(--border-default)',
-            backgroundColor: '#080C14',
+            backgroundColor: 'var(--bg-app)',
             padding: '0 24px',
           }}
         >
@@ -320,7 +320,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({ item, onClose 
           style={{
             padding: '16px 24px',
             borderTop: '1px solid var(--border-default)',
-            backgroundColor: '#0D1322',
+            backgroundColor: 'var(--bg-card)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',

@@ -72,7 +72,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
       {/* Banner: Postura de acesso dentro da política */}
       <div
         style={{
-          backgroundColor: '#0D1322',
+          backgroundColor: 'var(--bg-card)',
           border: '1px solid var(--border-default)',
           borderRadius: 8,
           padding: '14px 18px',
@@ -100,7 +100,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
             <ShieldCheck size={20} />
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
               {handshakeResult?.valid ? 'Handshake validado' : 'Valide um token para consultar permissões'}
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>
@@ -114,7 +114,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
         <div style={{ display: 'flex', alignItems: 'center', gap: 24, fontSize: 11 }}>
           <div>
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>MÉTODO</span>
-              <strong style={{ color: '#FFFFFF' }}>{handshakeResult?.valid ? 'PAT validado' : 'PAT não validado'}</strong>
+              <strong style={{ color: 'var(--text-main)' }}>{handshakeResult?.valid ? 'PAT validado' : 'PAT não validado'}</strong>
           </div>
           {showCredentialIdeation && <div>
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>PRÓXIMA ROTAÇÃO</span>
@@ -156,7 +156,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
                 border: 'none',
                 borderRadius: 4,
                 backgroundColor: tokenType === 'pat' ? '#1E293B' : 'transparent',
-                color: tokenType === 'pat' ? '#FFFFFF' : 'var(--text-tertiary)',
+                color: tokenType === 'pat' ? 'var(--text-main)' : 'var(--text-tertiary)',
                 fontSize: 11.5,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -177,7 +177,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
                 border: 'none',
                 borderRadius: 4,
                 backgroundColor: tokenType === 'app' ? '#1E293B' : 'transparent',
-                color: tokenType === 'app' ? '#FFFFFF' : 'var(--text-tertiary)',
+                color: tokenType === 'app' ? 'var(--text-main)' : 'var(--text-tertiary)',
                 fontSize: 11.5,
                 fontWeight: 600,
                 cursor: 'pointer',
