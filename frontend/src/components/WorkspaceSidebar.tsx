@@ -1,5 +1,5 @@
 import React from 'react'
-import { BarChart3, Bot, ChevronLeft, ChevronRight, FileText, FolderGit2, FolderPlus, LogOut, Menu, Radio, RefreshCw, ShieldCheck } from 'lucide-react'
+import { BarChart3, Bot, ChevronLeft, ChevronRight, FileText, FolderCog, FolderGit2, FolderPlus, LogOut, Menu, Radio, RefreshCw, ShieldCheck } from 'lucide-react'
 import type { PlatformProject } from '../api'
 import type { PlatformUser } from '../platformSession'
 import type { TabId } from './Header'
@@ -13,6 +13,7 @@ interface WorkspaceSidebarProps {
   projects: PlatformProject[]
   selectedProject: PlatformProject | null
   onSelectProject: (project: PlatformProject | null) => void
+  onOpenProjects: () => void
   onOpenCreateProject: () => void
   onLogout: () => void
 }
@@ -36,6 +37,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   projects,
   selectedProject,
   onSelectProject,
+  onOpenProjects,
   onOpenCreateProject,
   onLogout,
 }) => (
@@ -81,6 +83,9 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
 
       {selectedProject ? (
         <nav className="sidebar-navigation" aria-label="Navegação do Módulo 2">
+          <button type="button" className="nav-item nav-item-projects" onClick={onOpenProjects} title={collapsed ? 'Gerenciar projetos' : undefined}>
+            <FolderCog size={17} /><span className="nav-item-label">Gerenciar projetos</span>
+          </button>
           <span className="nav-group-title">NAVEGAÇÃO</span>
           {navigation.map(({ id, label, icon: Icon, comingSoon }) => (
             <button

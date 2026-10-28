@@ -26,7 +26,7 @@ export const OverviewKpis: React.FC<OverviewKpisProps> = ({
         </div>
         <div className="kpi-value-row">
           <span className="kpi-number">{totalCommits}</span>
-          <span className="kpi-trend trend-up">● Indexados</span>
+          <span className="kpi-trend trend-up">Commits indexados</span>
         </div>
         <span className="kpi-footnote">Commits persistidos no banco configurado</span>
       </div>
@@ -41,7 +41,7 @@ export const OverviewKpis: React.FC<OverviewKpisProps> = ({
         </div>
         <div className="kpi-value-row">
           <span className="kpi-number">99,4%</span>
-          <span className="kpi-trend trend-up">↑ +0,2%</span>
+          <span className="kpi-trend trend-up">+0,2%</span>
         </div>
         <span className="kpi-footnote">Últimas 100 execuções do Celery</span>
       </div>}
@@ -75,7 +75,7 @@ export const OverviewKpis: React.FC<OverviewKpisProps> = ({
           <span className="kpi-number" style={{ fontSize: 20 }}>
             Demonstração
           </span>
-          <span className="kpi-trend trend-up">● HMAC Ativo</span>
+          <span className="kpi-trend trend-up">HMAC ativo</span>
         </div>
         <span className="kpi-footnote">Fila Celery pronta para eventos Git</span>
       </div>}

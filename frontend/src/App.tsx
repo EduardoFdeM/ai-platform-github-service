@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { WorkspaceSidebar } from './components/WorkspaceSidebar'
 import { WorkspaceHeader } from './components/WorkspaceHeader'
 import type { TabId } from './components/Header'
@@ -16,8 +16,11 @@ import { ProjectHub } from './components/ProjectHub'
 import { buildWorkspaceUrl, parseWorkspaceState } from './workspaceState'
 import {
   clearPlatformSession,
+  clearPlatformProjectsCache,
   isSessionExpired,
+  readPlatformProjectsCache,
   readPlatformSession,
+  savePlatformProjectsCache,
   savePlatformSession,
   type PlatformSession,
 } from './platformSession'
@@ -63,8 +66,12 @@ export default function App() {
   const [platformContextError, setPlatformContextError] = useState<string | null>(null)
   const [platformContextReload, setPlatformContextReload] = useState(0)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches)
-  const [projects, setProjects] = useState<PlatformProject[]>([])
+  const [projects, setProjects] = useState<PlatformProject[]>(() =>
+    platformSession ? readPlatformProjectsCache(platformSession.user.id) ?? [] : [],
+  )
   const [selectedProject, setSelectedProject] = useState<PlatformProject | null>(null)
+  const projectRequestVersion = useRef(0)
+  const repositoryRequestVersion = useRef(0)
 
   // Estados Globais de Repositórios e Backend
   const [repositories, setRepositories] = useState<Repository[]>([])
@@ -104,6 +111,7 @@ export default function App() {
   }
 
   const handleLogout = useCallback((reason: 'expired' | 'manual' = 'expired') => {
+    clearPlatformProjectsCache(platformSession?.user.id ?? '')
     api.setAccessToken(null)
     clearPlatformSession()
     setPlatformSession(null)
@@ -120,11 +128,12 @@ export default function App() {
     setPlatformContextError(null)
     setSessionChecking(false)
     setAccessNotice(reason === 'manual' ? 'Sessão encerrada com segurança.' : 'Sua sessão expirou. Entre novamente para continuar.')
-  }, [])
+  }, [platformSession?.user.id])
 
   const handleAuthenticated = useCallback((session: PlatformSession, rememberOnDevice: boolean) => {
     api.setAccessToken(session.accessToken)
     savePlatformSession(session, rememberOnDevice)
+    setProjects(readPlatformProjectsCache(session.user.id) ?? [])
     setPlatformSession(session)
     setSessionChecking(false)
     setAccessNotice(null)
@@ -153,6 +162,7 @@ export default function App() {
 
   // Carregar dados iniciais da API Django
   const loadRepoCommitsAndDeliveries = useCallback(async (repoId: number) => {
+    const requestVersion = ++repositoryRequestVersion.current
     setRepoDataLoading(true)
     setRepoDataError(null)
     try {
@@ -163,12 +173,14 @@ export default function App() {
         api.deliveries(repoId),
         api.flow(repoId),
       ])
+      if (requestVersion !== repositoryRequestVersion.current) return
       setCommits(commitsRes.results)
       setBranches(branchesRes.results)
       setPullRequests(pullRequestsRes.results)
       setDeliveries(delivRes)
       setFlow(flowRes)
     } catch (err) {
+      if (requestVersion !== repositoryRequestVersion.current) return
       console.error('Erro ao carregar dados do repositório:', err)
       setCommits([])
       setBranches([])
@@ -177,11 +189,12 @@ export default function App() {
       setFlow(null)
       setRepoDataError('Não foi possível carregar os dados indexados deste repositório.')
     } finally {
-      setRepoDataLoading(false)
+      if (requestVersion === repositoryRequestVersion.current) setRepoDataLoading(false)
     }
   }, [])
 
   const loadProjectRepositories = useCallback(async (project: PlatformProject) => {
+    const requestVersion = ++projectRequestVersion.current
     setRepoDataError(null)
     try {
       const [cRes, repos] = await Promise.all([
@@ -189,6 +202,7 @@ export default function App() {
         api.repositories(project.id),
       ])
 
+      if (requestVersion !== projectRequestVersion.current) return
       if (cRes.status === 200) setConnectivity(cRes.data)
       setRepositories(repos)
 
@@ -206,6 +220,7 @@ export default function App() {
         setFlow(null)
       }
     } catch (err) {
+      if (requestVersion !== projectRequestVersion.current) return
       console.error('Erro ao carregar repositórios do projeto:', err)
       setRepositories([])
       setSelectedRepo(null)
@@ -218,6 +233,8 @@ export default function App() {
   }, [loadRepoCommitsAndDeliveries])
 
   const handleSelectProject = useCallback((project: PlatformProject | null) => {
+    projectRequestVersion.current += 1
+    repositoryRequestVersion.current += 1
     setSelectedProject(project)
     setSelectedRepo(null)
     setRepositories([])
@@ -226,6 +243,7 @@ export default function App() {
     setPullRequests([])
     setDeliveries([])
     setFlow(null)
+    setConnectivity(null)
     setRepoDataError(null)
     setActiveTab('overview')
   }, [])
@@ -240,9 +258,13 @@ export default function App() {
         const page = await api.platformProjects()
         if (cancelled) return
         setProjects(page.items)
+        savePlatformProjectsCache(platformSession.user.id, page.items)
         const requestedProjectId = parseWorkspaceState(window.location.search).projectId
-        const activeProject = page.items.find((project) => project.id === requestedProjectId) || null
-        setSelectedProject(activeProject)
+        setSelectedProject((current) => {
+          // Não sobrescreve uma escolha feita no seletor enquanto a lista atualiza.
+          if (current) return page.items.find((project) => project.id === current.id) || null
+          return page.items.find((project) => project.id === requestedProjectId) || null
+        })
       } catch (error) {
         if (cancelled) return
         if (error instanceof ApiError && error.status === 401) {
@@ -346,6 +368,10 @@ export default function App() {
         projects={projects}
         selectedProject={selectedProject}
         onSelectProject={handleSelectProject}
+        onOpenProjects={() => {
+          handleSelectProject(null)
+          if (window.matchMedia('(max-width: 760px)').matches) setSidebarCollapsed(true)
+        }}
         onOpenCreateProject={() => setCreateProjectModalOpen(true)}
         onLogout={() => handleLogout('manual')}
       />
@@ -354,7 +380,6 @@ export default function App() {
       <main className="module-main">
         <WorkspaceHeader
           activeTab={activeTab}
-          onSelectTab={setActiveTab}
           repositories={repositories}
           selectedProject={selectedProject}
           selectedRepo={selectedRepo}
@@ -382,9 +407,10 @@ export default function App() {
           </section>
         )}
 
-        {!platformContextLoading && !platformContextError && !selectedProject && (
+        {!platformContextError && !selectedProject && (
           <ProjectHub
             projects={projects}
+            isRefreshing={platformContextLoading}
             onSelectProject={handleSelectProject}
             onCreateProject={() => setCreateProjectModalOpen(true)}
           />
@@ -494,7 +520,11 @@ export default function App() {
         isOpen={createProjectModalOpen}
         onClose={() => setCreateProjectModalOpen(false)}
         onSuccess={(project) => {
-          setProjects((current) => [project, ...current.filter((item) => item.id !== project.id)])
+          setProjects((current) => {
+            const updated = [project, ...current.filter((item) => item.id !== project.id)]
+            savePlatformProjectsCache(platformSession.user.id, updated)
+            return updated
+          })
           handleSelectProject(project)
         }}
       />

@@ -4,6 +4,7 @@ import type { PlatformProject } from '../api'
 
 interface ProjectHubProps {
   projects: PlatformProject[]
+  isRefreshing?: boolean
   onSelectProject: (project: PlatformProject) => void
   onCreateProject: () => void
 }
@@ -14,13 +15,13 @@ const projectDate = new Intl.DateTimeFormat('pt-BR', {
   year: 'numeric',
 })
 
-export const ProjectHub: React.FC<ProjectHubProps> = ({ projects, onSelectProject, onCreateProject }) => (
+export const ProjectHub: React.FC<ProjectHubProps> = ({ projects, isRefreshing = false, onSelectProject, onCreateProject }) => (
   <section className="project-hub" aria-labelledby="project-hub-title">
     <div className="project-hub-heading">
       <div>
         <span className="project-hub-eyebrow">CONTEXTO DA PLATAFORMA</span>
         <h2 id="project-hub-title">Escolha um projeto para continuar</h2>
-        <p>O projeto define quais repositórios, webhooks e indicadores serão exibidos no módulo.</p>
+        <p>O projeto define quais repositórios, webhooks e indicadores serão exibidos no módulo. {isRefreshing ? 'Atualizando a lista em segundo plano…' : ''}</p>
       </div>
       <button type="button" className="btn-module btn-module-primary" onClick={onCreateProject}>
         <FolderPlus size={15} /> Criar projeto
@@ -46,6 +47,12 @@ export const ProjectHub: React.FC<ProjectHubProps> = ({ projects, onSelectProjec
             <ArrowRight className="project-card-arrow" size={17} />
           </button>
         ))}
+      </div>
+    ) : isRefreshing ? (
+      <div className="project-hub-empty" role="status">
+        <div className="project-empty-icon">…</div>
+        <strong>Carregando seus projetos</strong>
+        <p>O serviço de projetos pode levar alguns segundos para despertar no primeiro acesso.</p>
       </div>
     ) : (
       <div className="project-hub-empty">

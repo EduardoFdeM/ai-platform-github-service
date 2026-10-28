@@ -1,11 +1,10 @@
 import React from 'react'
-import { FolderGit2, GitBranch, Plus, RefreshCw, SlidersHorizontal } from 'lucide-react'
+import { FolderGit2, GitBranch, Plus, RefreshCw } from 'lucide-react'
 import type { ConnectivityStatus, PlatformProject, Repository } from '../api'
 import type { TabId } from './Header'
 
 interface WorkspaceHeaderProps {
   activeTab: TabId
-  onSelectTab: (tab: TabId) => void
   repositories: Repository[]
   selectedProject: PlatformProject | null
   selectedRepo: Repository | null
@@ -28,7 +27,6 @@ const tabMeta: Record<TabId, { breadcrumb: string; title: string }> = {
 
 export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   activeTab,
-  onSelectTab,
   repositories,
   selectedProject,
   selectedRepo,
@@ -86,10 +84,6 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             title={selectedProject ? 'Conectar novo repositório' : 'Crie ou selecione um projeto primeiro'}
           >
             <Plus size={14} /><span>{selectedProject ? 'Conectar repositório' : 'Selecione um projeto'}</span>
-          </button>
-
-          <button type="button" onClick={() => onSelectTab('auth')} className="btn-module btn-module-secondary" title="Credenciais e conectividade">
-            <SlidersHorizontal size={14} /><span>Configurar</span>
           </button>
 
           <button

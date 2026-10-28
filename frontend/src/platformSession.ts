@@ -1,3 +1,5 @@
+import type { PlatformProject } from './api'
+
 export interface PlatformUser {
   id: string
   email: string
@@ -20,6 +22,8 @@ export interface StorageLike {
 }
 
 const SESSION_KEY = 'github-sync.platform-session.v1'
+const PROJECTS_CACHE_PREFIX = 'github-sync.platform-projects.v1'
+const PROJECTS_CACHE_MAX_AGE_MS = 5 * 60 * 1000
 
 export interface PlatformSessionStores {
   tab: StorageLike | null
@@ -46,6 +50,21 @@ function browserLocalStorage(): StorageLike | null {
 
 function browserSessionStores(): PlatformSessionStores {
   return { tab: browserSessionStorage(), device: browserLocalStorage() }
+}
+
+function projectsCacheKey(userId: string): string {
+  return `${PROJECTS_CACHE_PREFIX}.${userId}`
+}
+
+function preferredStore(stores: PlatformSessionStores): StorageLike | null {
+  // A lista acompanha a opção de permanência da sessão: localStorage somente
+  // quando o usuário marcou "Lembrar de mim"; caso contrário, fecha com a aba.
+  return stores.device?.getItem(SESSION_KEY) ? stores.device : stores.tab
+}
+
+interface CachedPlatformProjects {
+  cachedAt: number
+  items: PlatformProject[]
 }
 
 export function createPlatformSession(
@@ -85,6 +104,51 @@ export function savePlatformSession(
 export function clearPlatformSession(stores = browserSessionStores()): void {
   stores.tab?.removeItem(SESSION_KEY)
   stores.device?.removeItem(SESSION_KEY)
+}
+
+export function savePlatformProjectsCache(
+  userId: string,
+  items: PlatformProject[],
+  now = Date.now(),
+  stores = browserSessionStores(),
+): void {
+  if (!userId) return
+  preferredStore(stores)?.setItem(projectsCacheKey(userId), JSON.stringify({ cachedAt: now, items }))
+}
+
+export function readPlatformProjectsCache(
+  userId: string,
+  now = Date.now(),
+  stores = browserSessionStores(),
+): PlatformProject[] | null {
+  if (!userId) return null
+  const key = projectsCacheKey(userId)
+  for (const storage of [stores.tab, stores.device]) {
+    const serialized = storage?.getItem(key)
+    if (!serialized) continue
+    try {
+      const cache = JSON.parse(serialized) as Partial<CachedPlatformProjects>
+      const valid =
+        typeof cache.cachedAt === 'number' &&
+        now - cache.cachedAt <= PROJECTS_CACHE_MAX_AGE_MS &&
+        Array.isArray(cache.items)
+      if (!valid) {
+        storage?.removeItem(key)
+        continue
+      }
+      return cache.items as PlatformProject[]
+    } catch {
+      storage?.removeItem(key)
+    }
+  }
+  return null
+}
+
+export function clearPlatformProjectsCache(userId: string, stores = browserSessionStores()): void {
+  if (!userId) return
+  const key = projectsCacheKey(userId)
+  stores.tab?.removeItem(key)
+  stores.device?.removeItem(key)
 }
 
 export function readPlatformSession(

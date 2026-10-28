@@ -4,9 +4,12 @@ import test from 'node:test'
 import {
   authorizationHeader,
   clearPlatformSession,
+  clearPlatformProjectsCache,
   createPlatformSession,
   isSessionExpired,
+  readPlatformProjectsCache,
   readPlatformSession,
+  savePlatformProjectsCache,
   savePlatformSession,
   sessionRemainingSeconds,
   type PlatformSessionStores,
@@ -82,4 +85,26 @@ test('invalid persisted content is discarded and logout clears storage', () => {
   savePlatformSession(session, true, stores)
   clearPlatformSession(stores)
   assert.equal(readPlatformSession(stores), null)
+})
+
+test('project cache restores a recent list in the same session storage scope', () => {
+  const stores = memoryStores()
+  savePlatformSession(createPlatformSession('tab-token', 1800, user, 1_000), false, stores)
+  savePlatformProjectsCache(user.id, [{
+    id: 'project-1',
+    owner_id: user.id,
+    name: 'Projeto rápido',
+    description: '',
+    created_at: '2026-10-22T12:00:00Z',
+  }], 1_000, stores)
+
+  assert.equal(readPlatformProjectsCache(user.id, 2_000, stores)?.[0]?.name, 'Projeto rápido')
+  assert.equal(readPlatformProjectsCache(user.id, 302_000, stores), null)
+})
+
+test('project cache is cleared with the selected account on logout', () => {
+  const stores = memoryStores()
+  savePlatformProjectsCache(user.id, [], 1_000, stores)
+  clearPlatformProjectsCache(user.id, stores)
+  assert.equal(readPlatformProjectsCache(user.id, 2_000, stores), null)
 })
