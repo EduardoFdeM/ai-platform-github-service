@@ -1,23 +1,13 @@
 import React, { useState } from 'react'
 import { ArrowLeft, Eye, EyeOff, LoaderCircle, LockKeyhole, ShieldCheck, UserPlus } from 'lucide-react'
-import { ApiError, api, type PlatformLoginResult } from '../api'
+import { api, type PlatformLoginResult } from '../api'
 import { createPlatformSession, type PlatformSession } from '../platformSession'
+import { platformAccessErrorMessage } from '../platformErrors'
 
 interface PlatformAccessProps {
-  onAuthenticated: (session: PlatformSession) => void
+  onAuthenticated: (session: PlatformSession, rememberOnDevice: boolean) => void
   onBack: () => void
   notice?: string | null
-}
-
-function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    const body = error.body as { detail?: string | { msg?: string }[] } | undefined
-    if (typeof body?.detail === 'string') return body.detail
-    if (Array.isArray(body?.detail)) return body.detail.map((item) => item.msg).filter(Boolean).join(' ')
-    if (error.status === 401) return 'E-mail ou senha inválidos.'
-    if (error.status === 503 || error.status === 504) return 'O serviço de autenticação está iniciando. Tente novamente em alguns segundos.'
-  }
-  return 'Não foi possível concluir a solicitação. Verifique a conexão e tente novamente.'
 }
 
 export const PlatformAccess: React.FC<PlatformAccessProps> = ({ onAuthenticated, onBack, notice }) => {
@@ -26,13 +16,14 @@ export const PlatformAccess: React.FC<PlatformAccessProps> = ({ onAuthenticated,
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberOnDevice, setRememberOnDevice] = useState(true)
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const finishLogin = async (login: PlatformLoginResult) => {
     api.setAccessToken(login.access_token)
     const user = await api.platformMe()
-    onAuthenticated(createPlatformSession(login.access_token, login.expires_in, user))
+    onAuthenticated(createPlatformSession(login.access_token, login.expires_in, user), rememberOnDevice)
   }
 
   const submit = async (event: React.FormEvent) => {
@@ -52,7 +43,7 @@ export const PlatformAccess: React.FC<PlatformAccessProps> = ({ onAuthenticated,
       await finishLogin(login)
     } catch (error) {
       api.setAccessToken(null)
-      setFeedback({ type: 'error', text: errorMessage(error) })
+      setFeedback({ type: 'error', text: platformAccessErrorMessage(error, mode) })
     } finally {
       setLoading(false)
     }
@@ -167,6 +158,19 @@ export const PlatformAccess: React.FC<PlatformAccessProps> = ({ onAuthenticated,
             {mode === 'register' && <p className="form-help">Use pelo menos 12 caracteres. A senha é enviada somente ao serviço de autenticação.</p>}
           </div>
 
+          <label className="remember-session-control">
+            <input
+              type="checkbox"
+              checked={rememberOnDevice}
+              onChange={(event) => setRememberOnDevice(event.target.checked)}
+              disabled={loading}
+            />
+            <span>
+              <strong>Lembrar de mim neste dispositivo</strong>
+              <small>Restaura a sessão ao reabrir o navegador, até o token expirar.</small>
+            </span>
+          </label>
+
           <button className="btn-module btn-module-primary platform-access-submit" type="submit" disabled={loading}>
             {loading ? <LoaderCircle size={15} className="animate-spin" /> : mode === 'login' ? <LockKeyhole size={15} /> : <UserPlus size={15} />}
             {loading ? 'Aguarde…' : mode === 'login' ? 'Entrar no módulo' : 'Criar conta e entrar'}
@@ -175,7 +179,7 @@ export const PlatformAccess: React.FC<PlatformAccessProps> = ({ onAuthenticated,
 
         <div className="platform-security-note">
           <ShieldCheck size={16} />
-          <span>Token RS256 mantido somente nesta aba e removido ao sair ou após 30 minutos.</span>
+          <span>O token RS256 expira em 30 minutos e é removido ao sair. Sua senha nunca é armazenada.</span>
         </div>
       </section>
     </main>

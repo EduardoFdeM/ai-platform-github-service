@@ -19,5 +19,6 @@ def test_eager_readiness_does_not_require_broker(monkeypatch, settings, db):
     report = readiness_report()
 
     assert report["status"] == "ready"
+    assert report["checks"]["schema"]["status"] == "up"
     assert report["checks"]["redis"]["status"] == "not_required"
     assert report["checks"]["worker"]["status"] == "not_required"

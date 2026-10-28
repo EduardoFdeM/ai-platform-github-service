@@ -319,6 +319,9 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     }),
+
+  deleteRepository: (repositoryId: number) =>
+    request<void>(`/api/v1/repositories/${repositoryId}`, { method: 'DELETE' }),
 }
 
 

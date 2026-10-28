@@ -1,10 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.github_sync.models import Branch, Contributor, CredentialAuditEvent, PullRequest, Repository
+from apps.github_sync.services.github import GitHubRateLimitError
 
 pytestmark = pytest.mark.django_db
 
@@ -137,6 +138,39 @@ def test_create_repository_reports_initial_sync_failure(client, monkeypatch):
     assert response.status_code == 201
     assert response.json()["initial_sync_status"] == "failed"
     assert "sincronização inicial falhou" in response.json()["initial_sync_detail"]
+
+
+def test_create_repository_reports_github_rate_limit(client):
+    github_response = Mock(status_code=403)
+    error = GitHubRateLimitError(github_response, retry_after=45)
+    with patch("apps.github_sync.services.github.GitHubClient.get_repository", side_effect=error):
+        response = client.post(
+            reverse("repository-list"),
+            {"url": "https://github.com/foo/bar", "webhook_secret": "unique-webhook-secret"},
+        )
+
+    assert response.status_code == 429
+    assert response.json()["code"] == "github_rate_limit_exceeded"
+    assert "45 segundos" in response.json()["detail"]
+
+
+def test_create_repository_reports_unavailable_credential_store(client):
+    fake_data = {"id": 98765, "name": "bar", "owner": {"login": "foo"}, "default_branch": "main"}
+    with patch("apps.github_sync.services.github.GitHubClient.get_repository", return_value=fake_data), patch(
+        "apps.github_sync.views.store_repository_credential",
+        side_effect=RuntimeError("missing runtime secret"),
+    ):
+        response = client.post(
+            reverse("repository-list"),
+            {"url": "https://github.com/foo/bar", "webhook_secret": "unique-webhook-secret"},
+        )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "code": "credential_store_unavailable",
+        "detail": "O armazenamento seguro de credenciais está temporariamente indisponível.",
+    }
+    assert "missing runtime secret" not in response.content.decode()
 
 
 def test_reject_non_github_url(client):

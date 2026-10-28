@@ -1,6 +1,6 @@
 # Status recomendado no YouTrack — Módulo 2
 
-Revisão de 22 de outubro de 2026 baseada no código e nos testes locais. “Done local” não é prova de deploy remoto.
+Revisão de 27 de outubro de 2026 baseada no código, nos testes locais e no pipeline remoto concluído com sucesso. A aplicação, o Swagger, o OpenAPI, o health, a readiness e a conectividade GitHub também foram verificados no App Service.
 
 ## Mover para Done
 
@@ -24,9 +24,11 @@ Revisão de 22 de outubro de 2026 baseada no código e nos testes locais. “Don
 
 Os 15 cartões que já estavam em Done permanecem em Done.
 
-## Manter fora de Done remoto
+## Evidência remota e itens ainda externos
 
-- cartões cujo aceite exija URL Azure ativa, secret manager, PostgreSQL, Redis, Celery ou webhook real devem aguardar evidência do ambiente;
+- URL Azure, banco, criptografia, OpenAPI, health, conectividade GitHub e smoke pós-deploy possuem evidência remota;
+- Redis e worker Celery não são exigidos no App Service atual porque as tarefas executam em modo eager; cartões que exijam processamento distribuído devem aguardar essa infraestrutura;
+- aceite que exija webhook real enviado pelo GitHub ainda depende de um repositório controlado e de seu segredo HMAC;
 - integração institucional de login/JWT/RBAC não deve ser atribuída ao Módulo 2;
 - cards de gateway/Data Bus ou E2E entre módulos dependem de acordo da turma.
 

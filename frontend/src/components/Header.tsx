@@ -34,7 +34,6 @@ interface HeaderProps {
   onSyncNow: () => void
   syncing: boolean
   connectivity: ConnectivityStatus | null
-  onSwitchToLegacy?: () => void
   onLogout: () => void
 }
 
@@ -53,7 +52,6 @@ export const Header: React.FC<HeaderProps> = ({
   onSyncNow,
   syncing,
   connectivity,
-  onSwitchToLegacy,
   onLogout,
 }) => {
   // Breadcrumb e Título baseados na tela ativa
@@ -221,21 +219,6 @@ export const Header: React.FC<HeaderProps> = ({
             <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
             <span>{syncing ? 'Sincronizando...' : selectedRepo ? 'Sincronizar agora' : 'Conecte um repositório'}</span>
           </button>
-
-          {onSwitchToLegacy && (
-            <button
-              onClick={onSwitchToLegacy}
-              className="btn-module btn-module-secondary"
-              style={{
-                borderColor: '#3B82F6',
-                color: '#93C5FD',
-                backgroundColor: 'rgba(59, 130, 246, 0.12)',
-              }}
-              title="Abrir versão anterior do dashboard para demonstração e gravação"
-            >
-              <span>🎥 Versão Anterior (Demo)</span>
-            </button>
-          )}
 
           <div className="header-account" title={user.email}>
             <UserCircle2 size={15} />

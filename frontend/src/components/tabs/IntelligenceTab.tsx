@@ -83,6 +83,17 @@ export const IntelligenceTab = ({ repository, variant }: IntelligenceTabProps) =
 
       {data && (
         <>
+          <div className="analysis-mode-banner" role="status">
+            <Bot size={15} />
+            <div>
+              <strong>{data.analysis_mode.startsWith('provider:') ? 'LLM conectado' : 'Análise determinística ativa'}</strong>
+              <span>
+                {data.analysis_mode.startsWith('provider:')
+                  ? ` Recomendações complementares geradas pelo provedor ${data.analysis_mode.replace('provider:', '')} sobre indicadores agregados.`
+                  : ' Os indicadores e recomendações atuais são calculados por regras auditáveis sobre commits reais; nenhum LLM externo está processando o código.'}
+              </span>
+            </div>
+          </div>
           <div className="module-kpi-grid">
             <div className="kpi-box">
               <span className="kpi-title">COMMITS NO PERÍODO</span>

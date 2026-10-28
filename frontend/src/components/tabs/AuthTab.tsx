@@ -72,7 +72,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
       {/* Banner: Postura de acesso dentro da política */}
       <div
         style={{
-          backgroundColor: '#0D1322',
+          backgroundColor: 'var(--bg-card)',
           border: '1px solid var(--border-default)',
           borderRadius: 8,
           padding: '14px 18px',
@@ -100,7 +100,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
             <ShieldCheck size={20} />
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>
               {handshakeResult?.valid ? 'Handshake validado' : 'Valide um token para consultar permissões'}
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>
@@ -114,7 +114,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
         <div style={{ display: 'flex', alignItems: 'center', gap: 24, fontSize: 11 }}>
           <div>
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>MÉTODO</span>
-              <strong style={{ color: '#FFFFFF' }}>{handshakeResult?.valid ? 'PAT validado' : 'PAT não validado'}</strong>
+              <strong style={{ color: 'var(--text-main)' }}>{handshakeResult?.valid ? 'PAT validado' : 'PAT não validado'}</strong>
           </div>
           {showCredentialIdeation && <div>
             <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: 10 }}>PRÓXIMA ROTAÇÃO</span>
@@ -147,7 +147,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
           </p>
 
           {/* Abas PAT vs GitHub App */}
-          {showCredentialIdeation && <div style={{ display: 'flex', gap: 6, backgroundColor: '#0A0F1D', padding: 4, borderRadius: 6 }}>
+          {showCredentialIdeation && <div style={{ display: 'flex', gap: 6, backgroundColor: 'var(--bg-card-secondary)', padding: 4, borderRadius: 6 }}>
             <button
               onClick={() => setTokenType('pat')}
               style={{
@@ -155,8 +155,8 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
                 padding: '6px 10px',
                 border: 'none',
                 borderRadius: 4,
-                backgroundColor: tokenType === 'pat' ? '#1E293B' : 'transparent',
-                color: tokenType === 'pat' ? '#FFFFFF' : 'var(--text-tertiary)',
+                backgroundColor: tokenType === 'pat' ? 'var(--bg-card-hover)' : 'transparent',
+                color: tokenType === 'pat' ? 'var(--text-main)' : 'var(--text-tertiary)',
                 fontSize: 11.5,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -176,8 +176,8 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
                 padding: '6px 10px',
                 border: 'none',
                 borderRadius: 4,
-                backgroundColor: tokenType === 'app' ? '#1E293B' : 'transparent',
-                color: tokenType === 'app' ? '#FFFFFF' : 'var(--text-tertiary)',
+                backgroundColor: tokenType === 'app' ? 'var(--bg-card-hover)' : 'transparent',
+                color: tokenType === 'app' ? 'var(--text-main)' : 'var(--text-tertiary)',
                 fontSize: 11.5,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -259,7 +259,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              backgroundColor: '#0A0F1D',
+              backgroundColor: 'var(--bg-card-secondary)',
               padding: '10px 12px',
               borderRadius: 6,
               fontSize: 11.5,
@@ -287,7 +287,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
               justifyContent: 'space-between',
               alignItems: 'center',
               fontSize: 11,
-              color: '#FDE68A',
+              color: 'var(--warning)',
             }}
           >
             <span>Rotação automática obrigatória a cada 90 dias.</span>
@@ -347,7 +347,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
           {/* Box de Scopes Retornados */}
           <div className="code-box-dark">
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 10.5 }}>
-              <span style={{ color: '#93C5FD', fontWeight: 600 }}>X-OAuth-Scopes</span>
+              <span style={{ color: 'var(--info)', fontWeight: 600 }}>X-OAuth-Scopes</span>
               <span style={{ color: 'var(--text-tertiary)' }}>Resposta do handshake atual</span>
             </div>
             <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
@@ -376,7 +376,7 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
               <CheckCircle2 size={13} />
               <span>Least Privilege atendido</span>
             </div>
-            <p style={{ fontSize: 11, color: '#A7F3D0', lineHeight: 1.4 }}>
+            <p style={{ fontSize: 11, color: 'var(--success)', lineHeight: 1.4 }}>
               A credencial possui somente leitura organizacional e escrita limitada a status de commits.
             </p>
           </div>}

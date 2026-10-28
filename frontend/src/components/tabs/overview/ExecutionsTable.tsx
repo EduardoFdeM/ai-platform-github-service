@@ -154,7 +154,7 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <GitBranch size={12} color="#60A5FA" />
-                        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#E2E8F0' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-main)' }}>
                           {item.branch}
                         </span>
                       </div>
@@ -221,13 +221,13 @@ export const ExecutionsTable: React.FC<ExecutionsTableProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             gap: 12,
-            backgroundColor: '#0A0F1D',
+            backgroundColor: 'var(--bg-card-secondary)',
             borderRadius: 8,
           }}
         >
           <FolderGit2 size={36} color="#60A5FA" style={{ opacity: 0.6 }} />
           <div>
-            <h3 style={{ fontSize: 15, fontWeight: 600, color: '#FFFFFF', margin: '0 0 4px' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-main)', margin: '0 0 4px' }}>
               Nenhum commit encontrado para este repositório
             </h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>

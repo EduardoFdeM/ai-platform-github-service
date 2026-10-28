@@ -125,6 +125,8 @@ def _request(client, method, url, token=None, payload=None):
     headers = {"HTTP_AUTHORIZATION": f"Bearer {token}"} if token else {}
     if method == "get":
         return client.get(url, **headers)
+    if method == "delete":
+        return client.delete(url, **headers)
     return client.post(
         url,
         data=json.dumps(payload or {}),
@@ -138,6 +140,7 @@ def _protected_endpoints(context):
     return (
         ("get", reverse("repository-list"), None),
         ("post", reverse("repository-list"), {"url": "student-b/private-repository", "webhook_secret": "secret"}),
+        ("delete", reverse("repository-detail", args=[repository_id]), None),
         ("get", reverse("commit-list"), None),
         ("get", reverse("branch-list"), None),
         ("get", reverse("pull-request-list"), None),
@@ -196,6 +199,7 @@ def test_cross_tenant_repository_operations_are_hidden(client, tenant_context):
     cases = (
         ("get", reverse("dashboard-metrics") + f"?repository_id={other_repository_id}", None, 400),
         ("post", reverse("repository-sync", args=[other_repository_id]), None, 404),
+        ("delete", reverse("repository-detail", args=[other_repository_id]), None, 404),
         ("get", reverse("repository-insights", args=[other_repository_id]), None, 404),
         ("post", reverse("repository-content", args=[other_repository_id]), {"path": "README.md"}, 404),
         ("post", reverse("repository-commit-diff", args=[other_repository_id, "b" * 40]), None, 404),
@@ -211,3 +215,18 @@ def test_cross_tenant_repository_operations_are_hidden(client, tenant_context):
 
     context.other_delivery.refresh_from_db()
     assert context.other_delivery.status == WebhookDelivery.Status.FAILED
+
+
+def test_owner_can_unlink_own_repository_and_derived_records(client, tenant_context):
+    context = tenant_context
+    with patch("apps.github_sync.authentication._jwks_client", return_value=context.jwks_client):
+        response = _request(
+            client,
+            "delete",
+            reverse("repository-detail", args=[context.own_repository.pk]),
+            token=context.token,
+        )
+
+    assert response.status_code == 204
+    assert not Repository.objects.filter(pk=context.own_repository.pk).exists()
+    assert Repository.objects.filter(pk=context.other_repository.pk).exists()

@@ -133,3 +133,20 @@ def test_get_raises_capped_rate_limit_error_without_sleep(settings):
 
     assert captured.value.retry_after == 60
     response.raise_for_status.assert_not_called()
+
+
+def test_get_detects_github_secondary_rate_limit(settings):
+    settings.GITHUB_API_URL = "https://api.github.test"
+    settings.GITHUB_MAX_RETRY_AFTER = 120
+    response = Mock()
+    response.status_code = 403
+    response.headers = {"X-RateLimit-Remaining": "12", "Retry-After": "30"}
+    response.json.return_value = {"message": "You have exceeded a secondary rate limit."}
+    client = GitHubClient()
+    client.session.get = Mock(return_value=response)
+
+    with pytest.raises(GitHubRateLimitError) as captured:
+        client.get("/repos/team/service")
+
+    assert captured.value.retry_after == 30
+    response.raise_for_status.assert_not_called()
