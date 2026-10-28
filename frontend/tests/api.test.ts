@@ -56,3 +56,28 @@ test('authenticated calls carry bearer and repository listing propagates project
     globalThis.fetch = originalFetch
   }
 })
+
+test('GitHub webhook or sync 401 does not expire the platform session', async () => {
+  const originalFetch = globalThis.fetch
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
+  const fakeWindow = new EventTarget()
+  let expiredEvents = 0
+  fakeWindow.addEventListener('platform-session-expired', () => { expiredEvents += 1 })
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: fakeWindow })
+  globalThis.fetch = async () => new Response(JSON.stringify({ detail: 'O GitHub recusou o token informado.' }), {
+    status: 401,
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+  try {
+    api.setAccessToken('platform-token')
+    assert.equal((await api.sendWebhook('{}', { 'X-GitHub-Event': 'push' })).status, 401)
+    assert.equal((await api.syncRepository(42, 'invalid-github-token')).status, 401)
+    assert.equal(expiredEvents, 0)
+  } finally {
+    api.setAccessToken(null)
+    globalThis.fetch = originalFetch
+    if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow)
+    else Reflect.deleteProperty(globalThis, 'window')
+  }
+})

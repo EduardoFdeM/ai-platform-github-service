@@ -208,7 +208,12 @@ function authenticatedHeaders(headers?: HeadersInit): Headers {
   return result
 }
 
-async function request<T>(path: string, init?: RequestInit, authenticated = true): Promise<{ status: number; data: T }> {
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  authenticated = true,
+  expirePlatformSessionOnUnauthorized = authenticated,
+): Promise<{ status: number; data: T }> {
   // Os cookies de localhost são compartilhados entre portas: se houver sessão do
   // Django admin aberta, o DRF passaria a exigir CSRF. A SPA só usa endpoints
   // públicos, então omitimos credenciais.
@@ -221,7 +226,7 @@ async function request<T>(path: string, init?: RequestInit, authenticated = true
   } catch {
     data = ({ detail: text || `HTTP ${response.status}` } as T)
   }
-  if (authenticated && platformAccessToken && response.status === 401 && typeof window !== 'undefined') {
+  if (expirePlatformSessionOnUnauthorized && platformAccessToken && response.status === 401 && typeof window !== 'undefined') {
     window.dispatchEvent(new Event('platform-session-expired'))
   }
   return { status: response.status, data }
@@ -264,8 +269,8 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  health: () => request<HealthStatus>('/api/v1/health'),
-  connectivity: () => request<ConnectivityStatus>('/api/v1/health/github-connectivity'),
+  health: () => request<HealthStatus>('/api/v1/health', undefined, false),
+  connectivity: () => request<ConnectivityStatus>('/api/v1/health/github-connectivity', undefined, false),
 
   handshake: (token: string) =>
     request<HandshakeResult>('/api/v1/github/handshake', {
@@ -296,12 +301,14 @@ export const api = {
   deliveries: (repositoryId: number) =>
     getJson<Delivery[]>(`/api/v1/webhooks/deliveries?repository_id=${repositoryId}`),
 
+  // O endpoint de webhook é autenticado por HMAC, não pela sessão da plataforma.
+  // Uma assinatura inválida não pode encerrar o login do usuário no Módulo 1.
   sendWebhook: (body: string, headers: Record<string, string>) =>
     request<WebhookResponse>('/webhooks/github', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...headers },
       body,
-    }),
+    }, false),
 
   syncRepository: (repositoryId: number, token?: string) =>
     request<{ status: string; repository: string; commits_synced: number }>(
@@ -310,7 +317,9 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),
-      }
+      },
+      true,
+      false,
     ),
 
   createRepository: (params: { project_id?: string; url?: string; owner?: string; name?: string; token?: string; webhook_secret: string }) =>
@@ -318,7 +327,7 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
-    }),
+    }, true, false),
 
   deleteRepository: (repositoryId: number) =>
     request<void>(`/api/v1/repositories/${repositoryId}`, { method: 'DELETE' }),

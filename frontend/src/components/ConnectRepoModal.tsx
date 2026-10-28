@@ -250,7 +250,7 @@ export const ConnectRepoModal: React.FC<ConnectRepoModalProps> = ({ isOpen, proj
               required
             />
             <span className="form-help">
-              Configure o mesmo valor no webhook do GitHub. Ele será cifrado no servidor e não será devolvido pela API.
+              Protege os eventos recebidos: o GitHub assina cada payload e o Módulo 2 valida a assinatura antes de indexar commits. Configure o mesmo valor no webhook do GitHub; ele será cifrado no servidor e não será devolvido pela API.
             </span>
           </div>
 

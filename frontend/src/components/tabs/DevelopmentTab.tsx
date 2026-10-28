@@ -43,7 +43,7 @@ export const DevelopmentTab: React.FC<DevelopmentTabProps> = ({
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
         <section className="code-box-dark" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <strong style={{ color: '#A7F3D0', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <strong style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <CheckCircle2 size={14} /> Base já disponível
           </strong>
           {available.map((item) => (
@@ -52,7 +52,7 @@ export const DevelopmentTab: React.FC<DevelopmentTabProps> = ({
         </section>
 
         <section className="code-box-dark" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <strong style={{ color: '#FDE68A', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <strong style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Clock3 size={14} /> Falta implementar no Módulo 2
           </strong>
           {pending.map((item) => (

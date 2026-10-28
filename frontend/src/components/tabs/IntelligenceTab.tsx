@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, Bot, BrainCircuit, RefreshCw, Sparkles } from 'lucide-react'
+import { AlertTriangle, Bot, BrainCircuit, RefreshCw } from 'lucide-react'
 import { api, type Repository, type RepositoryIntelligence } from '../../api'
 
 interface IntelligenceTabProps {
   repository: Repository | null
-  variant: 'analytics' | 'ai'
 }
 
-export const IntelligenceTab = ({ repository, variant }: IntelligenceTabProps) => {
+const bottleneckLabels: Record<string, string> = {
+  author_concentration: 'Concentração de autoria',
+  off_hours_activity: 'Atividade fora da janela de referência',
+  commit_bursts: 'Picos de commits',
+}
+
+export const IntelligenceTab = ({ repository }: IntelligenceTabProps) => {
   const [period, setPeriod] = useState(30)
   const [data, setData] = useState<RepositoryIntelligence | null>(null)
   const [loading, setLoading] = useState(false)
@@ -46,8 +51,8 @@ export const IntelligenceTab = ({ repository, variant }: IntelligenceTabProps) =
     )
   }
 
-  const title = variant === 'ai' ? 'Inteligência sobre o fluxo Git' : 'Analytics do fluxo Git'
-  const Icon = variant === 'ai' ? BrainCircuit : Sparkles
+  const title = 'Analytics e inteligência sobre o fluxo Git'
+  const Icon = BrainCircuit
 
   return (
     <div className="view-container">
@@ -124,7 +129,9 @@ export const IntelligenceTab = ({ repository, variant }: IntelligenceTabProps) =
                 <p className="module-card-subtitle">Nenhum gargalo foi sinalizado pelos critérios atuais.</p>
               ) : data.bottlenecks.map((item) => (
                 <div key={item.code} className="code-box-dark" style={{ marginTop: 10 }}>
-                  <span className={`badge ${item.severity === 'warning' ? 'badge-warning' : 'badge-info'}`}>{item.code}</span>
+                  <span className={`badge ${item.severity === 'warning' ? 'badge-warning' : 'badge-info'}`}>
+                    {bottleneckLabels[item.code] || 'Indicador observado'}
+                  </span>
                   <p style={{ margin: '8px 0 0' }}>{item.evidence}</p>
                 </div>
               ))}

@@ -12,15 +12,25 @@ import {
   Check,
   X,
   Layers,
+  Trash2,
 } from 'lucide-react'
-import { api, type HandshakeResult } from '../../api'
+import { api, type HandshakeResult, type PlatformProject, type Repository } from '../../api'
 
 interface AuthTabProps {
   onHandshakeSuccess?: (res: HandshakeResult) => void
   onTokenValidated?: (token: string) => void
+  repository: Repository | null
+  project: PlatformProject | null
+  onRequestUnlinkRepository: () => void
 }
 
-export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenValidated }) => {
+export const AuthTab: React.FC<AuthTabProps> = ({
+  onHandshakeSuccess,
+  onTokenValidated,
+  repository,
+  project,
+  onRequestUnlinkRepository,
+}) => {
   // Campos de GitHub App, cofre, rotação e auditoria vieram da POC, mas não
   // possuem contrato de backend aceito. Só aparecem quando a ideação é ativada.
   const showCredentialIdeation = false
@@ -579,6 +589,37 @@ export const AuthTab: React.FC<AuthTabProps> = ({ onHandshakeSuccess, onTokenVal
           </table>
         </div>
       </div>}
+
+      <section className="danger-zone" aria-labelledby="danger-zone-title">
+        <div>
+          <h3 id="danger-zone-title">Zona de perigo</h3>
+          <p>Estas ações afetam integrações do GitHub Sync. Elas não apagam o repositório no GitHub.</p>
+        </div>
+
+        {repository ? (
+          <div className="danger-zone-action">
+            <div>
+              <strong>Desvincular {repository.full_name}</strong>
+              <p>Remove do Módulo 2 os dados indexados e a credencial criptografada deste repositório. O projeto e o repositório remoto permanecem intactos.</p>
+            </div>
+            <button type="button" className="btn-module btn-module-danger" onClick={onRequestUnlinkRepository}>
+              <Trash2 size={14} /> Desvincular repositório
+            </button>
+          </div>
+        ) : (
+          <p className="danger-zone-empty">Selecione um repositório para disponibilizar o desvinculamento.</p>
+        )}
+
+        {project && (
+          <div className="danger-zone-action is-pending">
+            <div>
+              <strong>Excluir projeto {project.name}</strong>
+              <p>A exclusão do projeto compartilhado depende de uma rota segura no serviço de Projetos do Módulo 1. Esta ação não é simulada pelo Módulo 2.</p>
+            </div>
+            <span className="badge badge-warning">Aguardando contrato do Módulo 1</span>
+          </div>
+        )}
+      </section>
     </div>
   )
 }

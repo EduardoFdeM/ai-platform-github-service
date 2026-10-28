@@ -1,5 +1,5 @@
 import React from 'react'
-import { BarChart3, Bot, ChevronLeft, ChevronRight, FileText, FolderCog, FolderGit2, FolderPlus, LogOut, Menu, Radio, RefreshCw, ShieldCheck } from 'lucide-react'
+import { BarChart3, ChevronLeft, ChevronRight, FileText, FolderCog, FolderGit2, FolderPlus, LogOut, Menu, Radio, RefreshCw, ShieldCheck } from 'lucide-react'
 import type { PlatformProject } from '../api'
 import type { PlatformUser } from '../platformSession'
 import type { TabId } from './Header'
@@ -25,8 +25,7 @@ const navigation: { id: TabId; label: string; icon: React.ElementType; comingSoo
   { id: 'auth', label: 'Conectividade e autenticação', icon: ShieldCheck },
   { id: 'webhooks', label: 'Monitor de webhooks', icon: Radio },
   { id: 'sync', label: 'Indexação e contribuintes', icon: RefreshCw },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'ai', label: 'Inteligência Git', icon: Bot },
+  { id: 'analytics', label: 'Analytics e insights', icon: BarChart3 },
   { id: 'devops', label: 'DevOps e documentação', icon: FileText, comingSoon: true },
 ]
 

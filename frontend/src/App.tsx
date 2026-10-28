@@ -454,7 +454,6 @@ export default function App() {
             loadRepoCommitsAndDeliveries(r.id)
           }}
           onOpenConnectModal={() => setConnectModalOpen(true)}
-          onRequestUnlinkRepository={() => setDisconnectRepository(selectedRepo)}
           onSyncNow={handleSyncNow}
           syncing={syncing}
           connectivity={connectivity}
@@ -526,6 +525,9 @@ export default function App() {
 
         {selectedProject && activeTab === 'auth' && (
           <AuthTab
+            repository={selectedRepo}
+            project={selectedProject}
+            onRequestUnlinkRepository={() => selectedRepo && setDisconnectRepository(selectedRepo)}
             onTokenValidated={(token) => {
               if (selectedRepo) setRepositoryTokens((current) => ({ ...current, [selectedRepo.id]: token }))
             }}
@@ -554,9 +556,7 @@ export default function App() {
           />
         )}
 
-        {selectedProject && activeTab === 'analytics' && <IntelligenceTab repository={selectedRepo} variant="analytics" />}
-
-        {selectedProject && activeTab === 'ai' && <IntelligenceTab repository={selectedRepo} variant="ai" />}
+        {selectedProject && activeTab === 'analytics' && <IntelligenceTab repository={selectedRepo} />}
 
         {selectedProject && activeTab === 'devops' && (
           <DevelopmentTab

@@ -90,7 +90,7 @@ export const SyncTab: React.FC<SyncTabProps> = ({
           className="btn-module btn-module-primary"
         >
           <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-          <span>{repository ? 'Reconciliar Repositório (Compara commits locais + GitHub)' : 'Conecte um repositório para reconciliar'}</span>
+          <span>{repository ? 'Sincronizar dados do GitHub' : 'Conecte um repositório para sincronizar'}</span>
         </button>
       </div>
 
@@ -119,7 +119,6 @@ export const SyncTab: React.FC<SyncTabProps> = ({
         <div className="kpi-card">
           <div className="kpi-card-header">
             <span className="kpi-title">COMMITS INDEXADOS</span>
-            <span className="badge badge-success">No banco</span>
           </div>
           <div className="kpi-value">{totalCommits}</div>
           <div className="kpi-sub">persistidos no banco configurado</div>
@@ -146,7 +145,6 @@ export const SyncTab: React.FC<SyncTabProps> = ({
         <div className="kpi-card">
           <div className="kpi-card-header">
             <span className="kpi-title">CONTRIBUIDORES REAIS</span>
-            <span className="badge badge-success">Mapeado</span>
           </div>
           <div className="kpi-value">{students.length}</div>
           <div className="kpi-sub">autores identificados no git</div>

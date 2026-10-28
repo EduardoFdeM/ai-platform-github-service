@@ -8,7 +8,6 @@ import {
   Lock,
   Radio,
   BarChart3,
-  Bot,
   Rocket,
   FolderPlus,
   LogOut,
@@ -17,7 +16,7 @@ import {
 import type { ConnectivityStatus, PlatformProject, Repository } from '../api'
 import type { PlatformUser } from '../platformSession'
 
-export type TabId = 'overview' | 'auth' | 'webhooks' | 'sync' | 'analytics' | 'ai' | 'devops'
+export type TabId = 'overview' | 'auth' | 'webhooks' | 'sync' | 'analytics' | 'devops'
 
 interface HeaderProps {
   activeTab: TabId
@@ -81,11 +80,6 @@ export const Header: React.FC<HeaderProps> = ({
         return {
           breadcrumb: 'Analytics',
           title: 'Analytics de Fluxo e Diagnóstico de Gargalos',
-        }
-      case 'ai':
-        return {
-          breadcrumb: 'Inteligência assistiva',
-          title: 'Inteligência sobre Frequência e Padrões de Commits',
         }
       case 'devops':
         return {
@@ -271,15 +265,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <BarChart3 size={13} />
           <span>Analytics</span>
-        </button>
-
-        <button
-          className={`tab-btn ${activeTab === 'ai' ? 'active' : ''}`}
-          onClick={() => onSelectTab('ai')}
-          title="Análise de frequência, gargalos e clareza de commits"
-        >
-          <Bot size={13} />
-          <span>Inteligência Git</span>
         </button>
 
         <button

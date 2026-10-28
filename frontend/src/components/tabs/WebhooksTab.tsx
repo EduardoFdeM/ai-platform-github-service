@@ -325,10 +325,12 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
 
           <button
             onClick={() => setShowSimulator(!showSimulator)}
+            disabled={!repository}
             className="btn-module btn-module-primary btn-module-sm"
+            title={repository ? 'Enviar um payload técnico assinado para validar o recebimento' : 'Selecione um repositório para testar o webhook'}
           >
             <Send size={12} />
-            <span>Simulador de Webhook</span>
+            <span>{repository ? 'Testar recebimento' : 'Selecione um repositório'}</span>
           </button>
         </div>
       </div>
@@ -403,7 +405,7 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
           <div className="module-card-header">
             <div className="module-card-title">
               <Send size={14} style={{ color: '#60A5FA' }} />
-              <span>Simulador E2E de Evento Git (HMAC-SHA256)</span>
+              <span>Teste técnico de recebimento (HMAC-SHA256)</span>
             </div>
             <button
               onClick={() => setShowSimulator(false)}
@@ -413,6 +415,10 @@ export const WebhooksTab: React.FC<WebhooksTabProps> = ({
               <X size={15} />
             </button>
           </div>
+
+          <p className="module-card-subtitle" style={{ marginBottom: 14 }}>
+            Envia um payload assinado diretamente para este módulo; não cria eventos nem altera configurações no GitHub. Serve para validar assinatura, idempotência e persistência antes de configurar o webhook real.
+          </p>
 
           <form onSubmit={handleSimulateWebhook} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div className="responsive-grid-three">
