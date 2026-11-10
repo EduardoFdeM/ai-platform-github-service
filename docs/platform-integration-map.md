@@ -20,7 +20,7 @@ O documento formal do curso descreve oito módulos; o material do laboratório a
 
 - descoberta: `GET /api/schema/`, `GET /docs/`;
 - operação: `GET /api/v1/health`, `/health/readiness`, `/health/github-connectivity`;
-- identidade/projetos: `POST /api/v1/platform/auth/register`, `/auth/token`, `GET /auth/me`, `GET|POST /platform/projects`;
+- identidade/projetos: `POST /api/v1/platform/auth/register`, `/auth/token`, `GET /auth/me`, `GET|POST /platform/projects`, `DELETE /platform/projects/{project_id}`;
 - conexão: `POST /api/v1/github/handshake`, `GET|POST /api/v1/repositories`, `DELETE /api/v1/repositories/{id}` (somente integração M2) e `POST /repositories/{id}/sync`;
 - fatos: `GET /commits`, `/branches`, `/pull-requests`, `/webhooks/deliveries`;
 - consumidores: `POST /repositories/{id}/contents`, `POST /repositories/{id}/commits/{sha}/diff`;

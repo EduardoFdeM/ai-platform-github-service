@@ -57,6 +57,7 @@ from .services.platform import (
     PlatformServiceError,
     create_project,
     current_user,
+    delete_project,
     get_project,
     issue_token,
     list_projects,
@@ -137,6 +138,31 @@ def platform_projects(request):
         serializer = PlatformProjectDraftSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(create_project(request.auth, serializer.validated_data), status=status.HTTP_201_CREATED)
+    except PlatformServiceError as exc:
+        return _platform_error_response(exc)
+
+
+@extend_schema(
+    responses={204: None, 401: ErrorSerializer, 403: ErrorSerializer, 404: ErrorSerializer, 409: ErrorSerializer, 503: ErrorSerializer},
+)
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def platform_project_detail(request, project_id):
+    """Delete only an empty shared project through Module 1.
+
+    Module 1 intentionally does not cascade into other modules.  Blocking the
+    request while M2 still has active repository links avoids leaving indexed
+    GitHub data orphaned under a deleted ``project_id``.
+    """
+    if Repository.objects.filter(project_id=project_id, active=True).exists():
+        return _error_response(
+            "project_has_github_links",
+            "Desvincule os repositórios do GitHub Sync antes de excluir este projeto.",
+            status.HTTP_409_CONFLICT,
+        )
+    try:
+        delete_project(request.auth, project_id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
     except PlatformServiceError as exc:
         return _platform_error_response(exc)
 

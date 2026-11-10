@@ -49,7 +49,7 @@ Base pública validada: `https://ai-platform-github-service-eduardo-frapb8fbbcd0
 - `X-Request-ID` é aceito/gerado e devolvido na resposta; preserve-o ao correlacionar logs.
 
 O M2 não cria identidades nem projetos em seu próprio banco: as rotas `/platform` apenas validam payloads e encaminham
-ao Módulo 1. O access token fica no `sessionStorage` do frontend, expira após 1.800 segundos e é removido no logout/401.
+ao Módulo 1. Com **Lembrar de mim**, o token fica no `localStorage`; sem essa opção, fica no `sessionStorage`. Ele expira após 1.800 segundos e é removido no logout ou quando uma chamada autenticada ao Módulo 1 retorna `401`.
 
 ## Catálogo de endpoints
 
@@ -62,6 +62,7 @@ ao Módulo 1. O access token fica no `sessionStorage` do frontend, expira após 
 | `POST /api/v1/platform/auth/token` | pública | troca e-mail/senha por Bearer de 30 minutos |
 | `GET /api/v1/platform/auth/me` | Bearer M1 | devolve usuário validado pelo Módulo 1 |
 | `GET\|POST /api/v1/platform/projects` | Bearer M1 | lista/cria projetos do usuário no Módulo 1 |
+| `DELETE /api/v1/platform/projects/{project_id}` | Bearer M1 | exclui projeto vazio do Módulo 1, após confirmar que não há repositório ativo no M2 |
 | `POST /api/v1/github/handshake` | Bearer M1 + PAT efêmero | valida identidade GitHub e escopos |
 | `GET /api/v1/repositories?project_id={uuid}` | Bearer M1 | lista somente repositórios do usuário/projeto |
 | `POST /api/v1/repositories` | Bearer M1 | valida projeto, cadastra, cifra segredo e tenta carga inicial |
@@ -106,6 +107,8 @@ Authorization: Bearer <ACCESS_TOKEN>
 ```
 
 `GET /api/v1/platform/projects` lista projetos e `POST /api/v1/platform/projects` aceita `name` e `description`.
+
+`DELETE /api/v1/platform/projects/{project_id}` encaminha a exclusão ao Módulo 1 somente quando o GitHub Sync não possui repositórios ativos para o projeto. O contrato retorna `204` sem corpo para projeto vazio e pode retornar `409` se existirem itens, vínculos ou escritas em andamento. A operação nunca apaga repositórios remotos, dados do Backlog ou dados de outros módulos em cascata.
 Backends de outros módulos podem obter o token diretamente no Módulo 1 e usar o mesmo Bearer no M2; não precisam
 passar pelo proxy de interface.
 
