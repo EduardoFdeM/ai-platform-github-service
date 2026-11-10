@@ -143,7 +143,14 @@ def platform_projects(request):
 
 
 @extend_schema(
-    responses={204: None, 401: ErrorSerializer, 403: ErrorSerializer, 404: ErrorSerializer, 409: ErrorSerializer, 503: ErrorSerializer},
+    responses={
+        204: None,
+        401: ErrorSerializer,
+        403: ErrorSerializer,
+        404: ErrorSerializer,
+        409: ErrorSerializer,
+        503: ErrorSerializer,
+    },
 )
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
