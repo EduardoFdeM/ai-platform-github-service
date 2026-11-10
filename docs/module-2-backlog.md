@@ -13,7 +13,7 @@ Revisão de 27 de outubro de 2026. Este documento separa código concluído, pro
 | Inteligência | análise de frequência, concentração, picos, atividade fora da janela e clareza de mensagens; provedor externo é opt-in e recebe somente agregados |
 | Consumidores | OpenAPI, conteúdo textual sob demanda, diff limitado e proveniência para M3/M4/M5/M7 |
 | Autenticação e projetos M1 | cadastro/login/projetos por proxy same-origin; JWT RS256/JWKS; `issuer`, `audience`, expiração e claims obrigatórios; seleção/criação e exclusão segura de projeto vazio; isolamento por `sub`/`project_id` |
-| Frontend | sete tabs navegáveis, cadastro/login/logout, expiração de sessão, seleção/criação de projetos, jornada real, PAT efêmero em memória, Analytics/Inteligência reais e estados explícitos para o que não possui fonte |
+| Frontend | seis áreas navegáveis, cadastro/login/logout, expiração de sessão, seleção/criação/exclusão segura de projetos, jornada real, PAT efêmero em memória, Analytics e inteligência Git consolidados e estados explícitos para o que não possui fonte |
 | Qualidade | pytest/coverage, Ruff, Bandit, OpenAPI, lint/build/test do frontend e smoke de health após deploy |
 
 ## Não bloqueia o fechamento interno

@@ -1,6 +1,6 @@
 # Guia de integração — Módulo 2 (GitHub Sync)
 
-Referência dos contratos disponíveis no código e no ambiente publicado em **27 de outubro de 2026**. O módulo recebe e sincroniza fatos do GitHub, expõe conteúdo/diffs sob demanda e produz indicadores auditáveis. O pipeline, o health, a readiness, a conectividade GitHub, o schema OpenAPI e a interface pública foram verificados no App Service.
+Referência dos contratos disponíveis no código e no ambiente publicado em **10 de novembro de 2026**. O módulo recebe e sincroniza fatos do GitHub, expõe conteúdo/diffs sob demanda e produz indicadores auditáveis. O pipeline, o health, a readiness, a conectividade GitHub, o schema OpenAPI e a interface pública foram verificados no App Service.
 
 ## Prontidão
 
@@ -217,6 +217,8 @@ Cada arquivo retorna `path`, `status`, `additions`, `deletions`, `changes`, `pat
 
 O modo padrão é determinístico e auditável. Quando `AI_INSIGHTS_ENABLED=true`, um provedor compatível com chat completions pode enriquecer recomendações; somente agregados são enviados, nunca conteúdo, diff, PAT ou segredo. `analysis_mode` informa o modo realmente utilizado.
 
+Para Gemini, use a camada compatível com OpenAI: `AI_PROVIDER_URL=https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`, a chave em `AI_PROVIDER_API_KEY` e um modelo habilitado em `AI_PROVIDER_MODEL`. No ambiente publicado, essas variáveis devem ser criadas como Application Settings do Azure App Service; não coloque a chave no frontend, no repositório ou em uma mensagem.
+
 `GET /api/v1/commits` aceita `repository_id`, `author`, `since`, `until` e `page`. `GET /api/v1/branches` aceita `repository_id` e `include_deleted=true`. `GET /api/v1/pull-requests` aceita `repository_id`, `state` e `author`.
 
 ## Webhooks, retry e replay
@@ -245,7 +247,7 @@ O cliente GitHub nunca dorme até o reset completo do rate limit. Ele respeita o
 
 ## Dependências externas restantes
 
-1. Módulo 1: equipes/papéis ainda não existem; hoje cada usuário acessa somente os próprios projetos.
+1. Módulo 1: membros, papéis e convites já estão disponíveis. Falta acordar quais permissões do projeto autorizam leitura e escrita dos dados GitHub no Módulo 2; enquanto isso, o isolamento por proprietário permanece intencional.
 2. Plataforma: gateway para origens diferentes e envelope de eventos/Data Bus.
 3. Operação futura: migrar do modo eager atual para Redis + worker Celery quando houver infraestrutura compartilhada; health, readiness, criptografia e conectividade GitHub já estão ativos no App Service.
 4. Consumidores: testes de contrato M2→M3/M4/M5/M6/M7/M8.
