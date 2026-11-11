@@ -549,8 +549,12 @@ export default function App() {
             commits={commits}
             connectivity={connectivity}
             flow={flow}
+            deliveries={deliveries}
             onSyncNow={handleSyncNow}
             syncing={syncing}
+            onConnectRepository={() => setConnectModalOpen(true)}
+            onOpenWebhooks={() => setActiveTab('webhooks')}
+            onOpenAnalytics={() => setActiveTab('analytics')}
           />
         )}
 
