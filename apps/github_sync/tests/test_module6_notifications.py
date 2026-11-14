@@ -36,7 +36,7 @@ def test_module6_payload_uses_project_scope_and_contains_no_credentials(reposito
         "event_id": "m2-sync-completed-1",
         "scope": "project",
         "project_id": str(repository.project_id),
-        "source": "github_sync",
+        "source": "github",
         "type": "github.sync.completed",
         "title": "Sincronização com GitHub concluída",
         "body": "3 commit(s) foram sincronizados.",

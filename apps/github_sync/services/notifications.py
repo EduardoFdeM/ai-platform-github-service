@@ -43,7 +43,7 @@ def module6_notification_payload(
         "event_id": event_id,
         "scope": "project" if project_id else "global",
         "project_id": project_id,
-        "source": "github_sync",
+        "source": "github",
         "type": notification_type,
         "title": title,
         "body": body,
