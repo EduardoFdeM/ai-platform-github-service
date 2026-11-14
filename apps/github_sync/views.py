@@ -65,7 +65,7 @@ from .services.platform import (
 )
 from .services.signatures import is_valid_github_signature
 from .services.sync import sync_repository_from_github
-from .tasks import process_webhook
+from .tasks import process_webhook, queue_module6_notification
 from .throttles import PlatformAuthThrottle
 
 logger = logging.getLogger(__name__)
@@ -505,11 +505,27 @@ def repository_sync(request, pk):
         )
     except Exception:
         logger.exception("repository_sync_failed", extra={"repository_id": repository.pk})
+        queue_module6_notification(
+            repository.pk,
+            event_id=f"m2-sync-failed-{repository.pk}-{uuid.uuid4()}",
+            notification_type="github.sync.failed",
+            title="Falha na sincronização com GitHub",
+            body=f"A sincronização do repositório {repository} falhou. Consulte o GitHub Sync para tentar novamente.",
+            priority="high",
+        )
         return _error_response(
             "repository_sync_failed",
             "A sincronização falhou. Tente novamente mais tarde.",
             status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+    queue_module6_notification(
+        repository.pk,
+        event_id=f"m2-sync-completed-{repository.pk}-{uuid.uuid4()}",
+        notification_type="github.sync.completed",
+        title="Sincronização com GitHub concluída",
+        body=f"{commits_count} commit(s) foram sincronizados no repositório {repository}.",
+        priority="medium",
+    )
     return Response({
         "status": "synced",
         "repository": str(repository),

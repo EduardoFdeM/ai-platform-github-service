@@ -15,6 +15,7 @@ Referência dos contratos disponíveis no código e no ambiente publicado em **1
 | Login/JWT e projetos | concluída | disponibilidade das APIs do Módulo 1 |
 | Isolamento usuário/projeto | concluída | Bearer válido e `project_id` pertencente ao `sub` |
 | CORS do Módulo 1 | contornado por proxy same-origin no M2 | frontend e backend M2 na mesma origem |
+| Central de Notificações M6 | concluída, opt-in e assíncrona | URL, chave e flag configuradas no backend |
 | Gateway e Data Bus compartilhados | integração pendente | acordo entre os grupos |
 
 Dados criados por `seed_demo_data` são somente demonstração local e nunca devem ser apresentados como dados institucionais.
@@ -81,6 +82,16 @@ ao Módulo 1. Com **Lembrar de mim**, o token fica no `localStorage`; sem essa o
 | `POST /webhooks/github` | HMAC GitHub | recebe evento assinado |
 
 Todas as rotas JSON usam `Content-Type: application/json`. Erros controlados seguem `{"code":"...","detail":"..."}`; automações devem decidir pelo status HTTP e pelo `code`.
+
+## Central de Notificações — Módulo 6
+
+O M2 pode projetar eventos operacionais para o Módulo 6 sem acoplar a jornada
+principal à disponibilidade da Central. A configuração é inteiramente de
+servidor, o envio é assíncrono e somente sincronizações concluídas/falhas e
+falhas definitivas de webhook são notificadas. O envelope não inclui PAT,
+segredos, payloads de webhook, arquivos ou diffs. Consulte
+[module6-notifications.md](module6-notifications.md) para variáveis, catálogo,
+retry e roteiro de E2E conjunto.
 
 ## Autenticação e projetos
 
