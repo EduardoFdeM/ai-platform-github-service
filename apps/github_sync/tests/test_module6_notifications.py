@@ -89,6 +89,24 @@ def test_module6_dispatch_is_not_scheduled_without_explicit_configuration(reposi
     delay.assert_not_called()
 
 
+def test_module6_queue_failure_does_not_interrupt_the_originating_flow(repository, settings):
+    settings.MODULE6_NOTIFICATIONS_ENABLED = True
+    settings.MODULE6_NOTIFICATIONS_URL = "https://module-6.example/notifications"
+    settings.MODULE6_INTEGRATION_KEY = "integration-secret"
+
+    with patch("apps.github_sync.tasks.notify_module6.delay", side_effect=RuntimeError("broker unavailable")):
+        queued = queue_module6_notification(
+            repository.pk,
+            event_id="m2-sync-completed-4",
+            notification_type="github.sync.completed",
+            title="Sincronização concluída",
+            body="O fluxo M2 permanece saudável.",
+            priority="medium",
+        )
+
+    assert queued is False
+
+
 def test_successful_sync_queues_a_module6_notification(client, repository, settings):
     settings.MODULE6_NOTIFICATIONS_ENABLED = True
     settings.MODULE6_NOTIFICATIONS_URL = "https://module-6.example/notifications"

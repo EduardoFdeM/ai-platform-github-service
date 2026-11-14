@@ -41,14 +41,23 @@ def queue_module6_notification(
     """Queue an optional notification without coupling the initiating request to M6."""
     if not module6_notifications_enabled():
         return False
-    notify_module6.delay(
-        repository_id,
-        event_id=event_id,
-        notification_type=notification_type,
-        title=title,
-        body=body,
-        priority=priority,
-    )
+    try:
+        notify_module6.delay(
+            repository_id,
+            event_id=event_id,
+            notification_type=notification_type,
+            title=title,
+            body=body,
+            priority=priority,
+        )
+    except Exception:
+        # A Central é uma projeção opcional: indisponibilidade do broker não pode
+        # transformar uma sincronização ou webhook do M2 em falha.
+        logger.exception(
+            "module6_notification_queue_failed",
+            extra={"event_id": event_id, "notification_type": notification_type},
+        )
+        return False
     return True
 
 
