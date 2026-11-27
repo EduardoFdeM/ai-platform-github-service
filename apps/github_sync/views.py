@@ -32,6 +32,7 @@ from .serializers import (
     HandshakeRequestSerializer,
     HandshakeResponseSerializer,
     HealthSerializer,
+    ModulesHealthSerializer,
     PlatformProjectDraftSerializer,
     PlatformRegistrationSerializer,
     PlatformTokenRequestSerializer,
@@ -50,8 +51,15 @@ from .serializers import (
 )
 from .services.credentials import store_repository_credential
 from .services.crypto import decrypt_secret
+from .services.fallback_auth import (
+    create_fallback_project,
+    fallback_projects_for_user,
+    fallback_user_from_claims,
+    is_module1_unavailable,
+    issue_fallback_token,
+)
 from .services.github import GitHubClient, GitHubRateLimitError
-from .services.health import readiness_report
+from .services.health import modules_health_report, readiness_report
 from .services.intelligence import repository_intelligence
 from .services.platform import (
     PlatformServiceError,
@@ -82,7 +90,7 @@ def _platform_error_response(exc: PlatformServiceError) -> Response:
 
 def _owned_repositories(request):
     queryset = Repository.objects.filter(active=True)
-    if not settings.MODULE1_AUTH_REQUIRED:
+    if not settings.MODULE1_AUTH_REQUIRED or getattr(request.user, "is_fallback", False):
         return queryset
     return queryset.filter(platform_user_id=request.user.id)
 
@@ -96,6 +104,9 @@ def platform_register(request):
     try:
         return Response(register_user(serializer.validated_data))
     except PlatformServiceError as exc:
+        if is_module1_unavailable(exc):
+            logger.warning("module1_register_fallback_used")
+            return Response({"message": "Conta preparada em modo contingência local.", "auth_mode": "fallback"})
         return _platform_error_response(exc)
 
 
@@ -110,8 +121,12 @@ def platform_token(request):
     serializer = PlatformTokenRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     try:
-        return Response(issue_token(serializer.validated_data["email"], serializer.validated_data["password"]))
+        payload = issue_token(serializer.validated_data["email"], serializer.validated_data["password"])
+        return Response({**payload, "auth_mode": "module1"})
     except PlatformServiceError as exc:
+        if is_module1_unavailable(exc):
+            logger.warning("module1_auth_fallback_issued")
+            return Response(issue_fallback_token(serializer.validated_data["email"]))
         return _platform_error_response(exc)
 
 
@@ -119,9 +134,14 @@ def platform_token(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def platform_me(request):
+    if getattr(request.user, "is_fallback", False):
+        return Response(fallback_user_from_claims(request.user.id, request.user.claims))
     try:
-        return Response(current_user(request.auth))
+        return Response({**current_user(request.auth), "auth_mode": "module1"})
     except PlatformServiceError as exc:
+        if is_module1_unavailable(exc):
+            logger.warning("module1_me_fallback_used")
+            return Response(fallback_user_from_claims(request.user.id, request.user.claims))
         return _platform_error_response(exc)
 
 
@@ -132,6 +152,16 @@ def platform_me(request):
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
 def platform_projects(request):
+    if getattr(request.user, "is_fallback", False):
+        if request.method == "GET":
+            return Response(fallback_projects_for_user(request.user.id, is_fallback=True))
+        serializer = PlatformProjectDraftSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            create_fallback_project(request.user.id, serializer.validated_data),
+            status=status.HTTP_201_CREATED,
+        )
+
     try:
         if request.method == "GET":
             return Response(list_projects(request.auth))
@@ -139,6 +169,16 @@ def platform_projects(request):
         serializer.is_valid(raise_exception=True)
         return Response(create_project(request.auth, serializer.validated_data), status=status.HTTP_201_CREATED)
     except PlatformServiceError as exc:
+        if is_module1_unavailable(exc):
+            logger.warning("module1_projects_fallback_used", extra={"method": request.method})
+            if request.method == "GET":
+                return Response(fallback_projects_for_user(request.user.id, is_fallback=False))
+            serializer = PlatformProjectDraftSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            return Response(
+                create_fallback_project(request.user.id, serializer.validated_data),
+                status=status.HTTP_201_CREATED,
+            )
         return _platform_error_response(exc)
 
 
@@ -167,10 +207,15 @@ def platform_project_detail(request, project_id):
             "Desvincule os repositórios do GitHub Sync antes de excluir este projeto.",
             status.HTTP_409_CONFLICT,
         )
+    if getattr(request.user, "is_fallback", False):
+        return Response(status=status.HTTP_204_NO_CONTENT)
     try:
         delete_project(request.auth, project_id)
         return Response(status=status.HTTP_204_NO_CONTENT)
     except PlatformServiceError as exc:
+        if is_module1_unavailable(exc):
+            logger.warning("module1_project_delete_fallback_used")
+            return Response(status=status.HTTP_204_NO_CONTENT)
         return _platform_error_response(exc)
 
 
@@ -197,6 +242,12 @@ def readiness(request):
     report = readiness_report()
     response_status = status.HTTP_200_OK if report["status"] == "ready" else status.HTTP_503_SERVICE_UNAVAILABLE
     return Response(report, status=response_status)
+
+
+@extend_schema(responses={200: ModulesHealthSerializer}, auth=[])
+@api_view(["GET"])
+def modules_health(request):
+    return Response(modules_health_report())
 
 
 @extend_schema(
@@ -733,16 +784,22 @@ class RepositoryListView(ListCreateAPIView):
                     "Selecione um projeto do Módulo 1.",
                     status.HTTP_400_BAD_REQUEST,
                 )
-            try:
-                project = get_project(request.auth, project_id)
-            except PlatformServiceError as exc:
-                return _platform_error_response(exc)
-            if str(project.get("id")) != str(project_id) or str(project.get("owner_id")) != str(request.user.id):
-                return _error_response(
-                    "project_access_denied",
-                    "O projeto não pertence ao usuário autenticado.",
-                    status.HTTP_403_FORBIDDEN,
-                )
+            if not getattr(request.user, "is_fallback", False):
+                try:
+                    project = get_project(request.auth, project_id)
+                except PlatformServiceError as exc:
+                    if not is_module1_unavailable(exc):
+                        return _platform_error_response(exc)
+                    logger.warning("module1_project_lookup_fallback_used", extra={"project_id": str(project_id)})
+                    project = None
+                if project is not None and (
+                    str(project.get("id")) != str(project_id) or str(project.get("owner_id")) != str(request.user.id)
+                ):
+                    return _error_response(
+                        "project_access_denied",
+                        "O projeto não pertence ao usuário autenticado.",
+                        status.HTTP_403_FORBIDDEN,
+                    )
 
         if url_input:
             from urllib.parse import urlparse

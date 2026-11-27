@@ -12,10 +12,15 @@ from rest_framework.authentication import BaseAuthentication, get_authorization_
 
 @dataclass(frozen=True)
 class PlatformPrincipal:
-    """Authenticated identity issued by the platform's Module 1."""
+    """Authenticated identity issued by Module 1 or local M2 fallback."""
 
     id: UUID
     claims: dict
+    auth_mode: str = "module1"
+
+    @property
+    def is_fallback(self) -> bool:
+        return self.auth_mode == "fallback"
 
     @property
     def pk(self):
@@ -35,6 +40,9 @@ class PlatformPrincipal:
 
     def get_username(self) -> str:
         return self.username
+
+
+_LAST_KNOWN_SIGNING_KEYS: dict[str, object] = {}
 
 
 @lru_cache(maxsize=8)
@@ -64,16 +72,36 @@ class Module1JWTAuthentication(BaseAuthentication):
         except UnicodeError as exc:
             raise exceptions.AuthenticationFailed("Token inválido.") from exc
 
+        from .services.fallback_auth import decode_fallback_token
+
+        fallback_claims = decode_fallback_token(token)
+        if fallback_claims is not None:
+            try:
+                subject = UUID(str(fallback_claims["sub"]))
+            except (ValueError, KeyError) as exc:
+                raise exceptions.AuthenticationFailed("Token de contingência inválido.") from exc
+            return PlatformPrincipal(id=subject, claims=fallback_claims, auth_mode="fallback"), token
+
         try:
+            kid = jwt.get_unverified_header(token).get("kid")
             client = _jwks_client(
                 settings.MODULE1_JWKS_URL,
                 settings.MODULE1_JWKS_CACHE_SECONDS,
                 settings.MODULE1_JWKS_TIMEOUT,
             )
-            signing_key = client.get_signing_key_from_jwt(token)
+            try:
+                signing_key = client.get_signing_key_from_jwt(token)
+                key = signing_key.key
+                if kid:
+                    _LAST_KNOWN_SIGNING_KEYS[kid] = key
+            except PyJWKClientError:
+                if settings.MODULE1_FALLBACK_ENABLED and kid and kid in _LAST_KNOWN_SIGNING_KEYS:
+                    key = _LAST_KNOWN_SIGNING_KEYS[kid]
+                else:
+                    raise
             claims = jwt.decode(
                 token,
-                signing_key.key,
+                key,
                 algorithms=["RS256"],
                 audience=settings.MODULE1_JWT_AUDIENCE,
                 issuer=settings.MODULE1_JWT_ISSUER,
@@ -83,7 +111,7 @@ class Module1JWTAuthentication(BaseAuthentication):
         except (InvalidTokenError, PyJWKClientError, ValueError, KeyError) as exc:
             raise exceptions.AuthenticationFailed("Token do Módulo 1 inválido ou expirado.") from exc
 
-        return PlatformPrincipal(id=subject, claims=claims), token
+        return PlatformPrincipal(id=subject, claims=claims, auth_mode="module1"), token
 
     def authenticate_header(self, request) -> str:
         return self.keyword

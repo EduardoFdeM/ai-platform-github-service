@@ -13,6 +13,7 @@ from .views import (
     github_handshake,
     github_webhook,
     health,
+    modules_health,
     platform_me,
     platform_project_detail,
     platform_projects,
@@ -29,6 +30,7 @@ from .views import (
 urlpatterns = [
     path("health", health, name="health"),
     path("health/readiness", readiness, name="readiness"),
+    path("health/modules", modules_health, name="modules-health"),
     path("health/github-connectivity", github_connectivity, name="github-connectivity"),
     path("platform/auth/register", platform_register, name="platform-register"),
     path("platform/auth/token", platform_token, name="platform-token"),

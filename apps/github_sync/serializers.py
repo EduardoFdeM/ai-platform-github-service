@@ -18,6 +18,7 @@ class PlatformTokenResponseSerializer(serializers.Serializer):
     access_token = serializers.CharField()
     token_type = serializers.CharField()
     expires_in = serializers.IntegerField(min_value=1)
+    auth_mode = serializers.ChoiceField(choices=("module1", "fallback"), required=False)
 
 
 class PlatformProjectDraftSerializer(serializers.Serializer):
@@ -42,6 +43,22 @@ class HealthSerializer(serializers.Serializer):
 class ReadinessSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=("ready", "not_ready"))
     checks = serializers.DictField(child=serializers.DictField())
+
+
+class ModuleHealthItemSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    role = serializers.ChoiceField(choices=("core", "dependency_with_fallback", "external", "optional_isolated"))
+    status = serializers.ChoiceField(choices=("up", "down", "degraded", "configured", "not_configured"))
+    latency_ms = serializers.FloatField(allow_null=True)
+    detail = serializers.CharField()
+
+
+class ModulesHealthSerializer(serializers.Serializer):
+    checked_at = serializers.DateTimeField()
+    overall_status = serializers.ChoiceField(choices=("operational", "degraded", "down"))
+    fallback_enabled = serializers.BooleanField()
+    modules = ModuleHealthItemSerializer(many=True)
 
 
 class GitHubConnectivitySerializer(serializers.Serializer):
