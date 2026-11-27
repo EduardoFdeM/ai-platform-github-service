@@ -160,14 +160,30 @@ def _probe_module1_projects(timeout: int) -> dict:
 
 def _probe_github_api(timeout: int) -> dict:
     started = time.monotonic()
+    headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+    default_token = getattr(settings, "GITHUB_DEFAULT_TOKEN", "")
+    if default_token:
+        headers["Authorization"] = f"Bearer {default_token}"
     try:
         response = requests.get(
             f"{settings.GITHUB_API_URL.rstrip('/')}/meta",
-            headers={"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"},
+            headers=headers,
             timeout=timeout,
             verify=settings.GITHUB_CA_BUNDLE,
         )
         latency = round((time.monotonic() - started) * 1000, 1)
+        if response.status_code in (403, 429) and response.headers.get("X-RateLimit-Remaining") == "0":
+            return {
+                "id": "github_api",
+                "name": "GitHub REST API",
+                "role": "external",
+                "status": "degraded",
+                "latency_ms": latency,
+                "detail": (
+                    "Limite de consultas públicas do GitHub atingido neste IP; "
+                    "informe um PAT ou configure GITHUB_DEFAULT_TOKEN."
+                ),
+            }
         if response.status_code < 500:
             return {
                 "id": "github_api",

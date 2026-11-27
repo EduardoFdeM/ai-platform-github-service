@@ -150,3 +150,27 @@ def test_get_detects_github_secondary_rate_limit(settings):
 
     assert captured.value.retry_after == 30
     response.raise_for_status.assert_not_called()
+
+
+def test_default_token_is_used_when_explicit_token_is_missing(settings):
+    settings.GITHUB_DEFAULT_TOKEN = "ghp_default_readonly"
+
+    client = GitHubClient()
+
+    assert client.session.headers["Authorization"] == "Bearer ghp_default_readonly"
+
+
+def test_explicit_token_overrides_default_token(settings):
+    settings.GITHUB_DEFAULT_TOKEN = "ghp_default_readonly"
+
+    client = GitHubClient(token="ghp_explicit_user")
+
+    assert client.session.headers["Authorization"] == "Bearer ghp_explicit_user"
+
+
+def test_authorization_header_omitted_when_no_token_is_configured(settings):
+    settings.GITHUB_DEFAULT_TOKEN = ""
+
+    client = GitHubClient()
+
+    assert "Authorization" not in client.session.headers

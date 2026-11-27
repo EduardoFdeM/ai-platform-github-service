@@ -15,8 +15,9 @@ class GitHubClient:
     def __init__(self, token=None):
         self.session = requests.Session()
         self.session.headers.update({"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"})
-        if token:
-            self.session.headers["Authorization"] = f"Bearer {token}"
+        effective_token = (token or "").strip() or getattr(settings, "GITHUB_DEFAULT_TOKEN", "")
+        if effective_token:
+            self.session.headers["Authorization"] = f"Bearer {effective_token}"
 
     def get(self, path, params=None):
         response = self.session.get(
