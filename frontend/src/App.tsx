@@ -534,7 +534,7 @@ export default function App() {
               right: 28,
               backgroundColor: 'var(--bg-card)',
               border: '1px solid var(--primary-border)',
-              color: 'var(--primary)',
+              color: 'var(--primary-content)',
               padding: '10px 16px',
               borderRadius: 8,
               boxShadow: 'var(--shadow-modal)',

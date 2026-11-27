@@ -57,6 +57,7 @@
   --text-tertiary: var(--color-text-muted);
   --text-dim: var(--color-text-muted);
   --primary-content: var(--color-primary);
+  --primary-content-hover: var(--color-primary-hover);
 
   /* Raios de Curvatura */
   --radius-xs: 4px;
@@ -95,6 +96,7 @@
   --text-tertiary: var(--color-text-muted);
   --text-dim: var(--color-text-muted);
   --primary-content: #B8C7FF;
+  --primary-content-hover: #DCE4FF;
   --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
   --shadow-drawer: -10px 0 35px rgba(0, 0, 0, 0.35);
   --shadow-modal: 0 20px 45px -5px rgba(0, 0, 0, 0.52);
@@ -147,13 +149,13 @@ html, body {
    LANDING INSTITUCIONAL E PRÉVIAS DE FUNCIONALIDADES
    ========================================================================== */
 .landing-page {
-  min-height: 100vh;
+  min-height: calc(100vh - 48px);
   max-width: 1180px;
   margin: 0 auto;
-  padding: 24px 28px 32px;
+  padding: 20px 28px 28px;
   display: flex;
   flex-direction: column;
-  gap: 52px;
+  gap: 28px;
 }
 
 .landing-header,
@@ -169,7 +171,7 @@ html, body {
 
 .landing-doc-link,
 .landing-footer a {
-  color: var(--primary);
+  color: var(--primary-content);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -179,20 +181,20 @@ html, body {
 
 .landing-doc-link:hover,
 .landing-footer a:hover {
-  color: var(--primary-hover);
+  color: var(--primary-content-hover);
   text-decoration: underline;
 }
 
 .landing-hero {
   max-width: 820px;
-  padding: 58px 0 12px;
+  padding: 12px 0 4px;
 }
 
 .landing-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--primary);
+  color: var(--primary-content);
   background: var(--primary-subtle);
   border: 1px solid var(--primary-border);
   border-radius: var(--radius-pill);
@@ -306,7 +308,7 @@ html, body {
 /* Layout Shell com Sidebar Fixa e Área Principal */
 .module-layout {
   display: flex;
-  min-height: 100vh;
+  min-height: calc(100vh - 48px);
   background-color: var(--bg-app);
   position: relative;
 }
@@ -322,9 +324,9 @@ html, body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 100vh;
+  height: calc(100vh - 48px);
   position: fixed;
-  top: 0;
+  top: 48px;
   left: 0;
   bottom: 0;
   z-index: 40;
@@ -475,7 +477,7 @@ html, body {
   min-height: 38px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  color: var(--primary);
+  color: var(--primary-content);
   background: var(--bg-card);
   cursor: pointer;
 }
@@ -486,7 +488,7 @@ html, body {
   width: 100%;
   min-height: 38px;
   justify-content: center;
-  color: var(--primary);
+  color: var(--primary-content);
 }
 
 .sidebar-project-hint {
@@ -732,7 +734,7 @@ html, body {
   flex-direction: column;
   gap: 14px;
   position: sticky;
-  top: 0;
+  top: 48px;
   z-index: 30;
 }
 
@@ -850,8 +852,8 @@ html, body {
   background: currentColor;
 }
 
-.control-icon-project { color: var(--primary); }
-.control-icon-repository { color: var(--primary); }
+.control-icon-project { color: var(--primary-content); }
+.control-icon-repository { color: var(--primary-content); }
 
 /* Botões do sistema. */
 .btn-module {
@@ -948,7 +950,7 @@ html, body {
 .tab-btn.active {
   background-color: var(--bg-card);
   border-color: var(--border-default);
-  color: var(--primary);
+  color: var(--primary-content);
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
@@ -1472,7 +1474,7 @@ html, body {
 .hash-badge {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--primary);
+  color: var(--primary-content);
   background-color: var(--primary-subtle);
   padding: 2px 6px;
   border-radius: var(--radius-xs);
@@ -1487,7 +1489,7 @@ html, body {
    ========================================================================== */
 .inspector-drawer {
   position: fixed;
-  top: 0;
+  top: 48px;
   right: 0;
   bottom: 0;
   width: 440px;
@@ -1708,7 +1710,7 @@ html, body {
 
   .module-sidebar {
     position: sticky;
-    top: 0;
+    top: 48px;
     left: auto;
     bottom: auto;
     width: 100%;
@@ -1716,7 +1718,7 @@ html, body {
     height: auto;
     border-right: 0;
     border-bottom: 1px solid var(--border-subtle);
-    z-index: 60;
+    z-index: 45;
   }
 
   .sidebar-top {
@@ -1854,7 +1856,7 @@ html, body {
    ACESSO UNIFICADO E CONTEXTO DE PROJETO (MÓDULO 1)
    ========================================================================== */
 .platform-access-page {
-  min-height: 100vh;
+  min-height: calc(100vh - 48px);
   padding: 32px 20px;
   background:
     radial-gradient(circle at 15% 10%, var(--primary-subtle), transparent 34%),
@@ -1919,7 +1921,7 @@ html, body {
   border-radius: 9px;
   display: grid;
   place-items: center;
-  color: var(--primary);
+  color: var(--primary-content);
   background: var(--primary-subtle);
   border: 1px solid var(--primary-border);
 }
@@ -2027,16 +2029,16 @@ html, body {
   margin-bottom: 18px;
 }
 .onboarding-card-header { display: flex; gap: 20px; justify-content: space-between; align-items: flex-start; }
-.onboarding-eyebrow { color: var(--primary); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+.onboarding-eyebrow { color: var(--primary-content); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
 .onboarding-card h2 { margin: 5px 0 6px; color: var(--text-main); font-size: 18px; }
 .onboarding-card p { margin: 0; color: var(--text-tertiary); font-size: 12px; line-height: 1.5; }
-.onboarding-progress { flex: 0 0 auto; min-width: 104px; padding: 10px 12px; border: 1px solid var(--primary-border); border-radius: 8px; background: var(--primary-subtle); color: var(--primary); text-align: center; }
+.onboarding-progress { flex: 0 0 auto; min-width: 104px; padding: 10px 12px; border: 1px solid var(--primary-border); border-radius: 8px; background: var(--primary-subtle); color: var(--primary-content); text-align: center; }
 .onboarding-progress strong { display: block; font-size: 18px; line-height: 1; }
 .onboarding-progress span { display: block; margin-top: 4px; font-size: 10px; color: var(--text-tertiary); }
 .onboarding-steps { display: grid; gap: 8px; padding: 0; margin: 18px 0 0; list-style: none; }
 .onboarding-step { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-card-secondary); }
 .onboarding-step.is-done { border-color: var(--success-border); background: var(--success-subtle); }
-.onboarding-step-index { display: grid; flex: 0 0 28px; width: 28px; height: 28px; place-items: center; border: 1px solid var(--primary-border); border-radius: 50%; color: var(--primary); font-size: 12px; font-weight: 700; }
+.onboarding-step-index { display: grid; flex: 0 0 28px; width: 28px; height: 28px; place-items: center; border: 1px solid var(--primary-border); border-radius: 50%; color: var(--primary-content); font-size: 12px; font-weight: 700; }
 .onboarding-step.is-done .onboarding-step-index { border-color: var(--success-border); color: var(--success); }
 .onboarding-step-copy { flex: 1; min-width: 0; }
 .onboarding-step-copy strong { display: block; color: var(--text-main); font-size: 12.5px; }
@@ -2044,7 +2046,7 @@ html, body {
 .onboarding-step .btn-module { flex: 0 0 auto; }
 .onboarding-insights { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--text-muted); font-size: 11.5px; }
 .onboarding-insights svg { color: var(--info); flex: 0 0 auto; }
-.link-button { border: 0; padding: 0; background: transparent; color: var(--primary); font: inherit; font-weight: 600; cursor: pointer; }
+.link-button { border: 0; padding: 0; background: transparent; color: var(--primary-content); font: inherit; font-weight: 600; cursor: pointer; }
 .link-button:hover { text-decoration: underline; }
 @media (max-width: 700px) {
   .onboarding-card-header { flex-direction: column; }
@@ -2115,7 +2117,7 @@ html, body {
 
 .project-empty-state h2 { color: var(--text-main); font-size: 18px; }
 .project-empty-state p { color: var(--text-tertiary); font-size: 12px; line-height: 1.5; margin-bottom: 8px; }
-.project-empty-icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; color: var(--primary); background: var(--primary-subtle); border: 1px solid var(--primary-border); font-size: 11px; font-weight: 800; }
+.project-empty-icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; color: var(--primary-content); background: var(--primary-subtle); border: 1px solid var(--primary-border); font-size: 11px; font-weight: 800; }
 
 .project-hub {
   margin: 28px;
@@ -2134,7 +2136,7 @@ html, body {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.project-hub-eyebrow { color: var(--primary); font-size: 10px; font-weight: 700; letter-spacing: 0.8px; }
+.project-hub-eyebrow { color: var(--primary-content); font-size: 10px; font-weight: 700; letter-spacing: 0.8px; }
 .project-hub-heading h2 { margin-top: 5px; color: var(--text-main); font-size: 20px; letter-spacing: -0.35px; }
 .project-hub-heading p { margin-top: 6px; color: var(--text-tertiary); font-size: 12px; line-height: 1.5; }
 
@@ -2162,13 +2164,13 @@ html, body {
 }
 
 .project-card:hover { border-color: var(--primary); background: var(--bg-card-hover); transform: translateY(-1px); }
-.project-card-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 9px; color: var(--primary); background: var(--primary-subtle); border: 1px solid var(--primary-border); }
+.project-card-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 9px; color: var(--primary-content); background: var(--primary-subtle); border: 1px solid var(--primary-border); }
 .project-card-copy { min-width: 0; }
 .project-card-copy strong { display: block; overflow: hidden; color: var(--text-main); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .project-card-copy p { display: -webkit-box; overflow: hidden; margin-top: 4px; color: var(--text-tertiary); font-size: 11px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .project-card-copy span { display: block; margin-top: 8px; color: var(--text-dim); font-size: 9.5px; }
 .project-card-arrow { color: var(--text-dim); }
-.project-card:hover .project-card-arrow { color: var(--primary); }
+.project-card:hover .project-card-arrow { color: var(--primary-content); }
 
 .project-hub-empty { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 34px 20px 12px; text-align: center; }
 .project-hub-empty strong { color: var(--text-main); font-size: 14px; }
