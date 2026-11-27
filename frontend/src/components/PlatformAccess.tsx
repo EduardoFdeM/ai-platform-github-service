@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ArrowLeft, Eye, EyeOff, LoaderCircle, LockKeyhole, ShieldCheck, UserPlus } from 'lucide-react'
 import { api, type PlatformLoginResult } from '../api'
 import { createPlatformSession, type PlatformSession } from '../platformSession'
@@ -18,12 +18,30 @@ export const PlatformAccess: React.FC<PlatformAccessProps> = ({ onAuthenticated,
   const [showPassword, setShowPassword] = useState(false)
   const [rememberOnDevice, setRememberOnDevice] = useState(true)
   const [loading, setLoading] = useState(false)
+  const [fallbackReadyNotice, setFallbackReadyNotice] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void api.modulesHealth()
+      .then((health) => {
+        if (cancelled) return
+        const m1Auth = health.modules.find((mod) => mod.id === 'module1_auth')
+        if (health.fallback_enabled && m1Auth?.status === 'down') {
+          setFallbackReadyNotice(true)
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   const finishLogin = async (login: PlatformLoginResult) => {
     api.setAccessToken(login.access_token)
     const user = await api.platformMe()
-    onAuthenticated(createPlatformSession(login.access_token, login.expires_in, user), rememberOnDevice)
+    onAuthenticated(
+      createPlatformSession(login.access_token, login.expires_in, user, Date.now(), login.auth_mode ?? user.auth_mode),
+      rememberOnDevice,
+    )
   }
 
   const submit = async (event: React.FormEvent) => {
@@ -95,6 +113,13 @@ export const PlatformAccess: React.FC<PlatformAccessProps> = ({ onAuthenticated,
           <div className="platform-feedback platform-feedback-info" role="status">
             <ShieldCheck size={15} />
             <span>{notice}</span>
+          </div>
+        )}
+
+        {!notice && !feedback && fallbackReadyNotice && (
+          <div className="platform-feedback platform-feedback-info" role="status">
+            <ShieldCheck size={15} />
+            <span>Módulo 1 temporariamente indisponível: ao entrar, o acesso seguirá automaticamente em modo contingência local.</span>
           </div>
         )}
 

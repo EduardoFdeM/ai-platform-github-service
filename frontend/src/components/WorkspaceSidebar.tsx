@@ -1,5 +1,5 @@
 import React from 'react'
-import { BarChart3, ChevronLeft, ChevronRight, FileText, FolderCog, FolderGit2, FolderPlus, LogOut, Menu, Radio, RefreshCw, ShieldCheck } from 'lucide-react'
+import { BarChart3, ChevronLeft, ChevronRight, FileText, FolderCog, FolderGit2, FolderPlus, LogOut, Menu, Radio, RefreshCw, Settings, ShieldCheck } from 'lucide-react'
 import type { PlatformProject } from '../api'
 import type { PlatformUser } from '../platformSession'
 import type { TabId } from './Header'
@@ -10,6 +10,7 @@ interface WorkspaceSidebarProps {
   collapsed: boolean
   onToggle: () => void
   user: PlatformUser
+  authMode?: 'module1' | 'fallback'
   projects: PlatformProject[]
   projectsLoading: boolean
   projectsError: boolean
@@ -17,6 +18,7 @@ interface WorkspaceSidebarProps {
   onSelectProject: (project: PlatformProject | null) => void
   onOpenProjects: () => void
   onOpenCreateProject: () => void
+  onOpenProfileSettings: () => void
   onLogout: () => void
 }
 
@@ -35,6 +37,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   collapsed,
   onToggle,
   user,
+  authMode = 'module1',
   projects,
   projectsLoading,
   projectsError,
@@ -42,6 +45,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   onSelectProject,
   onOpenProjects,
   onOpenCreateProject,
+  onOpenProfileSettings,
   onLogout,
 }) => (
   <aside className={`module-sidebar ${collapsed ? 'is-collapsed' : ''}`}>
@@ -118,8 +122,30 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
 
     <div className="sidebar-footer">
       <div className="user-profile-strip" title={`${user.display_name} · ${user.email}`}>
-        <div className="user-avatar-circle">{user.display_name?.slice(0, 2).toUpperCase() || 'M2'}</div>
-        <div className="user-meta"><span className="user-meta-name">{user.display_name}</span><span className="user-meta-role">{user.email}</span></div>
+        <button
+          type="button"
+          className="profile-settings-trigger"
+          onClick={onOpenProfileSettings}
+          aria-label="Abrir perfil e saúde dos módulos"
+          title="Perfil e saúde dos módulos"
+        >
+          <div className="user-avatar-circle">{user.display_name?.slice(0, 2).toUpperCase() || 'M2'}</div>
+          <div className="user-meta">
+            <span className="user-meta-name">{user.display_name}</span>
+            <span className="user-meta-role">
+              {authMode === 'fallback' ? 'Modo Contingência · Health' : user.email}
+            </span>
+          </div>
+        </button>
+        <button
+          type="button"
+          className="sidebar-logout"
+          onClick={onOpenProfileSettings}
+          aria-label="Configurações do perfil e saúde dos módulos"
+          title="Perfil e saúde dos módulos"
+        >
+          <Settings size={15} />
+        </button>
         <button type="button" className="sidebar-logout" onClick={onLogout} aria-label="Sair da plataforma" title="Sair da plataforma"><LogOut size={16} /></button>
       </div>
     </div>

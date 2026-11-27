@@ -641,7 +641,32 @@ html, body {
 .user-profile-strip {
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.profile-settings-trigger {
+  display: flex;
+  align-items: center;
   gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 4px;
+  margin: -4px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.profile-settings-trigger:hover {
+  background: var(--bg-card-hover);
+}
+
+.module-sidebar.is-collapsed .profile-settings-trigger {
+  flex: none;
+  justify-content: center;
 }
 
 .user-avatar-circle {
@@ -2202,4 +2227,201 @@ html, body {
   .project-hub-heading { flex-direction: column; gap: 14px; }
   .project-hub-heading .btn-module { width: 100%; }
   .project-card-grid { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================================
+   MODAL DE PERFIL E SAÚDE DOS MÓDULOS
+   ========================================================================== */
+.profile-settings-dialog {
+  width: min(100%, 620px);
+}
+
+.profile-summary-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-card-secondary);
+}
+
+.profile-summary-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.profile-summary-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.profile-summary-text strong {
+  color: var(--text-main);
+  font-size: 13px;
+}
+
+.profile-summary-text span {
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-summary-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.profile-session-ttl {
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+}
+
+.profile-health-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-health-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.profile-health-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-main);
+  font-size: 13px;
+}
+
+.profile-health-sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+}
+
+.profile-health-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 310px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.profile-health-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card-secondary);
+}
+
+.profile-health-row-main {
+  min-width: 0;
+}
+
+.profile-health-row-main strong {
+  display: block;
+  color: var(--text-main);
+  font-size: 12px;
+}
+
+.profile-health-row-main p {
+  margin-top: 2px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.profile-health-row-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.profile-health-latency {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.profile-health-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-default);
+  white-space: nowrap;
+}
+
+.profile-health-badge.is-success {
+  color: var(--success);
+  background: var(--success-subtle);
+  border-color: var(--success-border);
+}
+
+.profile-health-badge.is-danger {
+  color: var(--danger);
+  background: var(--danger-subtle);
+  border-color: var(--danger-border);
+}
+
+.profile-health-badge.is-warning {
+  color: var(--warning);
+  background: var(--warning-subtle);
+  border-color: var(--warning-border);
+}
+
+.profile-health-badge.is-info {
+  color: var(--info);
+  background: var(--info-subtle);
+  border-color: var(--info-border);
+}
+
+.profile-health-badge.is-muted {
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border-color: var(--border-default);
+}
+
+.profile-health-footnote {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.profile-modal-actions {
+  justify-content: space-between;
+}
+
+@media (max-width: 600px) {
+  .profile-summary-meta {
+    align-items: flex-start;
+  }
+  .profile-health-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

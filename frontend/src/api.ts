@@ -153,10 +153,29 @@ export class ApiError extends Error {
   }
 }
 
+export type ModuleHealthStatus = 'up' | 'down' | 'degraded' | 'configured' | 'not_configured'
+
+export interface ModuleHealthItem {
+  id: string
+  name: string
+  role: 'core' | 'dependency_with_fallback' | 'external' | 'optional_isolated'
+  status: ModuleHealthStatus
+  latency_ms: number | null
+  detail: string
+}
+
+export interface ModulesHealthReport {
+  checked_at: string
+  overall_status: 'operational' | 'degraded' | 'down'
+  fallback_enabled: boolean
+  modules: ModuleHealthItem[]
+}
+
 export interface PlatformLoginResult {
   access_token: string
   token_type: 'bearer'
   expires_in: number
+  auth_mode?: 'module1' | 'fallback'
 }
 
 export interface PlatformUser {
@@ -165,6 +184,7 @@ export interface PlatformUser {
   display_name: string
   is_active: boolean
   created_at: string
+  auth_mode?: 'module1' | 'fallback'
 }
 
 export interface PlatformProject {
@@ -275,6 +295,7 @@ export const api = {
     }),
 
   health: () => request<HealthStatus>('/api/v1/health', undefined, false),
+  modulesHealth: () => getJson<ModulesHealthReport>('/api/v1/health/modules', undefined, false),
   connectivity: () => request<ConnectivityStatus>('/api/v1/health/github-connectivity', undefined, false),
 
   handshake: (token: string) =>

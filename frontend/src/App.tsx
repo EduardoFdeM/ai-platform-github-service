@@ -15,6 +15,7 @@ import { PlatformAccess } from './components/PlatformAccess'
 import { CreateProjectModal } from './components/CreateProjectModal'
 import { DisconnectRepositoryModal } from './components/DisconnectRepositoryModal'
 import { DeleteProjectModal } from './components/DeleteProjectModal'
+import { ProfileSettingsModal } from './components/ProfileSettingsModal'
 import { ProjectHub } from './components/ProjectHub'
 import { buildWorkspaceUrl, parseWorkspaceState } from './workspaceState'
 import {
@@ -91,6 +92,7 @@ export default function App() {
   const [deleteProject, setDeleteProject] = useState<PlatformProject | null>(null)
   const [deletingProject, setDeletingProject] = useState(false)
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null)
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [platformSession, setPlatformSession] = useState<PlatformSession | null>(() => readPlatformSession())
   const [sessionChecking, setSessionChecking] = useState(false)
   const [accessNotice, setAccessNotice] = useState<string | null>(null)
@@ -158,6 +160,7 @@ export default function App() {
     setFlow(null)
     setRepositoryTokens({})
     setPlatformContextError(null)
+    setProfileModalOpen(false)
     setSessionChecking(false)
     setAccessNotice(reason === 'manual' ? 'Sessão encerrada com segurança.' : 'Sua sessão expirou. Entre novamente para continuar.')
   }, [platformSession?.user.id])
@@ -460,6 +463,7 @@ export default function App() {
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((current) => !current)}
         user={platformSession.user}
+        authMode={platformSession.authMode ?? platformSession.user.auth_mode}
         projects={projects}
         projectsLoading={platformContextLoading}
         projectsError={Boolean(platformContextError)}
@@ -470,6 +474,7 @@ export default function App() {
           if (window.matchMedia('(max-width: 760px)').matches) setSidebarCollapsed(true)
         }}
         onOpenCreateProject={() => setCreateProjectModalOpen(true)}
+        onOpenProfileSettings={() => setProfileModalOpen(true)}
         onLogout={() => handleLogout('manual')}
       />
 
@@ -504,7 +509,7 @@ export default function App() {
           </section>
         )}
 
-        {!platformContextError && !selectedProject && (
+        {(!platformContextError || projects.length > 0) && !selectedProject && (
           <ProjectHub
             projects={projects}
             isRefreshing={platformContextLoading}
@@ -647,6 +652,12 @@ export default function App() {
         error={deleteProjectError}
         onCancel={() => { if (!deletingProject) setDeleteProject(null) }}
         onConfirm={() => void handleDeleteProject()}
+      />
+      <ProfileSettingsModal
+        isOpen={profileModalOpen}
+        session={platformSession}
+        onClose={() => setProfileModalOpen(false)}
+        onLogout={() => handleLogout('manual')}
       />
     </div>
   )

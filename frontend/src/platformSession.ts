@@ -6,6 +6,7 @@ export interface PlatformUser {
   display_name: string
   is_active: boolean
   created_at: string
+  auth_mode?: 'module1' | 'fallback'
 }
 
 export interface PlatformSession {
@@ -13,6 +14,7 @@ export interface PlatformSession {
   tokenType: 'bearer'
   expiresAt: number
   user: PlatformUser
+  authMode?: 'module1' | 'fallback'
 }
 
 export interface StorageLike {
@@ -72,12 +74,15 @@ export function createPlatformSession(
   expiresInSeconds: number,
   user: PlatformUser,
   now = Date.now(),
+  authMode?: 'module1' | 'fallback',
 ): PlatformSession {
+  const resolvedMode = authMode ?? user.auth_mode
   return {
     accessToken,
     tokenType: 'bearer',
     expiresAt: now + Math.max(0, expiresInSeconds) * 1000,
     user,
+    ...(resolvedMode ? { authMode: resolvedMode } : {}),
   }
 }
 
